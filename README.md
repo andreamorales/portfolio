@@ -1,6 +1,6 @@
 # Personal Portfolio Site
 
-A clean, modern portfolio site built with SvelteKit.
+A clean, modern portfolio site built with SvelteKit and Svelte 5.
 
 ## Features
 
