@@ -1,0 +1,11 @@
+:global(img.logo) {
+  height: 2.5em;
+  width: auto;
+  object-fit: contain;
+  color: var(--text-color);
+}
+
+:global(svg.logo),
+:global(.logo-link svg) {
+  color: var(--text-color);
+} 

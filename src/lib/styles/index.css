@@ -1,0 +1,7 @@
+@import './global/variables.css';
+@import './global/global.css';
+@import './global/animations.css';
+@import './global/layout.css';
+@import './global/spotlight.css';
+@import './components/logo.css';
+@import './chartStyles.css'; 

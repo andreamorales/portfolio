@@ -1,0 +1,137 @@
+:root {
+  /* Theme Colors */
+  --primary-color: #6c5ce7;
+  --secondary-color: #a29bfe;
+  --accent-color: #fd79a8;
+  --success-color: #00b894;
+  --warning-color: #fdcb6e;
+  --error-color: #d63031;
+  --info-color: #0984e3;
+
+  /* Grey Scale */
+  --grey-lightest: #f8f9fa;
+  --grey-lighter: #e9ecef;
+  --grey-light: #dee2e6;
+  --grey: #ced4da;
+  --grey-dark: #adb5bd;
+  --grey-darker: #6c757d;
+  --grey-darkest: #343a40;
+
+  /* Font Colors */
+  --text-color: rgba(0, 0, 0, 0.87);
+  --text-color-light: rgba(0, 0, 0, 0.6);
+  --text-color-lighter: rgba(0, 0, 0, 0.38);
+  
+  /* Background Colors */
+  --bg-color: #ffffff;
+  --bg-color-alt: #f9f9f9;
+  --bg-color-dark: #f1f1f1;
+
+  /* Gradients */
+  --primary-gradient: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  --accent-gradient: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+  --text-gradient: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+
+  /* Typography */
+  --font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  --font-family-heading: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  --font-family-mono: 'JetBrains Mono', SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+  
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+  --font-size-5xl: 3rem;
+  
+  /* Spacing */
+  --spacing-xxs: 0.25rem;
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 0.75rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-xxl: 3rem;
+  --spacing-extra-large: 5rem;
+  
+  /* Borders */
+  --border-radius-sm: 0.125rem;
+  --border-radius: 0.25rem;
+  --border-radius-md: 0.375rem;
+  --border-radius-lg: 0.5rem;
+  --border-radius-xl: 1rem;
+  --border-radius-full: 9999px;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+  
+  /* Z-index */
+  --z-negative: -1;
+  --z-0: 0;
+  --z-10: 10;
+  --z-20: 20;
+  --z-30: 30;
+  --z-40: 40;
+  --z-50: 50;
+  --z-toast: 1000;
+  --z-modal: 1100;
+  --z-popover: 1200;
+  --z-tooltip: 1300;
+
+  /* Animation */
+  --transition-fast: 150ms;
+  --transition-normal: 300ms;
+  --transition-slow: 500ms;
+  --easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --easing-decelerate: cubic-bezier(0, 0, 0.2, 1);
+  --easing-accelerate: cubic-bezier(0.4, 0, 1, 1);
+}
+
+/* Dark theme variables */
+.dark-theme {
+  --primary-color: #7c6cf8;
+  --secondary-color: #b2abfe;
+  --accent-color: #fd79a8;
+
+  /* Grey Scale */
+  --grey-lightest: #343a40;
+  --grey-lighter: #495057;
+  --grey-light: #6c757d;
+  --grey: #adb5bd;
+  --grey-dark: #ced4da;
+  --grey-darker: #dee2e6;
+  --grey-darkest: #f8f9fa;
+
+  /* Font Colors */
+  --text-color: rgba(255, 255, 255, 0.87);
+  --text-color-light: rgba(255, 255, 255, 0.6);
+  --text-color-lighter: rgba(255, 255, 255, 0.38);
+  
+  /* Background Colors */
+  --bg-color: #121212;
+  --bg-color-alt: #1e1e1e;
+  --bg-color-dark: #2d2d2d;
+
+  /* Shadows - darker for dark mode */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+} 

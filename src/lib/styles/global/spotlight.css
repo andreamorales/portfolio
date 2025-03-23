@@ -1,0 +1,36 @@
+ /* Spotlight effect utility */
+.spotlight-effect {
+    position: relative;
+  }
+  
+  .spotlight-effect::before {
+    content: '';
+    position: absolute;
+    width: 120%;
+    height: 120%;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(
+      circle at center,
+      color-mix(in srgb, var(--purple-darkest) 99.95%, var(--purple-mid) 0.05%) 0%,
+      transparent 90%
+    );
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0.08;
+  }
+  
+  /* Larger spotlight variant */
+  .spotlight-effect-large::before {
+    width: 150%;
+    height: 150%;
+    opacity: 0.1;
+  }
+  
+  /* Smaller spotlight variant */
+  .spotlight-effect-small::before {
+    width: 110%;
+    height: 110%;
+    opacity: 0.06;
+  }
