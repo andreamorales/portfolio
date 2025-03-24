@@ -72,6 +72,7 @@
     role="dialog"
     aria-modal="true"
     aria-labelledby="contact-form-title"
+    tabindex="0"
   >
     <div class="contact-modal">
       <button class="close-button" on:click={closeForm}>×</button>
@@ -146,7 +147,8 @@
     align-items: center;
     z-index: 1000;
     padding: 1rem;
-    font-family: 'Recursive Variable';
+    font-family: 'Recursive', sans-serif;
+    font-variation-settings: 'CASL' 0;
   }
   
   .contact-modal {
@@ -170,7 +172,7 @@
     color: var(--text-color);
     opacity: 0.7;
     transition: opacity var(--transition);
-    font-family: 'Recursive Variable';
+    font-family: 'Recursive', sans-serif;
   }
   
   .close-button:hover {
@@ -180,8 +182,8 @@
   h2 {
     margin-bottom: 1.5rem;
     font-size: var(--font-size-2xl);
-    font-family: 'Recursive Variable';
-    font-weight: 500;
+    font-family: 'Recursive', sans-serif;
+    font-weight: 400;
     color: var(--text-color);
   }
   
@@ -189,7 +191,8 @@
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
-    font-family: 'Recursive Variable';
+    font-family: 'Recursive', sans-serif;
+    font-variation-settings: 'CASL' 0;
   }
   
   .form-group {
@@ -199,9 +202,9 @@
   }
   
   label {
-    font-weight: 500;
+    font-weight: 400;
     font-size: var(--font-size-small);
-    font-family: 'Recursive Variable';
+    font-family: 'Recursive', sans-serif;
   }
   
   input, textarea {
@@ -210,8 +213,9 @@
     border-radius: var(--border-radius);
     background-color: var(--input-bg-color);
     color: var(--input-text-color);
-    font-family: 'Recursive Variable';
+    font-family: 'Recursive', sans-serif;
     font-size: var(--input-font-size);
+    font-variation-settings: 'CASL' 0;
   }
   
   input::placeholder, textarea::placeholder {
@@ -231,18 +235,20 @@
   
   .submit-button {
     padding: var(--button-padding);
-    background-color: var(--button-primary-bg);
-    color: var(--button-primary-text);
-    border: 1px solid var(--button-primary-border);
+    background-color: var(--button-bg-color);
+    color: var(--button-text-color);
+    border: 1px solid var(--text-color);
     border-radius: var(--border-radius);
-    font-weight: 500;
+    font-weight: 400;
     cursor: pointer;
     transition: all var(--transition);
-    font-family: 'Recursive Variable';
+    font-family: 'Recursive', sans-serif;
     text-transform: var(--button-text-transform);
   }
   
   .submit-button:hover:not(:disabled) {
+    background: var(--text-color);
+    color: var(--bg-color);
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
   }

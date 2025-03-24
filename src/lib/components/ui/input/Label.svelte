@@ -2,6 +2,7 @@
   export let text: string = '';
   export let variant: 'outline' | 'solid' | 'platform' | 'semisolid' | 'professional' | 'version' = 'outline';
   export let platformType: 'API' | 'Valuation' | 'Robots' | 'Progressive' | 'Evals' = 'API';
+  export let color: 'default' | 'grey' = 'default';
 
   let isHovered = false;
   let randomSeed = 0;
@@ -29,46 +30,44 @@
     return `
       --ty: ${randTy}px;
       --tx: ${randTx}px;
-      --tr: ${randRotation}deg;
       height: ${randHeight}px;
       width: ${randWidth}px;
-      background: ${randColor};
+      background-color: ${randColor};
+      transform: translate(var(--tx), var(--ty)) rotate(${randRotation}deg);
       animation-delay: ${randDelay}s;
     `;
   }) : [];
 
-  const platformConfig = {
-    'API': {
-      text: 'API',
-      bg: 'color-mix(in srgb, var(--purple-darkest) 20%, transparent)'
-    },
-    'Valuation': {
-      text: 'Novelty Scoring',
-      bg: 'color-mix(in srgb, var(--pink-darkest) 20%, transparent)'
-    },
-    'Evals': {
-      text: 'Tiny Evals',
-      bg: 'color-mix(in srgb, var(--cyan-darkest) 20%, transparent)'
-    },
-    'Robots': {
-      text: 'Crawler Block',
-      bg: 'color-mix(in srgb, var(--orange-darkest) 20%, transparent)'
-    },
-    'Progressive': {
-      text: 'Interpretability Analytics',
-      bg: 'color-mix(in srgb, var(--cyan-darkest) 20%, transparent)'
+  let platformStyle = '';
+  if (variant === 'platform') {
+    switch (platformType) {
+      case 'API':
+        platformStyle = 'background-color: var(--purple-lightest); color: var(--purple-darker);';
+        break;
+      case 'Valuation':
+        platformStyle = 'background-color: var(--blue-lightest); color: var(--blue-darker);';
+        break;
+      case 'Robots':
+        platformStyle = 'background-color: var(--cyan-lightest); color: var(--cyan-darker);';
+        break;
+      case 'Progressive':
+        platformStyle = 'background-color: var(--pink-lightest); color: var(--pink-darker);';
+        break;
+      case 'Evals':
+        platformStyle = 'background-color: var(--orange-lightest); color: var(--orange-darker);';
+        break;
     }
-  };
+  }
 
-  $: displayText = variant === 'platform' ? platformConfig[platformType].text : text;
-  $: platformStyle = variant === 'platform' ? 
-    `background-color: ${platformConfig[platformType].bg};` : '';
+  // Used to generate different random sparkles when hovering over version labels
+  $: displayText = text;
 </script>
 
 <div class="label" 
   class:solid={variant === 'solid'} 
   class:platform={variant === 'platform'} 
   class:semisolid={variant === 'semisolid'} 
+  class:semisolid-grey={variant === 'semisolid' && color === 'grey'}
   class:professional={variant === 'professional'} 
   class:version={variant === 'version'} 
   style={platformStyle}
@@ -80,7 +79,7 @@
   {#if variant === 'version'}
     <div class="confetti-container">
       {#each Array(6) as _, i}
-        <div class="confetti" style={confettiStyles[i] || ''} />
+        <div class="confetti" style={confettiStyles[i] || ''}></div>
       {/each}
     </div>
   {/if}
@@ -94,12 +93,14 @@
     padding: 4px 12px;
     border-radius: 16px;
     font-size: 0.75rem;
-    font-weight: 500;
+    font-weight: 700;
     letter-spacing: 0.05em;
     border: 1px solid var(--text-color);
     color: var(--text-color);
     width: fit-content;
     white-space: nowrap;
+    font-family: 'Recursive', monospace;
+    font-variation-settings: 'MONO' 1, 'CASL' 0, 'wght' 700;
   }
 
   .solid {
@@ -110,6 +111,13 @@
   .semisolid {
     background-color: color-mix(in srgb, var(--text-color) 20%, transparent);
     border: none;
+  }
+
+  .semisolid-grey {
+    background-color: color-mix(in srgb, var(--grey-mid) 50%, transparent);
+    color: var(--grey-darker);
+    border: none;
+    opacity: 0.9;
   }
 
   .professional {

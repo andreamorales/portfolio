@@ -13,16 +13,15 @@
   }
 
   onMount(() => {
-    // Check for saved theme preference or default to system preference
+    // Check for saved theme preference or default to light mode
     if (typeof window !== 'undefined') {
       const savedTheme = localStorage.getItem('theme');
       
       if (savedTheme) {
         theme = savedTheme;
       } else {
-        // Default to system preference
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        theme = prefersDark ? 'dark-theme' : 'light-theme';
+        // Always default to light theme
+        theme = 'light-theme';
       }
       
       document.documentElement.className = theme;
