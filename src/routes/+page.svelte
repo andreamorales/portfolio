@@ -7,10 +7,7 @@
   
   // Import all collage images
   import beetle from '$lib/images/beetle.png';
-  import bobo from '$lib/images/bobo.png';
   import dahlia from '$lib/images/dahlia.png';
-  import dodo from '$lib/images/dodo.png';
-  import flowers from '$lib/images/flowers.png';
   import knight from '$lib/images/knight.png';
   import orchid from '$lib/images/orchid.png';
   import owl from '$lib/images/owl.png';
@@ -406,6 +403,42 @@
       return img;
     });
   }
+
+  // Reference to the contact form section
+  let contactFormRef: HTMLElement;
+
+  // Function to scroll to contact form with debug logging
+  function scrollToContact() {
+    console.log('Scroll to contact triggered');
+    
+    // Direct implementation using a simple ID-based approach
+    const contactSection = document.getElementById('contact-section');
+    if (contactSection) {
+      console.log('Contact section found by ID, scrolling...');
+      contactSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (contactFormRef) {
+      console.log('Using ref instead, scrolling...');
+      contactFormRef.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      console.error('Contact section not found');
+    }
+  }
+
+  // Show/hide contact form with a toggle
+  let showContactForm = false;
+
+  // Function to toggle contact form visibility
+  function toggleContactForm() {
+    console.log('Toggle contact form triggered');
+    showContactForm = !showContactForm;
+    if (showContactForm) {
+      // Prevent body scrolling when modal is open
+      document.body.style.overflow = 'hidden';
+    } else {
+      // Restore scrolling when modal is closed
+      document.body.style.overflow = 'auto';
+    }
+  }
 </script>
 
 <svelte:head>
@@ -426,7 +459,7 @@
         </div>
 
       <div class="cta">
-        <button class="button-secondary">Get in touch</button>
+        <button class="button-secondary" on:click={toggleContactForm}>Get in touch</button>
       </div>
     </div>
 
@@ -493,7 +526,20 @@
   </main>
 </div>
 
-<ContactForm />
+<!-- Single contact form section with proper ID and binding -->
+<section id="contact-section" bind:this={contactFormRef} class="contact-section">
+  <ContactForm />
+</section>
+
+<!-- Modal contact form that appears over everything when toggled -->
+{#if showContactForm}
+  <div class="contact-modal" transition:fade={{ duration: 300 }}>
+    <div class="contact-modal-content">
+      <button class="close-button" on:click={toggleContactForm}>&times;</button>
+      <ContactForm />
+    </div>
+  </div>
+{/if}
 
 <style>
   .landing-page {
@@ -507,6 +553,8 @@
     max-width: 100%;
     margin: 0;
     padding: 0;
+    position: relative;
+    z-index: 2;
   }
 
   .colibri-container {
@@ -514,6 +562,7 @@
     top: -28.25%;
     right: -0.5%;
     transform: scale(0.5);
+    z-index: 2;
   }
 
   .title {
@@ -524,6 +573,8 @@
     line-height: 102px; /* 79.688% */
     letter-spacing: -1.28px;
     font-feature-settings: 'dlig' on, 'ss01' on;
+    position: relative;
+    z-index: 2;
   }
 
   .description {
@@ -534,6 +585,8 @@
     line-height: 24px;
     letter-spacing: 0.28px;
     font-variation-settings: 'CASL' 0;
+    position: relative;
+    z-index: 2;
   }
 
   .portfolio-list {
@@ -542,6 +595,8 @@
     gap: 1.5rem;
     font-family: 'Recursive', sans-serif;
     font-variation-settings: 'CASL' 0;
+    position: relative;
+    z-index: 5;
   }
 
   .portfolio-header {
@@ -576,10 +631,18 @@
     font-variation-settings: 'CASL' 0;
   }
 
+  .portfolio-item {
+    position: relative;
+    z-index: 5;
+  }
+
   .portfolio-content {
     padding: 1rem;
     font-family: 'Recursive', sans-serif;
     font-weight: 400;
+    position: relative;
+    z-index: 5;
+    background-color: var(--bg-color);
   }
 
   .portfolio-content p {
@@ -594,8 +657,9 @@
     right: 0;
     width: 100%;
     height: 100%;
-    z-index: 0;
+    z-index: 1;
     overflow: visible;
+    pointer-events: none;
   }
 
   .collage-image {
@@ -605,11 +669,48 @@
     filter: opacity(1);
     cursor: grab;
     user-select: none;
+    pointer-events: auto;
   }
   
   .collage-image:active {
     cursor: grabbing;
     transition: none; /* Disable transition during drag for smoother movement */
+  }
+  
+  /* Contact section styling */
+  .contact-section {
+    scroll-margin-top: 2rem;
+    min-height: 50vh;
+    padding-top: 4rem;
+    margin-top: 4rem;
+    position: relative;
+    z-index: 10; /* Ensure it's above the collage */
+    display: block; /* Ensure it's displayed */
+  }
+  
+  .cta {
+    position: relative;
+    z-index: 5;
+    display: flex;
+    justify-content: center;
+  }
+  
+  .button-secondary {
+    cursor: pointer;
+    position: relative;
+    z-index: 5;
+    padding: 0.75rem 1.5rem;
+    border: 2px solid var(--text-color);
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    pointer-events: auto;
+  }
+  
+  .button-secondary:hover {
+    background-color: var(--text-color);
+    color: var(--bg-color);
   }
   
   @keyframes fadeIn {
@@ -639,5 +740,54 @@
     .description {
       font-size: 1rem;
     }
+  }
+
+  /* Contact modal that appears on top of everything */
+  .contact-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    pointer-events: auto;
+  }
+
+  .contact-modal-content {
+    background-color: var(--bg-color);
+    padding: 2.5rem;
+    border-radius: 0.5rem;
+    max-width: 550px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  }
+
+  .close-button {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-color);
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.3s;
+  }
+
+  .close-button:hover {
+    background-color: rgba(0, 0, 0, 0.1);
   }
 </style> 
