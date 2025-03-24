@@ -1,7 +1,7 @@
 <script lang="ts">
   import { shareOnX, shareOnFacebook, shareOnLinkedIn } from '$lib/services';
   import { blur } from 'svelte/transition';
-  import { Facebook, Twitter, Linkedin, Copy } from 'lucide-svelte';
+  import { Facebook, Twitter, Linkedin, Copy } from 'svelte-lucide';
 
   export let position = 89;
   export let referralCount = 12;

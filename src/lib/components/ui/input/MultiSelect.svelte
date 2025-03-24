@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ChevronDown, X, Check, Search } from 'lucide-svelte';
+  import { ChevronDown, X, Check, Search } from 'svelte-lucide';
   import { createEventDispatcher, onMount, onDestroy } from 'svelte';
   import type { ComponentType } from 'svelte';
   import { Label } from '$lib/components/ui/input';

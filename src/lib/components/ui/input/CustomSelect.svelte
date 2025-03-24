@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ChevronDown } from 'lucide-svelte';
+  import { ChevronDown } from 'svelte-lucide';
   import { createEventDispatcher, onMount, onDestroy } from 'svelte';
   import type { ComponentType } from 'svelte';
   

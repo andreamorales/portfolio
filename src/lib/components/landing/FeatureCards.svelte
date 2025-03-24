@@ -3,7 +3,7 @@
   import { fade, fly } from 'svelte/transition';
   import { quintOut } from 'svelte/easing';
   import { goto } from '$app/navigation';
-  import { ArrowRight } from 'lucide-svelte';
+  import { ArrowRight } from 'svelte-lucide';
   import { Label } from '$lib/components/ui/input';
   import { duration, delay, distance, stagger } from '$lib/styles/animation-constants';
 

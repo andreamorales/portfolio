@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { fade, fly } from 'svelte/transition';
   import { quintOut } from 'svelte/easing';
-  import { ArrowRight, ArrowLeft } from 'lucide-svelte';
+  import { ArrowRight, ArrowLeft } from 'svelte-lucide';
   import { duration, delay, distance, stagger } from '$lib/styles/animation-constants';
   import { Label } from '$lib/components/ui/input';
 

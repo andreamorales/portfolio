@@ -5,7 +5,7 @@
     ChevronsRight,
     HardDrive,
     Search
-  } from 'lucide-svelte';
+  } from 'svelte-lucide';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { Divider } from '$lib/components/ui/layout';

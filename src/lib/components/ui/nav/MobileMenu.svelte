@@ -11,7 +11,7 @@
     X,
     ChevronDown,
     Scale
-  } from 'lucide-svelte';
+  } from 'svelte-lucide';
   
   export let isOpen = false;
   export let onClose: () => void;

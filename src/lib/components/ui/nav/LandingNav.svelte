@@ -11,7 +11,7 @@
     Briefcase,
     BookOpen,
     Scale
-  } from 'lucide-svelte';
+  } from 'svelte-lucide';
 
   type SectionItem = {
     title: string;

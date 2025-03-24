@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { FileUp } from 'lucide-svelte';
+  import { FileUp } from 'svelte-lucide';
   import { CustomSelect } from '$lib/components/ui/input';
   
   export let contentType: string | null = null;

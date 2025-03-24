@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy, createEventDispatcher } from 'svelte';
   import Chart from 'chart.js/auto';
-  import { HelpCircle } from 'lucide-svelte';
+  import { HelpCircle } from 'svelte-lucide';
   import MetricCard from '$lib/components/ui/layout/MetricCard.svelte';
 
   export let grades: Array<{fileName: string, score: number}> = [];

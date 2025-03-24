@@ -1,6 +1,6 @@
 <!-- MetricCard.svelte -->
 <script lang="ts">
-  import { HelpCircle } from 'lucide-svelte';
+  import { HelpCircle } from 'svelte-lucide';
   import Tooltip from '$lib/components/ui/feedback/Tooltip.svelte';
   
   export let title: string = '';

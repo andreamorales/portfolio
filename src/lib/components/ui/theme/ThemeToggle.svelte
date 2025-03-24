@@ -1,6 +1,6 @@
 <script lang="ts">
     import { theme } from '$lib/stores/theme';
-    import { Sun, Moon } from 'lucide-svelte';
+    import { Sun, Moon } from 'svelte-lucide';
     import { page } from '$app/stores';
   
     export let showOnHome = false;
