@@ -526,11 +526,6 @@
   </main>
 </div>
 
-<!-- Single contact form section with proper ID and binding -->
-<section id="contact-section" bind:this={contactFormRef} class="contact-section">
-  <ContactForm />
-</section>
-
 <!-- Modal contact form that appears over everything when toggled -->
 {#if showContactForm}
   <div class="contact-modal" transition:fade={{ duration: 300 }}>
