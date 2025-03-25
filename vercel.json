@@ -3,7 +3,10 @@
   "builds": [
     {
       "src": "package.json",
-      "use": "@vercel/node@20"
+      "use": "@vercel/node",
+      "config": {
+        "runtime": "nodejs20.x"
+      }
     }
   ]
 } 
