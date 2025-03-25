@@ -16,6 +16,10 @@
   import snake from '$lib/images/snake.png';
   import woman from '$lib/images/woman.png';
 
+  // Import additional images for large screens
+  import flowers from '$lib/images/flowers.png';
+  import bobo from '$lib/images/bobo.png';
+
   // Portfolio items
   let portfolioItems = [
     { 
@@ -179,11 +183,118 @@
     }
   ];
 
+  // Add the large screen images to the dimensions array
+  const largeScreenImages = [
+    { 
+      src: flowers, 
+      alt: "Flowers", 
+      width: 400, 
+      height: 500, 
+      zIndex: 2, 
+      aspectRatio: "400/500",
+      contentOffsets: { top: 10, right: 10, bottom: 10, left: 10 }
+    },
+    { 
+      src: bobo, 
+      alt: "Bobo", 
+      width: 300, 
+      height: 400, 
+      zIndex: 4, 
+      aspectRatio: "300/400",
+      contentOffsets: { top: 10, right: 10, bottom: 10, left: 10 }
+    }
+  ];
+
   // Generate positions for images with better randomization
   function generateRandomPositions() {
+    // Calculate a scale factor based on viewport width
+    const viewportWidth = window.innerWidth;
+    let scaleFactor = 1;
+    
+    // Determine which images to use based on screen size
+    let imagesToUse = [...imageDimensions];
+    
+    // Add additional images for large screens
+    if (viewportWidth > 1920) {
+      imagesToUse = [...imageDimensions, ...largeScreenImages];
+      scaleFactor = viewportWidth / 1920; // Scale up proportionally for large screens
+    } else if (viewportWidth < 768) {
+      scaleFactor = Math.max(0.4, viewportWidth / 1024); // Adjust scale for mobile
+      
+      // For mobile, create a layout that fills the playground space
+      const sizedImages = imagesToUse.map(img => ({
+        ...img,
+        width: img.width * scaleFactor,
+        height: img.height * scaleFactor,
+        area: img.width * img.height
+      }));
+
+      // Sort by area (descending) for z-index stacking
+      const sortedBySize = [...sizedImages].sort((a, b) => b.area - a.area);
+      
+      // Get container dimensions
+      const container = document.querySelector('.mobile-collage');
+      const containerWidth = container ? container.getBoundingClientRect().width : window.innerWidth;
+      const containerHeight = container ? container.getBoundingClientRect().height : window.innerHeight;
+      
+      // Create a layout that maximizes playground space usage while keeping images fully visible
+      return sortedBySize.map((img, i) => {
+        // Calculate the space needed for the image (accounting for rotation)
+        const maxRotation = 20; // Maximum rotation in degrees
+        const radians = Math.abs(maxRotation * Math.PI / 180);
+        const imageSpace = {
+          width: img.width * (Math.cos(radians) + Math.sin(radians)),
+          height: img.height * (Math.cos(radians) + Math.sin(radians))
+        };
+
+        // Calculate usable space (percentage) accounting for image dimensions
+        const imageWidthPercent = (imageSpace.width / containerWidth) * 100;
+        const imageHeightPercent = (imageSpace.height / containerHeight) * 100;
+        
+        // Calculate the available space for positioning
+        const usableWidth = 100 - imageWidthPercent;
+        const usableHeight = 100 - imageHeightPercent;
+        
+        // Use a grid-like layout with some randomness
+        const totalImages = sortedBySize.length;
+        const columns = 3; // Number of rough columns
+        const rows = Math.ceil(totalImages / columns);
+        
+        // Calculate base position with more spread
+        const col = i % columns;
+        const row = Math.floor(i / columns);
+        
+        // Calculate base positions within the usable space
+        const baseRight = (usableWidth * (col / (columns - 1)));
+        const baseBottom = (usableHeight * (row / (rows - 1)));
+        
+        // Add controlled randomness
+        const randomRight = (Math.random() * 15);
+        const randomBottom = (Math.random() * 15);
+        
+        // Calculate final position ensuring images stay within bounds
+        const right = Math.min(usableWidth, Math.max(0, baseRight + randomRight));
+        const bottom = Math.min(usableHeight, Math.max(0, baseBottom + randomBottom));
+        
+        // Add rotation
+        const rotation = (Math.random() * 40) - 20; // Random rotation between -20 and 20 degrees
+        
+        return {
+          ...img,
+          right,
+          bottom,
+          rotation,
+          zIndex: sortedBySize.length - i // Stack from back to front
+        };
+      });
+    }
+
     // First, calculate area for each image and sort by size (largest to smallest)
-    const sizedImages = imageDimensions.map(img => ({
+    const sizedImages = imagesToUse.map(img => ({
       ...img,
+      // Apply scale factor to dimensions
+      width: img.width * scaleFactor,
+      height: img.height * scaleFactor,
       area: img.width * img.height
     }));
 
@@ -205,7 +316,7 @@
     
     // Define the area bounds for the lower right region (in percentages from edge)
     const rightMin = 3;   // minimum distance from right edge
-    const rightMax = 50;  // maximum distance from right edge
+    const rightMax = 50;  // maximum distance from right edge (reduced to leave space on left)
     const bottomMin = 3;  // minimum distance from bottom edge
     const bottomMax = 50; // maximum distance from bottom edge
     
@@ -312,7 +423,13 @@
 
   // Function to preload images
   function preloadImages() {
-    return Promise.all(imageDimensions.map(img => {
+    // Determine which images to preload based on screen size
+    let imagesToPreload = [...imageDimensions];
+    if (window.innerWidth > 1920) {
+      imagesToPreload = [...imageDimensions, ...largeScreenImages];
+    }
+
+    return Promise.all(imagesToPreload.map(img => {
       return new Promise((resolve, reject) => {
         const image = new Image();
         image.onload = () => resolve(true);
@@ -322,29 +439,51 @@
     }));
   }
 
-  // Single onMount with image preloading
-  onMount(async () => {
-    try {
-      // First preload all images
-      await preloadImages();
-      
-      // Then generate positions and start animation sequence
-      collageImages = generateRandomPositions();
-      
-      // Start introducing images one by one with a faster speed
-      setTimeout(() => {
-        imagesReady = true;
+  // Add type for resize timer
+  let resizeTimer: number;
+
+  onMount(() => {
+    // Define resize handler at the correct scope
+    const handleResize = () => {
+      // Debounce the resize event
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        collageImages = generateRandomPositions();
+      }, 250); // Wait 250ms after resize ends before updating
+    };
+
+    (async () => {
+      try {
+        // First preload all images
+        await preloadImages();
         
-        // Add images one by one with faster staggered timing
-        collageImages.forEach((img, index) => {
-          setTimeout(() => {
-            visibleImages = [...visibleImages, index];
-          }, 150 + index * 180); // Very fast sequence - only 180ms between images
-        });
-      }, 200);
-    } catch (error) {
-      console.error('Error loading images:', error);
-    }
+        // Then generate positions and start animation sequence
+        collageImages = generateRandomPositions();
+        
+        // Add resize handler
+        window.addEventListener('resize', handleResize);
+        
+        // Start introducing images one by one with a faster speed
+        setTimeout(() => {
+          imagesReady = true;
+          
+          // Add images one by one with faster staggered timing
+          collageImages.forEach((img, index) => {
+            setTimeout(() => {
+              visibleImages = [...visibleImages, index];
+            }, 150 + index * 180);
+          });
+        }, 200);
+      } catch (error) {
+        console.error('Error loading images:', error);
+      }
+    })();
+
+    // Cleanup resize listener and timer
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(resizeTimer);
+    };
   });
 
   // Dragging functionality
@@ -378,22 +517,63 @@
     const deltaX = dragStartX - event.clientX;
     const deltaY = dragStartY - event.clientY;
     
-    // Calculate window dimensions for percentage conversion
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
+    // Check if we're in mobile view
+    const isMobile = window.innerWidth <= 768;
     
-    // Convert pixel movement to percentage of viewport
-    const deltaRightPercent = (deltaX / windowWidth) * 100;
-    const deltaBottomPercent = (deltaY / windowHeight) * 100;
+    // Get container dimensions for mobile view
+    let containerWidth = window.innerWidth;
+    let containerHeight = window.innerHeight;
+    
+    if (isMobile) {
+      const container = document.querySelector('.mobile-collage');
+      if (container) {
+        const rect = container.getBoundingClientRect();
+        containerWidth = rect.width;
+        containerHeight = rect.height;
+      }
+    }
+    
+    // Convert pixel movement to percentage of container
+    const deltaRightPercent = (deltaX / containerWidth) * 100;
+    const deltaBottomPercent = (deltaY / containerHeight) * 100;
     
     // Update the image position (make a new array to trigger reactivity)
     collageImages = collageImages.map((img, i) => {
       if (i === draggedImageIndex) {
-        return {
-          ...img,
-          right: Math.max(0, Math.min(100, initialRight + deltaRightPercent)),
-          bottom: Math.max(0, Math.min(100, initialBottom + deltaBottomPercent))
-        };
+        // Calculate new position
+        const newRight = initialRight + deltaRightPercent;
+        const newBottom = initialBottom + deltaBottomPercent;
+        
+        if (isMobile) {
+          // For mobile, constrain to container boundaries
+          const imageWidthPercent = (img.width / containerWidth) * 100;
+          const imageHeightPercent = (img.height / containerHeight) * 100;
+          
+          return {
+            ...img,
+            right: Math.max(
+              0,
+              Math.min(100 - imageWidthPercent, newRight)
+            ),
+            bottom: Math.max(
+              0,
+              Math.min(100 - imageHeightPercent, newBottom)
+            )
+          };
+        } else {
+          // For desktop, use the existing viewport margin logic
+          const viewportMargin = 3;
+          const imageWidthPercent = (img.width / window.innerWidth) * 100;
+          
+          return {
+            ...img,
+            right: Math.max(
+              viewportMargin,
+              Math.min(100 - viewportMargin - imageWidthPercent, newRight)
+            ),
+            bottom: Math.max(0, Math.min(100, newBottom))
+          };
+        }
       }
       return img;
     });
@@ -448,28 +628,74 @@
 
 <svelte:head>
   <title>Andy Morales | Product Designer</title>
-  <meta name="description" content="Andy Morales - Product Designer specializing in technical products." />
+  <meta name="description" content="Andy Morales - Product designer for creative tools." />
 </svelte:head>
 
 <div class="landing-page">
-  <main class="container flex-column-left gap-xxl">
+  <main class="container flex-column-left">
     <div class="header flex-column-left gap-large">
-        <h1 class="title">Andy<br>Morales</h1>
-        <div class="description">
-          I lead the design of technical products.
-          <br>Fmr at MongoDB, Roblox, ConsenSys, Panto.
-        </div>
-        <div class="colibri-container">
-          <img src={colibri} alt="Colibri" class="colibri-image">
-        </div>
+      <h1 class="title">Andy<br>Morales</h1>
+      <div class="description">
+        I lead the design of creative and technical products.
+        <br>Fmr at MongoDB, Roblox, ConsenSys, Panto.
+      </div>
+      <div class="colibri-container">
+        <img src={colibri} alt="Colibri" class="colibri-image">
+      </div>
 
       <div class="cta">
         <button class="button-secondary" on:click={toggleContactForm}>Get in touch</button>
       </div>
     </div>
 
-    <!-- Simple collage with randomly placed images that fade in one by one, back to front -->
-    <div class="collage">
+    <!-- Desktop collage (hidden on mobile) -->
+    <div class="desktop-collage">
+      {#if collageImages.length > 0 && imagesReady}
+        {#each collageImages as img, i}
+          {#if visibleImages.includes(i)}
+            <button 
+              class="collage-image-button"
+              on:mousedown={(e) => {
+                startDrag(e, i);
+                bringToFront(i);
+              }}
+              style="
+                position: absolute;
+                right: {img.right}%; 
+                bottom: {img.bottom}%; 
+                transform: rotate({img.rotation}deg);
+                z-index: {img.zIndex};
+                padding: 0;
+                border: none;
+                background: none;
+                cursor: move;
+                width: {img.width}px;
+                height: {img.height}px;
+              "
+            >
+              <img 
+                src={img.src} 
+                alt={img.alt} 
+                class="collage-image" 
+                in:fade={{ duration: 400 }}
+                style="
+                  width: 100%;
+                  height: 100%;
+                  object-fit: contain;
+                  {img.flexShrink !== undefined ? `flex-shrink: ${img.flexShrink};` : ''}
+                  {img.aspectRatio ? `aspect-ratio: ${img.aspectRatio};` : ''}
+                "
+                draggable="false"
+              >
+            </button>
+          {/if}
+        {/each}
+      {/if}
+    </div>
+
+    <!-- Mobile playground collage -->
+    <div class="mobile-collage">
+      <div class="playground-hint">Play with the images!</div>
       {#if collageImages.length > 0 && imagesReady}
         {#each collageImages as img, i}
           {#if visibleImages.includes(i)}
@@ -570,14 +796,16 @@
     padding: 0;
     position: relative;
     z-index: 2;
+    gap: var(--gap-xxl);
   }
 
   .colibri-container {
     position: absolute;
-    top: -27.75%;
-    right: -14.5%;
+    top: -98px;  /* Fixed distance from top */
+    right: -77px; /* Fixed distance from right */
     transform: scale(0.5);
     z-index: 2;
+    pointer-events: none; /* Ensures it doesn't interfere with interactions */
   }
 
   .title {
@@ -666,7 +894,7 @@
     font-weight: 400;
   }
 
-  .collage {
+  .desktop-collage {
     position: fixed;
     bottom: 0;
     right: 0;
@@ -675,6 +903,27 @@
     z-index: 1;
     overflow: visible;
     pointer-events: none;
+  }
+
+  .mobile-collage {
+    display: none;
+    position: relative;
+    width: 100%;
+    height: 60vh;
+    overflow: hidden;
+  }
+
+  .playground-hint {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Recursive', sans-serif;
+    font-size: 14px;
+    color: rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+    opacity: 0.7;
+    z-index: 0;
   }
 
   .collage-image-button {
@@ -733,20 +982,45 @@
   }
 
   @media (max-width: 768px) {
-    .portfolio-header h2 {
-      font-size: 1.5rem;
+    .desktop-collage {
+      display: none;
     }
-  }
 
-  /* Make site responsive on small screens */
-  @media (max-width: 576px) {
+    .mobile-collage {
+      display: block;
+      margin: var(--spacing-md) 0;
+      height: 60vh;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .container {
+      gap: var(--spacing-md);
+    }
+
+    .landing-page {
+      padding: 2rem;
+    }
+
     .title {
       font-size: 72px;
       line-height: 60px;
     }
-    
+
+    .colibri-container {
+      top: -102.5px;  /* Adjusted for mobile */
+      right: -45px; /* Adjusted for mobile */
+      transform: scale(0.3); /* Smaller scale for mobile */
+    }
+
+    .portfolio-header h2 {
+      font-size: 16px;
+      line-height: 16px;
+    }
+
     .description {
-      font-size: 1rem;
+      font-size: 18px;
+      line-height: 20px;
     }
   }
 
