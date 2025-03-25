@@ -26,6 +26,9 @@
   import flowers from '$lib/images/flowers.png';
   import bobo from '$lib/images/bobo.png';
 
+  // Import Lucide pointer icon
+  import { Pointer } from 'lucide-svelte';
+
   // Portfolio items
   let portfolioItems = [
     { 
@@ -82,6 +85,7 @@
     zIndex: number;
     aspectRatio: string;
     flexShrink?: number;
+    scale?: number; // Add scale property
     delay?: number; // Add delay property for staggered animation
     contentOffsets?: { top: number; right: number; bottom: number; left: number };
   };
@@ -449,13 +453,95 @@
   let resizeTimer: number;
 
   onMount(() => {
-    // Define resize handler at the correct scope
+    // Define event handlers for both mouse and touch
     const handleResize = () => {
       // Debounce the resize event
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => {
         collageImages = generateRandomPositions();
       }, 250); // Wait 250ms after resize ends before updating
+    };
+
+    // Handle touch move events for dragging
+    const handleTouchMove = (event: TouchEvent) => {
+      if (draggedImageIndex === null) return;
+      
+      // Prevent default to stop scrolling while dragging
+      event.preventDefault();
+      
+      const touch = event.touches[0];
+      
+      // Calculate the movement delta (inversed for right/bottom positioning)
+      const deltaX = dragStartX - touch.clientX;
+      const deltaY = dragStartY - touch.clientY;
+      
+      // Check if we're in mobile view
+      const isMobile = window.innerWidth <= 768;
+      
+      // Get container dimensions for mobile view
+      let containerWidth = window.innerWidth;
+      let containerHeight = window.innerHeight;
+      
+      if (isMobile) {
+        const container = document.querySelector('.mobile-collage');
+        if (container) {
+          const rect = container.getBoundingClientRect();
+          containerWidth = rect.width;
+          containerHeight = rect.height;
+        }
+      }
+      
+      // Convert pixel movement to percentage of container
+      const deltaRightPercent = (deltaX / containerWidth) * 100;
+      const deltaBottomPercent = (deltaY / containerHeight) * 100;
+      
+      // Update the image position (make a new array to trigger reactivity)
+      collageImages = collageImages.map((img, i) => {
+        if (i === draggedImageIndex) {
+          // Calculate new position
+          const newRight = initialRight + deltaRightPercent;
+          const newBottom = initialBottom + deltaBottomPercent;
+          
+          if (isMobile) {
+            // For mobile, constrain to container boundaries
+            const imageWidthPercent = (img.width / containerWidth) * 100;
+            const imageHeightPercent = (img.height / containerHeight) * 100;
+            
+            return {
+              ...img,
+              right: Math.max(
+                0,
+                Math.min(100 - imageWidthPercent, newRight)
+              ),
+              bottom: Math.max(
+                0,
+                Math.min(100 - imageHeightPercent, newBottom)
+              )
+            };
+          } else {
+            // For desktop, use the existing viewport margin logic
+            const viewportMargin = 3;
+            const imageWidthPercent = (img.width / window.innerWidth) * 100;
+            
+            return {
+              ...img,
+              right: Math.max(
+                viewportMargin,
+                Math.min(100 - viewportMargin - imageWidthPercent, newRight)
+              ),
+              bottom: Math.max(0, Math.min(100, newBottom))
+            };
+          }
+        }
+        return img;
+      });
+    };
+
+    // Handle touch end events
+    const handleTouchEnd = () => {
+      // Remove dragging class from body
+      document.body.classList.remove('dragging');
+      draggedImageIndex = null;
     };
 
     (async () => {
@@ -466,8 +552,10 @@
         // Then generate positions and start animation sequence
         collageImages = generateRandomPositions();
         
-        // Add resize handler
+        // Add resize and touch event handlers
         window.addEventListener('resize', handleResize);
+        window.addEventListener('touchmove', handleTouchMove, { passive: false });
+        window.addEventListener('touchend', handleTouchEnd);
         
         // Start introducing images one by one with a faster speed
         setTimeout(() => {
@@ -485,9 +573,11 @@
       }
     })();
 
-    // Cleanup resize listener and timer
+    // Cleanup event listeners and timer
     return () => {
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
       clearTimeout(resizeTimer);
     };
   });
@@ -716,7 +806,11 @@
 
     <!-- Mobile playground collage -->
     <div class="mobile-collage">
-      <div class="playground-hint">Play with the images!</div>
+      {#if !draggedImageIndex && collageImages.length > 0 && imagesReady}
+        <div class="drag-hint">
+          <Pointer size={36} />
+        </div>
+      {/if}
       {#if collageImages.length > 0 && imagesReady}
         {#each collageImages as img, i}
           {#if visibleImages.includes(i)}
@@ -726,11 +820,28 @@
                 startDrag(e, i);
                 bringToFront(i);
               }}
+              on:touchstart={(e) => {
+                // Prevent default to stop scrolling
+                e.preventDefault();
+                
+                // Handle touch as drag start
+                const touch = e.touches[0];
+                draggedImageIndex = i;
+                dragStartX = touch.clientX;
+                dragStartY = touch.clientY;
+                initialRight = collageImages[i].right;
+                initialBottom = collageImages[i].bottom;
+                
+                // Add dragging class
+                document.body.classList.add('dragging');
+                
+                bringToFront(i);
+              }}
               style="
                 position: absolute;
                 right: {img.right}%; 
                 bottom: {img.bottom}%; 
-                transform: rotate({img.rotation}deg);
+                transform: rotate({img.rotation}deg) scale({img.scale || 1});
                 z-index: {img.zIndex};
                 padding: 0;
                 border: none;
@@ -981,21 +1092,36 @@
     width: 100%;
     height: 60vh;
     overflow: hidden;
+    margin-top: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
   }
 
-  .playground-hint {
+  .drag-hint {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-family: var(--font-recursive);
-    font-size: 14px;
-    font-weight: 400;
-    font-variation-settings: 'CASL' 0, 'wght' 400;
-    color: rgba(0, 0, 0, 0.3);
+    color: rgba(0, 0, 0, 0.4);
+    z-index: 100;
+    width: 48px;
+    height: 48px;
     pointer-events: none;
-    opacity: 0.7;
-    z-index: 0;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0% {
+      opacity: 0.6;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+      opacity: 0.8;
+      transform: translate(-50%, -50%) scale(1.1);
+    }
+    100% {
+      opacity: 0.6;
+      transform: translate(-50%, -50%) scale(1);
+    }
   }
 
   .collage-image-button {
