@@ -94,6 +94,9 @@
   let imagesReady = false;
   let visibleImages: number[] = [];
 
+  // Add a variable to track if user has interacted with collage
+  let hasInteractedWithCollage = false;
+
   // Define the dimensions for all images with content-aware offsets
   // Each image has contentOffsets that define where the actual visible content is
   // relative to the rectangular bounds (percentages of width/height)
@@ -767,6 +770,9 @@
             <button 
               class="collage-image-button"
               on:mousedown={(e) => {
+                // Mark that user has interacted with collage
+                hasInteractedWithCollage = true;
+                
                 startDrag(e, i);
                 bringToFront(i);
               }}
@@ -806,7 +812,7 @@
 
     <!-- Mobile playground collage -->
     <div class="mobile-collage">
-      {#if !draggedImageIndex && collageImages.length > 0 && imagesReady}
+      {#if !hasInteractedWithCollage && !draggedImageIndex && collageImages.length > 0 && imagesReady}
         <div class="drag-hint">
           <Pointer size={36} />
         </div>
@@ -817,12 +823,18 @@
             <button 
               class="collage-image-button"
               on:mousedown={(e) => {
+                // Mark that user has interacted with collage
+                hasInteractedWithCollage = true;
+                
                 startDrag(e, i);
                 bringToFront(i);
               }}
               on:touchstart={(e) => {
                 // Prevent default to stop scrolling
                 e.preventDefault();
+                
+                // Mark that user has interacted with collage
+                hasInteractedWithCollage = true;
                 
                 // Handle touch as drag start
                 const touch = e.touches[0];
@@ -1101,7 +1113,7 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    color: rgba(0, 0, 0, 0.4);
+    color: #363636;
     z-index: 100;
     width: 48px;
     height: 48px;
@@ -1111,15 +1123,15 @@
 
   @keyframes pulse {
     0% {
-      opacity: 0.6;
+      opacity: 1;
       transform: translate(-50%, -50%) scale(1);
     }
     50% {
-      opacity: 0.8;
+      opacity: 1;
       transform: translate(-50%, -50%) scale(1.1);
     }
     100% {
-      opacity: 0.6;
+      opacity: 1;
       transform: translate(-50%, -50%) scale(1);
     }
   }
