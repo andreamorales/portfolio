@@ -976,9 +976,14 @@
     position: absolute;
     display: block;
     transform-origin: center;
-    transition: transform 0.3s ease;
     pointer-events: auto;
     cursor: grab;
+    will-change: transform; /* Optimize for transforms */
+  }
+
+  /* Only apply transition when not dragging */
+  .collage-image-button:not(:active) {
+    transition: transform 0.3s ease;
   }
 
   .collage-image {
@@ -986,6 +991,8 @@
     pointer-events: none;
     user-select: none;
     -webkit-user-drag: none;
+    -webkit-backface-visibility: hidden; /* Prevent blurriness */
+    backface-visibility: hidden;
   }
   
   .collage-image-button:active {
