@@ -103,6 +103,14 @@
     font-variation-settings: 'MONO' 1, 'CASL' 0, 'wght' 700;
   }
 
+  @media (max-width: 768px) {
+    .label {
+      font-size: 0.625rem; /* Even smaller text for mobile */
+      padding: 3px 8px;
+      border-radius: 12px;
+    }
+  }
+
   .solid {
     background-color: var(--text-color);
     color: var(--bg-color);

@@ -918,9 +918,10 @@
     border: none;
     width: 100%;
     font-family: var(--font-recursive);
-    padding-left: 0;
-    padding-bottom: 0;
-    margin-bottom: 0;
+    padding:0;
+    margin: 0;
+    text-align: left;
+    gap: var(--spacing-md);
   }
 
   .portfolio-header:hover h2 {
@@ -1146,9 +1147,23 @@
       transform: translate(17.5%, -3%) scale(0.5);
     }
 
+    .portfolio-header {
+      flex-direction: row;
+      justify-content: flex-start;
+      align-items: center;
+      gap: var(--spacing-md);
+    }
+
     .portfolio-header h2 {
       font-size: 1rem;
       line-height: 1em;
+      margin: 0;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
     }
 
     .description {
@@ -1176,6 +1191,14 @@
 
     .company-logos :global(svg:last-child) {
       height: 15px; /* Panto: match Roblox height */
+    }
+
+    .company-logos {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      width: 100%;
+      max-width: 200px;
     }
   }
 
