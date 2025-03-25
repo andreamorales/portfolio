@@ -646,13 +646,15 @@
 <div class="landing-page">
   <main class="container flex-column-left">
     <div class="header flex-column-left gap-large">
-      <h1 class="title">Andy<br>Morales</h1>
+      <div class="title-container">
+        <h1 class="title">Andy<br>Morales</h1>
+        <div class="colibri-container">
+          <img src={colibri} alt="Colibri" class="colibri-image">
+        </div>
+      </div>
       <div class="flex-column-left gap-small">
         <div class="description">
           I lead the design of creative and technical products.
-        </div>
-        <div class="colibri-container">
-          <img src={colibri} alt="Colibri" class="colibri-image">
         </div>
         <div class="company-logos">
           {@html Consensys}
@@ -818,20 +820,35 @@
     gap: var(--spacing-xxl);
   }
 
+  .title-container {
+    position: relative;
+    display: inline-block;
+  }
+
   .colibri-container {
     position: absolute;
-    top: -325.5px;  /* Fixed distance from top */
-    right: 40px; /* Fixed distance from right */
-    transform: scale(0.5);
-    z-index: 2;
+    top: 0;
+    right: 0;
+    width: 276px; /* Original width of the image */
+    height: auto;
+    transform: translate(31%, -9.5%) scale(0.9);
+    transform-origin: top right;
+    z-index: 3;
+    pointer-events: none;
+  }
+
+  .colibri-image {
+    width: 100%;
+    height: auto;
+    display: block;
   }
 
   .title {
-    font-family: Refract;
+    font-family: var(--font-refract);
     font-size: 128px;
     font-style: normal;
     font-weight: 400;
-    line-height: 102px; /* 79.688% */
+    line-height: 102px;
     letter-spacing: -1.28px;
     font-feature-settings: 'dlig' on, 'ss01' on;
     position: relative;
@@ -839,13 +856,13 @@
   }
 
   .description {
-    font-family: Recursive;
+    font-family: var(--font-recursive);
     font-size: 24px;
     font-style: normal;
     font-weight: 370;
     line-height: 24px;
     letter-spacing: 0.28px;
-    font-variation-settings: 'CASL' 0;
+    font-variation-settings: 'CASL' 0, 'wght' 370;
     position: relative;
     z-index: 2;
     color: var(--text-color);
@@ -866,6 +883,10 @@
   }
 
   /* Specific size adjustments for company logos */
+  .company-logos :global(svg:first-child) {
+    height: 22px; /* ConsenSys: slightly smaller than default */
+  }
+  
   .company-logos :global(svg:nth-child(2)) {
     height: 25.2px; /* MongoDB: 5% bigger than default */
   }
@@ -882,8 +903,8 @@
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-    font-family: 'Recursive', sans-serif;
-    font-variation-settings: 'CASL' 0;
+    font-family: var(--font-recursive);
+    font-variation-settings: 'CASL' 0, 'wght' 400;
     position: relative;
     z-index: 5;
   }
@@ -896,7 +917,7 @@
     background: transparent;
     border: none;
     width: 100%;
-    font-family: 'Recursive', sans-serif;
+    font-family: var(--font-recursive);
     padding-left: 0;
     padding-bottom: 0;
     margin-bottom: 0;
@@ -908,7 +929,7 @@
 
   .portfolio-header h2 {
     color: #363636;
-    font-family: 'Recursive', sans-serif;
+    font-family: var(--font-recursive);
     font-size: 18px;
     font-style: normal;
     font-weight: 370;
@@ -917,7 +938,7 @@
     text-decoration-line: underline;
     margin: 0;
     transition: color var(--transition);
-    font-variation-settings: 'CASL' 0;
+    font-variation-settings: 'CASL' 0, 'wght' 370;
   }
 
   .portfolio-item {
@@ -927,8 +948,9 @@
 
   .portfolio-content {
     padding: 1rem;
-    font-family: 'Recursive', sans-serif;
+    font-family: var(--font-recursive);
     font-weight: 400;
+    font-variation-settings: 'CASL' 0, 'wght' 400;
     position: relative;
     z-index: 5;
     background-color: var(--bg-color);
@@ -936,8 +958,9 @@
 
   .portfolio-content p {
     font-size: 16px;
-    font-family: 'Recursive', sans-serif;
+    font-family: var(--font-recursive);
     font-weight: 400;
+    font-variation-settings: 'CASL' 0, 'wght' 400;
   }
 
   .desktop-collage {
@@ -964,8 +987,10 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-family: 'Recursive', sans-serif;
+    font-family: var(--font-recursive);
     font-size: 14px;
+    font-weight: 400;
+    font-variation-settings: 'CASL' 0, 'wght' 400;
     color: rgba(0, 0, 0, 0.3);
     pointer-events: none;
     opacity: 0.7;
@@ -1017,6 +1042,8 @@
     font-size: 1rem;
     transition: all 0.3s ease;
     pointer-events: auto;
+    font-family: var(--font-recursive);
+    font-variation-settings: 'CASL' 0, 'wght' 600;
   }
   
   .button-secondary:hover {
@@ -1105,25 +1132,29 @@
       padding: 2rem;
     }
 
+    .title-container {
+      width: auto;
+    }
+
     .title {
       font-size: 72px;
       line-height: 60px;
+      letter-spacing: -0.72px;
     }
 
     .colibri-container {
-      top: -246.5px;  /* Adjusted for mobile */
-      right: 75px; /* Adjusted for mobile */
-      transform: scale(0.3); /* Smaller scale for mobile */
+      transform: translate(17.5%, -3%) scale(0.5);
     }
 
     .portfolio-header h2 {
-      font-size: 16px;
-      line-height: 16px;
+      font-size: 1rem;
+      line-height: 1em;
     }
 
     .description {
       font-size: 18px;
       line-height: 20px;
+      letter-spacing: 0.22px;
     }
 
     .company-logos :global(svg) {
@@ -1131,6 +1162,10 @@
     }
 
     /* Maintain proportions in mobile */
+    .company-logos :global(svg:first-child) {
+      height: 16.5px; /* ConsenSys: slightly smaller than mobile default */
+    }
+    
     .company-logos :global(svg:nth-child(2)) {
       height: 19px; /* MongoDB: 5% bigger than mobile default */
     }
@@ -1144,19 +1179,9 @@
     }
   }
 
-  @media (max-width: 493px) {
+  @media (max-width: 548px) {
     .colibri-container {
-      top: -240.5px;
-      right: 20px;
-      transform: scale(0.25);
-    }
-  }
-
-  @media (max-width: 390px) {
-    .colibri-container {
-      top: -240.5px;
-      right: -60px;
-      transform: scale(0.25);
+      transform: translate(17.5%, -3.1%) scale(0.5);
     }
   }
 
