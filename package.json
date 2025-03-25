@@ -2,7 +2,7 @@
 	"name": "my-portfolio",
 	"version": "0.0.1",
 	"engines": {
-		"node": "20.x"
+		"node": "^18.0.0 || ^20.0.0"
 	},
 	"scripts": {
 		"dev": "vite dev",
