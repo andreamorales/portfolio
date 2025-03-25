@@ -8,6 +8,7 @@
   let isSubmitting = false;
   let formStatus: { type: string; message: string } | null = null;
   let showForm = false;
+  let dialogElement: HTMLDialogElement;
   
   function handleSubmit() {
     // Prevent form submission if validation fails
@@ -41,6 +42,9 @@
   }
   
   function closeForm() {
+    if (dialogElement && dialogElement.open) {
+      dialogElement.close();
+    }
     showForm = false;
     window.history.pushState('', '', window.location.pathname);
   }
@@ -48,6 +52,9 @@
   function checkHash() {
     if (window.location.hash === '#contact') {
       showForm = true;
+      if (dialogElement) {
+        dialogElement.showModal();
+      }
     }
   }
   
@@ -65,21 +72,24 @@
 </script>
 
 {#if showForm}
-  <div 
-    class="contact-overlay" 
-    on:click|self={closeForm}
-    on:keydown={(e) => e.key === 'Escape' && closeForm()}
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="contact-form-title"
-    tabindex="0"
+  <dialog 
+    class="contact-overlay"
+    bind:this={dialogElement}
+    on:close={closeForm}
   >
-    <div class="contact-modal">
+    <button 
+      class="contact-modal" 
+      type="button"
+      on:click|stopPropagation
+      on:keydown={(e) => {
+        if (e.key === 'Escape') closeForm();
+      }}
+    >
       <button class="close-button" on:click={closeForm}>×</button>
       
       <h2 id="contact-form-title">Get In Touch</h2>
       
-      <form on:submit|preventDefault={handleSubmit} class="contact-form">
+      <form on:submit|preventDefault={handleSubmit} class="contact-form" method="dialog">
         <div class="form-group">
           <label for="name">Name</label>
           <input 
@@ -130,8 +140,8 @@
           {isSubmitting ? 'Sending...' : 'Send Message'}
         </button>
       </form>
-    </div>
-  </div>
+    </button>
+  </dialog>
 {/if}
 
 <style>
@@ -149,6 +159,8 @@
     padding: 1rem;
     font-family: 'Recursive', sans-serif;
     font-variation-settings: 'CASL' 0;
+    border: none;
+    margin: 0;
   }
   
   .contact-modal {
@@ -159,6 +171,13 @@
     max-width: 500px;
     position: relative;
     box-shadow: var(--shadow-lg);
+    border: none;
+    cursor: default;
+    text-align: left;
+  }
+  
+  .contact-modal:focus {
+    outline: none;
   }
   
   .close-button {
@@ -202,59 +221,50 @@
   }
   
   label {
-    font-weight: 400;
-    font-size: var(--font-size-small);
-    font-family: 'Recursive', sans-serif;
+    font-size: var(--font-size-sm);
+    color: var(--text-color);
+    font-weight: 500;
   }
   
-  input, textarea {
-    padding: var(--input-padding);
-    border: var(--input-border-width) solid var(--input-border-color);
-    border-radius: var(--border-radius);
-    background-color: var(--input-bg-color);
-    color: var(--input-text-color);
-    font-family: 'Recursive', sans-serif;
-    font-size: var(--input-font-size);
-    font-variation-settings: 'CASL' 0;
-  }
-  
-  input::placeholder, textarea::placeholder {
-    color: var(--input-placeholder-color);
-  }
-  
+  input,
   textarea {
-    resize: vertical;
-    min-height: 100px;
-    line-height: 1.4;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'Recursive', sans-serif;
+    font-size: var(--font-size-base);
+    transition: border-color var(--transition);
   }
   
-  .form-status {
-    padding: 0.5rem 0;
-    width: 100%;
+  input:focus,
+  textarea:focus {
+    outline: none;
+    border-color: var(--interactive-hover);
   }
   
   .submit-button {
-    padding: var(--button-padding);
-    background-color: var(--button-bg-color);
-    color: var(--button-text-color);
-    border: 1px solid var(--text-color);
-    border-radius: var(--border-radius);
-    font-weight: 400;
+    background-color: var(--text-color);
+    color: var(--bg-color);
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    font-weight: 600;
     cursor: pointer;
-    transition: all var(--transition);
-    font-family: 'Recursive', sans-serif;
-    text-transform: var(--button-text-transform);
+    transition: background-color var(--transition);
   }
   
   .submit-button:hover:not(:disabled) {
-    background: var(--text-color);
-    color: var(--bg-color);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+    background-color: var(--interactive-hover);
   }
   
   .submit-button:disabled {
-    opacity: 0.6;
+    opacity: 0.7;
     cursor: not-allowed;
+  }
+  
+  .form-status {
+    text-align: center;
   }
 </style> 

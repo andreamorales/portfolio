@@ -77,8 +77,9 @@
   };
 
   let collageImages: ImageData[] = [];
-  let imagesReady = false; // Flag to control when images start appearing
-  
+  let imagesReady = false;
+  let visibleImages: number[] = [];
+
   // Define the dimensions for all images with content-aware offsets
   // Each image has contentOffsets that define where the actual visible content is
   // relative to the rectangular bounds (percentages of width/height)
@@ -309,23 +310,41 @@
     return positionedImages.sort((a, b) => a.zIndex - b.zIndex);
   }
 
-  let visibleImages: number[] = [];
-
-  // Single onMount with fast animation timing
-  onMount(() => {
-    collageImages = generateRandomPositions();
-    
-    // Start introducing images one by one with a faster speed
-    setTimeout(() => {
-      imagesReady = true;
-      
-      // Add images one by one with faster staggered timing
-      collageImages.forEach((img, index) => {
-        setTimeout(() => {
-          visibleImages = [...visibleImages, index];
-        }, 150 + index * 180); // Very fast sequence - only 180ms between images
+  // Function to preload images
+  function preloadImages() {
+    return Promise.all(imageDimensions.map(img => {
+      return new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(true);
+        image.onerror = reject;
+        image.src = img.src;
       });
-    }, 200);
+    }));
+  }
+
+  // Single onMount with image preloading
+  onMount(async () => {
+    try {
+      // First preload all images
+      await preloadImages();
+      
+      // Then generate positions and start animation sequence
+      collageImages = generateRandomPositions();
+      
+      // Start introducing images one by one with a faster speed
+      setTimeout(() => {
+        imagesReady = true;
+        
+        // Add images one by one with faster staggered timing
+        collageImages.forEach((img, index) => {
+          setTimeout(() => {
+            visibleImages = [...visibleImages, index];
+          }, 150 + index * 180); // Very fast sequence - only 180ms between images
+        });
+      }, 200);
+    } catch (error) {
+      console.error('Error loading images:', error);
+    }
   });
 
   // Dragging functionality
@@ -404,24 +423,10 @@
     });
   }
 
-  // Reference to the contact form section
-  let contactFormRef: HTMLElement;
-
-  // Function to scroll to contact form with debug logging
+  // Remove unused contact form reference and scroll functionality
   function scrollToContact() {
-    console.log('Scroll to contact triggered');
-    
-    // Direct implementation using a simple ID-based approach
-    const contactSection = document.getElementById('contact-section');
-    if (contactSection) {
-      console.log('Contact section found by ID, scrolling...');
-      contactSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else if (contactFormRef) {
-      console.log('Using ref instead, scrolling...');
-      contactFormRef.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else {
-      console.error('Contact section not found');
-    }
+    console.log('Toggle contact form triggered');
+    toggleContactForm();
   }
 
   // Show/hide contact form with a toggle
@@ -468,26 +473,41 @@
       {#if collageImages.length > 0 && imagesReady}
         {#each collageImages as img, i}
           {#if visibleImages.includes(i)}
-            <img 
-              src={img.src} 
-              alt={img.alt} 
-              class="collage-image" 
-              in:fade={{ duration: 400 }}
+            <button 
+              class="collage-image-button"
               on:mousedown={(e) => {
                 startDrag(e, i);
                 bringToFront(i);
               }}
               style="
-                width: {img.width}px;
-                height: {img.height}px;
+                position: absolute;
                 right: {img.right}%; 
                 bottom: {img.bottom}%; 
                 transform: rotate({img.rotation}deg);
                 z-index: {img.zIndex};
-                {img.flexShrink !== undefined ? `flex-shrink: ${img.flexShrink};` : ''}
-                {img.aspectRatio ? `aspect-ratio: ${img.aspectRatio};` : ''}
+                padding: 0;
+                border: none;
+                background: none;
+                cursor: move;
+                width: {img.width}px;
+                height: {img.height}px;
               "
             >
+              <img 
+                src={img.src} 
+                alt={img.alt} 
+                class="collage-image" 
+                in:fade={{ duration: 400 }}
+                style="
+                  width: 100%;
+                  height: 100%;
+                  object-fit: contain;
+                  {img.flexShrink !== undefined ? `flex-shrink: ${img.flexShrink};` : ''}
+                  {img.aspectRatio ? `aspect-ratio: ${img.aspectRatio};` : ''}
+                "
+                draggable="false"
+              >
+            </button>
           {/if}
         {/each}
       {/if}
@@ -554,8 +574,8 @@
 
   .colibri-container {
     position: absolute;
-    top: -28.25%;
-    right: -0.5%;
+    top: -27.75%;
+    right: -14.5%;
     transform: scale(0.5);
     z-index: 2;
   }
@@ -657,30 +677,23 @@
     pointer-events: none;
   }
 
-  .collage-image {
+  .collage-image-button {
     position: absolute;
-    object-fit: contain;
-    transition: transform 0.7s ease;
-    filter: opacity(1);
-    cursor: grab;
-    user-select: none;
+    display: block;
+    transform-origin: center;
+    transition: transform 0.3s ease;
     pointer-events: auto;
   }
-  
-  .collage-image:active {
-    cursor: grabbing;
-    transition: none; /* Disable transition during drag for smoother movement */
+
+  .collage-image {
+    display: block;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
   }
   
-  /* Contact section styling */
-  .contact-section {
-    scroll-margin-top: 2rem;
-    min-height: 50vh;
-    padding-top: 4rem;
-    margin-top: 4rem;
-    position: relative;
-    z-index: 10; /* Ensure it's above the collage */
-    display: block; /* Ensure it's displayed */
+  .collage-image-button:active {
+    cursor: grabbing;
   }
   
   .cta {
@@ -785,4 +798,4 @@
   .close-button:hover {
     background-color: rgba(0, 0, 0, 0.1);
   }
-</style> 
+</style>

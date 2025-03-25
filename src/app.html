@@ -5,27 +5,39 @@
 		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
 		<meta name="viewport" content="width=device-width" />
 		
-		<!-- Google Fonts -->
-		<link rel="preconnect" href="https://fonts.googleapis.com">
-		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-		<link href="https://fonts.googleapis.com/css2?family=Recursive:CASL,CRSV,MONO,slnt,wght@0,0,0,0,300..1000&display=swap" rel="stylesheet">
+		<!-- Preload fonts -->
+		<link rel="preload" href="/src/lib/fonts/Recursive-VariableFont_CASL,CRSV,MONO,slnt,wght.ttf" as="font" type="font/ttf" crossorigin>
+		<link rel="preload" href="/src/lib/fonts/Refract-Regular.woff2" as="font" type="font/woff2" crossorigin>
 		
-		<!-- Refract font -->
-		<link rel="preload" href="/fonts/Refract-Regular.woff2" as="font" type="font/woff2" crossorigin>
-		
-		<!-- Explicit font linking -->
+		<!-- Font declarations -->
 		<style>
 			@font-face {
+				font-family: 'Recursive';
+				src: url('/src/lib/fonts/Recursive-VariableFont_CASL,CRSV,MONO,slnt,wght.ttf') format('truetype-variations');
+				font-weight: 300 1000;
+				font-variation-settings: 'CASL' 0, 'CRSV' 0, 'MONO' 0, 'slnt' 0;
+				font-style: normal;
+				font-display: swap;
+			}
+			
+			@font-face {
 				font-family: 'Refract';
-				src: url('/fonts/Refract-Regular.woff2') format('woff2');
+				src: url('/src/lib/fonts/Refract-Regular.woff2') format('woff2'),
+					 url('/src/lib/fonts/Refract-Regular.woff') format('woff'),
+					 url('/src/lib/fonts/Refract-Regular.otf') format('opentype');
 				font-weight: normal;
 				font-style: normal;
 				font-display: swap;
 			}
 			
-			body {
+			:root {
 				font-family: 'Recursive', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-				font-variation-settings: 'CASL' 0;
+				font-variation-settings: 'CASL' 0, 'CRSV' 0, 'MONO' 0, 'slnt' 0;
+			}
+			
+			body {
+				font-family: inherit;
+				font-variation-settings: inherit;
 				font-weight: 400;
 			}
 		</style>
