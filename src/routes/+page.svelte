@@ -16,6 +16,12 @@
   import snake from '$lib/images/snake.png';
   import woman from '$lib/images/woman.png';
 
+  // Import company logos as strings
+  import MongoDB from '$lib/images/MongoDB.svg?raw';
+  import Consensys from '$lib/images/Consensys.svg?raw';
+  import panto from '$lib/images/panto_horizontal.svg?raw';
+  import Roblox from '$lib/images/Roblox.svg?raw';
+
   // Import additional images for large screens
   import flowers from '$lib/images/flowers.png';
   import bobo from '$lib/images/bobo.png';
@@ -505,6 +511,9 @@
     initialRight = collageImages[index].right;
     initialBottom = collageImages[index].bottom;
     
+    // Add dragging class to body to ensure cursor stays as grabbing
+    document.body.classList.add('dragging');
+    
     // Add event listeners for move and end
     window.addEventListener('mousemove', handleDrag);
     window.addEventListener('mouseup', endDrag);
@@ -580,6 +589,9 @@
   }
 
   function endDrag() {
+    // Remove dragging class from body
+    document.body.classList.remove('dragging');
+    
     // Clean up event listeners
     window.removeEventListener('mousemove', handleDrag);
     window.removeEventListener('mouseup', endDrag);
@@ -635,12 +647,19 @@
   <main class="container flex-column-left">
     <div class="header flex-column-left gap-large">
       <h1 class="title">Andy<br>Morales</h1>
-      <div class="description">
-        I lead the design of creative and technical products.
-        <br>Fmr at MongoDB, Roblox, ConsenSys, Panto.
-      </div>
-      <div class="colibri-container">
-        <img src={colibri} alt="Colibri" class="colibri-image">
+      <div class="flex-column-left gap-small">
+        <div class="description">
+          I lead the design of creative and technical products.
+        </div>
+        <div class="colibri-container">
+          <img src={colibri} alt="Colibri" class="colibri-image">
+        </div>
+        <div class="company-logos">
+          {@html Consensys}
+          {@html MongoDB}
+          {@html Roblox}
+          {@html panto}
+        </div>
       </div>
 
       <div class="cta">
@@ -668,7 +687,7 @@
                 padding: 0;
                 border: none;
                 background: none;
-                cursor: move;
+                cursor: grab;
                 width: {img.width}px;
                 height: {img.height}px;
               "
@@ -714,7 +733,7 @@
                 padding: 0;
                 border: none;
                 background: none;
-                cursor: move;
+                cursor: grab;
                 width: {img.width}px;
                 height: {img.height}px;
               "
@@ -796,16 +815,15 @@
     padding: 0;
     position: relative;
     z-index: 2;
-    gap: var(--gap-xxl);
+    gap: var(--spacing-xxl);
   }
 
   .colibri-container {
     position: absolute;
-    top: -98px;  /* Fixed distance from top */
-    right: -77px; /* Fixed distance from right */
+    top: -325.5px;  /* Fixed distance from top */
+    right: 40px; /* Fixed distance from right */
     transform: scale(0.5);
     z-index: 2;
-    pointer-events: none; /* Ensures it doesn't interfere with interactions */
   }
 
   .title {
@@ -830,6 +848,34 @@
     font-variation-settings: 'CASL' 0;
     position: relative;
     z-index: 2;
+    color: var(--text-color);
+  }
+
+  .company-logos {
+    display: inline-flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
+  }
+
+  .company-logos :global(svg) {
+    height: 24px;
+    width: auto;
+    color: var(--text-color);
+    fill: currentColor;
+  }
+
+  /* Specific size adjustments for company logos */
+  .company-logos :global(svg:nth-child(2)) {
+    height: 25.2px; /* MongoDB: 5% bigger than default */
+  }
+
+  .company-logos :global(svg:nth-child(3)) {
+    height: 20px; /* Roblox: smaller than default */
+  }
+
+  .company-logos :global(svg:last-child) {
+    height: 20px; /* Panto: match Roblox height */
   }
 
   .portfolio-list {
@@ -932,6 +978,7 @@
     transform-origin: center;
     transition: transform 0.3s ease;
     pointer-events: auto;
+    cursor: grab;
   }
 
   .collage-image {
@@ -981,51 +1028,8 @@
     }
   }
 
-  @media (max-width: 768px) {
-    .desktop-collage {
-      display: none;
-    }
-
-    .mobile-collage {
-      display: block;
-      margin: var(--spacing-md) 0;
-      height: 60vh;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .container {
-      gap: var(--spacing-md);
-    }
-
-    .landing-page {
-      padding: 2rem;
-    }
-
-    .title {
-      font-size: 72px;
-      line-height: 60px;
-    }
-
-    .colibri-container {
-      top: -102.5px;  /* Adjusted for mobile */
-      right: -45px; /* Adjusted for mobile */
-      transform: scale(0.3); /* Smaller scale for mobile */
-    }
-
-    .portfolio-header h2 {
-      font-size: 16px;
-      line-height: 16px;
-    }
-
-    .description {
-      font-size: 18px;
-      line-height: 20px;
-    }
-  }
-
-  /* Contact modal that appears on top of everything */
-  .contact-modal {
+    /* Contact modal that appears on top of everything */
+    .contact-modal {
     position: fixed;
     top: 0;
     left: 0;
@@ -1071,5 +1075,94 @@
 
   .close-button:hover {
     background-color: rgba(0, 0, 0, 0.1);
+  }
+
+  @media (max-width: 768px) {
+    .desktop-collage {
+      display: none;
+    }
+
+    .mobile-collage {
+      display: block;
+      margin: var(--spacing-md) 0;
+      height: 60vh;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .container {
+      gap: var(--spacing-md);
+    }
+
+    .landing-page {
+      padding: 2rem;
+    }
+
+    .title {
+      font-size: 72px;
+      line-height: 60px;
+    }
+
+    .colibri-container {
+      top: -246.5px;  /* Adjusted for mobile */
+      right: 75px; /* Adjusted for mobile */
+      transform: scale(0.3); /* Smaller scale for mobile */
+    }
+
+    .portfolio-header h2 {
+      font-size: 16px;
+      line-height: 16px;
+    }
+
+    .description {
+      font-size: 18px;
+      line-height: 20px;
+    }
+
+    .company-logos :global(svg) {
+      height: 18px;
+    }
+
+    /* Maintain proportions in mobile */
+    .company-logos :global(svg:nth-child(2)) {
+      height: 19px; /* MongoDB: 5% bigger than mobile default */
+    }
+
+    .company-logos :global(svg:nth-child(3)) {
+      height: 15px; /* Roblox: smaller than mobile default */
+    }
+
+    .company-logos :global(svg:last-child) {
+      height: 15px; /* Panto: match Roblox height */
+    }
+  }
+
+  @media (max-width: 493px) {
+    .colibri-container {
+      top: -240.5px;
+      right: 20px;
+      transform: scale(0.25);
+    }
+  }
+
+  @media (max-width: 390px) {
+    .colibri-container {
+      top: -240.5px;
+      right: -60px;
+      transform: scale(0.25);
+    }
+  }
+
+  /* Add a class for when dragging is active */
+  .dragging {
+    cursor: grabbing !important;
+  }
+
+  :global(body.dragging) {
+    cursor: grabbing !important;
+  }
+
+  :global(body.dragging *) {
+    cursor: grabbing !important;
   }
 </style>
