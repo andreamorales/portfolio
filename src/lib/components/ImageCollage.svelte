@@ -27,6 +27,8 @@
   // Add to state variables
   let grabOffsetX: number;
   let grabOffsetY: number;
+  let grabbedImageWidth: number;
+  let grabbedImageHeight: number;
   
   // Function to create a new fake cursor
   function createFakeCursor() {
@@ -133,6 +135,7 @@
           if (imageElement) {
             // Get image position and prepare to move cursor there
             const rect = imageElement.getBoundingClientRect();
+            // Target the center of the image instead of a random point
             const targetX = rect.left + rect.width / 2;
             const targetY = rect.top + rect.height / 2;
             
@@ -225,123 +228,231 @@
         const dy = cursor.destinationY - cursor.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
-        // If close to destination, set new one
+        // If close to destination, either drop the image or set a new destination
         if (distance < 10) {
-          // Choose random destination with margins
-          const horizontalMargin = 100; // 100px from sides
-          const verticalMargin = 100; // 100px from top/bottom
-          cursor.destinationX = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
-          cursor.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
-          return cursor;
+          // 70% chance to drop the image
+          if (Math.random() < 0.7) {
+            // Release the image
+            if (cursor.targetImage !== null) {
+              delete imageLocks[cursor.targetImage];
+            }
+            
+            cursor.isDragging = false;
+            cursor.isMovingToTarget = false;
+            cursor.targetImage = null;
+            
+            // Choose a new wandering destination
+            const horizontalMargin = 100;
+            const verticalMargin = 100;
+            cursor.destinationX = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
+            cursor.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
+            
+            console.log(`Cursor ${cursor.name} dropped the image`);
+            return cursor;
+          } else {
+            // Choose new destination with margins
+            const horizontalMargin = 100;
+            const verticalMargin = 100;
+            cursor.destinationX = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
+            cursor.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
+            
+            // Generate a smooth curve path by setting bezier control points
+            const startX = cursor.x;
+            const startY = cursor.y;
+            const endX = cursor.destinationX;
+            const endY = cursor.destinationY;
+            
+            // Control points that create a natural arc
+            // Use more centered control points for gentler curves
+            const controlX = startX + (Math.random() * 0.2 + 0.4) * (endX - startX);
+            const controlY = startY + (Math.random() * 0.2 + 0.4) * (endY - startY);
+            
+            // Offset control point perpendicular to movement direction
+            const dirX = endX - startX;
+            const dirY = endY - startY;
+            const dirLength = Math.sqrt(dirX * dirX + dirY * dirY);
+            const perpX = -dirY / dirLength;
+            const perpY = dirX / dirLength;
+            
+            // Add perpendicular offset to create curve (much gentler)
+            const curveStrength = 20 + Math.random() * 50; // Reduced from 50-150 to 20-70
+            cursor.controlX = controlX + perpX * curveStrength;
+            cursor.controlY = controlY + perpY * curveStrength;
+            
+            // Reset curve progress
+            cursor.curveProgress = 0;
+            return cursor;
+          }
         }
         
         // Get the image element
         const imageElement = document.querySelector(`.collage-image-button:nth-child(${cursor.targetImage + 1})`);
         if (!imageElement) return cursor;
         
-        // Get the image rect
-        const imgRect = imageElement.getBoundingClientRect();
-        
-        // Initialize grab offset if not yet set
-        if (cursor.grabOffsetX === undefined || cursor.grabOffsetY === undefined) {
-          // Save the exact offset where cursor "grabbed" the image (relative to image top-left)
-          cursor.grabOffsetX = cursor.x - imgRect.left;
-          cursor.grabOffsetY = cursor.y - imgRect.top;
+        // NATURAL MOVEMENT: Use smooth bezier curve movement
+        // If we have control points, use them for curved movement
+        if (cursor.controlX !== undefined && cursor.controlY !== undefined) {
+          // Bezier curve progress (moves from 0 to 1)
+          cursor.curveProgress = cursor.curveProgress || 0;
+          // Very slow, consistent progress increment to prevent sudden changes
+          cursor.curveProgress += 0.005 + Math.random() * 0.002; // Much slower with less variation
           
-          // Also save the initial image bottom-right position (percentage)
-          cursor.initialImageRight = collageImages[cursor.targetImage].right;
-          cursor.initialImageBottom = collageImages[cursor.targetImage].bottom;
+          if (cursor.curveProgress > 1) cursor.curveProgress = 1;
           
-          // Log detailed position information
-          console.log(`${cursor.name} GRAB: 
-            - cursor: (${cursor.x.toFixed(2)}, ${cursor.y.toFixed(2)})
-            - image: (${imgRect.left.toFixed(2)}, ${imgRect.top.toFixed(2)})
-            - offset: (${cursor.grabOffsetX.toFixed(2)}, ${cursor.grabOffsetY.toFixed(2)})
-          `);
+          // Get current image position
+          const originalImage = collageImages[cursor.targetImage];
+          const imageElement = document.querySelector(`.collage-image-button:nth-child(${cursor.targetImage + 1})`);
+          if (!imageElement) return cursor;
           
-          // Get initial image position in pixels
-          cursor.initialImageLeftPx = imgRect.left;
-          cursor.initialImageTopPx = imgRect.top;
+          // Get image rect to find its current center
+          const imgRect = imageElement.getBoundingClientRect();
+          const imageCenterX = imgRect.left + imgRect.width / 2;
+          const imageCenterY = imgRect.top + imgRect.height / 2;
           
-          // And initial cursor position when grabbed
-          cursor.initialGrabX = cursor.x;
-          cursor.initialGrabY = cursor.y;
+          // Store previous cursor position (which is exactly at image center)
+          const prevCursorX = cursor.x;
+          const prevCursorY = cursor.y;
+          
+          // Calculate target position based on bezier curve
+          const t = cursor.curveProgress;
+          // Apply easing function for smooth motion
+          const easedT = 0.5 - 0.5 * Math.cos(t * Math.PI);
+          
+          const startX = prevCursorX; // Start from current position
+          const startY = prevCursorY;
+          const ctrlX = cursor.controlX;
+          const ctrlY = cursor.controlY;
+          const endX = cursor.destinationX;
+          const endY = cursor.destinationY;
+          
+          // Calculate target cursor position on curve
+          const mt = 1 - easedT;
+          const targetX = mt * mt * startX + 2 * mt * easedT * ctrlX + easedT * easedT * endX;
+          const targetY = mt * mt * startY + 2 * mt * easedT * ctrlY + easedT * easedT * endY;
+          
+          // Limit maximum movement per frame (smooth, no acceleration)
+          const maxDelta = 1.0; // Reduced from 1.5 for smoother movement
+          
+          // Calculate direction to target
+          let deltaX = targetX - prevCursorX;
+          let deltaY = targetY - prevCursorY;
+          
+          // Calculate magnitude
+          const deltaMagnitude = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+          
+          // If movement is too large, scale it down
+          if (deltaMagnitude > maxDelta) {
+            const scale = maxDelta / deltaMagnitude;
+            deltaX *= scale;
+            deltaY *= scale;
+          }
+          
+          // Calculate new image position before moving cursor
+          // Convert deltaX/Y to percentage of viewport
+          const deltaRightPercent = -(deltaX / window.innerWidth) * 100;
+          const deltaBottomPercent = -(deltaY / window.innerHeight) * 100;
+          
+          // Update image position based on cursor movement
+          const newRight = originalImage.right + deltaRightPercent;
+          const newBottom = originalImage.bottom + deltaBottomPercent;
+          
+          // Apply constraints
+          const margin = 5;
+          const constrainedRight = Math.max(margin, Math.min(95, newRight));
+          const constrainedBottom = Math.max(margin, Math.min(95, newBottom));
+          
+          // Update the image position FIRST
+          collageImages = collageImages.map((img, i) => {
+            if (i === cursor.targetImage) {
+              return {
+                ...img,
+                right: constrainedRight,
+                bottom: constrainedBottom
+              };
+            }
+            return img;
+          });
+          
+          // IMPORTANT: Get updated image center AFTER position change
+          // Wait for DOM update with requestAnimationFrame and zero timeout
+          setTimeout(() => {
+            requestAnimationFrame(() => {
+              const updatedRect = imageElement.getBoundingClientRect();
+              // Always position cursor exactly at center
+              cursor.x = updatedRect.left + updatedRect.width / 2;
+              cursor.y = updatedRect.top + updatedRect.height / 2;
+            });
+          }, 0);
+        } 
+        // If no control points, use direct movement (fallback)
+        else {
+          // Get the image element
+          const imageElement = document.querySelector(`.collage-image-button:nth-child(${cursor.targetImage + 1})`);
+          if (!imageElement) return cursor;
+          
+          // Get current image center
+          const imgRect = imageElement.getBoundingClientRect();
+          const imageCenterX = imgRect.left + imgRect.width / 2;
+          const imageCenterY = imgRect.top + imgRect.height / 2;
+          
+          // Calculate direction to destination
+          const dx = cursor.destinationX - imageCenterX;
+          const dy = cursor.destinationY - imageCenterY;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          
+          // Very gentle movement speed
+          const SLOW_SPEED = 1.0;
+          
+          // Calculate unit vector toward destination
+          const dirX = dx / distance;
+          const dirY = dy / distance;
+          
+          // Calculate target cursor position with small movement
+          const targetCursorX = imageCenterX + dirX * SLOW_SPEED;
+          const targetCursorY = imageCenterY + dirY * SLOW_SPEED;
+          
+          // Calculate delta between current and target position
+          const deltaX = targetCursorX - imageCenterX;
+          const deltaY = targetCursorY - imageCenterY;
+          
+          // Convert delta to percentage for image position
+          const deltaRightPercent = -(deltaX / window.innerWidth) * 100;
+          const deltaBottomPercent = -(deltaY / window.innerHeight) * 100;
+          
+          // Get current image position
+          const originalImage = collageImages[cursor.targetImage];
+          
+          // Update image position based on cursor movement
+          const newRight = originalImage.right + deltaRightPercent;
+          const newBottom = originalImage.bottom + deltaBottomPercent;
+          
+          // Apply constraints
+          const margin = 5;
+          const constrainedRight = Math.max(margin, Math.min(95, newRight));
+          const constrainedBottom = Math.max(margin, Math.min(95, newBottom));
+          
+          // Update the image position FIRST
+          collageImages = collageImages.map((img, i) => {
+            if (i === cursor.targetImage) {
+              return {
+                ...img,
+                right: constrainedRight,
+                bottom: constrainedBottom
+              };
+            }
+            return img;
+          });
+          
+          // CRITICAL: Always position cursor exactly at center of image
+          // Wait for DOM update to get new position
+          setTimeout(() => {
+            requestAnimationFrame(() => {
+              const updatedRect = imageElement.getBoundingClientRect();
+              cursor.x = updatedRect.left + updatedRect.width / 2;
+              cursor.y = updatedRect.top + updatedRect.height / 2;
+            });
+          }, 0);
         }
-        
-        // REDESIGNED ALGORITHM:
-        // 1. Calculate how far cursor has moved since grab in pixels
-        // 2. Apply that same movement to image directly
-        // 3. Apply constraints
-        // 4. Keep cursor position exactly synchronized with image
-        
-        // Add curved movement to cursor position
-        const curveMagnitude = 0.3;
-        const sinOffset = Math.sin(cursor.timeFactor) * curveMagnitude;
-        const cosOffset = Math.cos(cursor.timeFactor * 0.7) * curveMagnitude;
-        
-        // Calculate perpendicular direction for curve
-        const perpX = -dy / distance;
-        const perpY = dx / distance;
-        
-        // Direction vector
-        const dirX = dx / distance;
-        const dirY = dy / distance;
-        
-        // Calculate new cursor position with curve
-        const moveX = (dirX * MOVEMENT_SPEED) + (perpX * sinOffset * 3);
-        const moveY = (dirY * MOVEMENT_SPEED) + (perpY * cosOffset * 3);
-        
-        // Move cursor
-        cursor.x += moveX;
-        cursor.y += moveY;
-        
-        // Calculate total cursor movement since initial grab (in pixels)
-        const cursorDeltaX = cursor.x - cursor.initialGrabX;
-        const cursorDeltaY = cursor.y - cursor.initialGrabY;
-        
-        // Calculate the new desired image position in pixels
-        const desiredImageLeftPx = cursor.initialImageLeftPx + cursorDeltaX;
-        const desiredImageTopPx = cursor.initialImageTopPx + cursorDeltaY;
-        
-        // Convert to viewport percentage for right/bottom positioning (inverted)
-        const newRightPercent = (window.innerWidth - desiredImageLeftPx - imgRect.width) / window.innerWidth * 100;
-        const newBottomPercent = (window.innerHeight - desiredImageTopPx - imgRect.height) / window.innerHeight * 100;
-        
-        // Apply constraints with margins
-        const margin = 5; // 5% margin from edges
-        const constrainedRight = Math.max(margin, Math.min(95, newRightPercent));
-        const constrainedBottom = Math.max(margin, Math.min(95, newBottomPercent));
-        
-        // Update image position
-        collageImages = collageImages.map((img, i) => {
-          if (i === cursor.targetImage) {
-            return {
-              ...img,
-              right: constrainedRight,
-              bottom: constrainedBottom
-            };
-          }
-          return img;
-        });
-        
-        // Now we need to re-sync the cursor position to the exact image position
-        requestAnimationFrame(() => {
-          // Get updated image position
-          const updatedRect = imageElement.getBoundingClientRect();
-          
-          // Set cursor position to maintain exact grab point
-          cursor.x = updatedRect.left + cursor.grabOffsetX;
-          cursor.y = updatedRect.top + cursor.grabOffsetY;
-          
-          // Update the initial values if constraints were applied
-          if (constrainedRight !== newRightPercent || constrainedBottom !== newBottomPercent) {
-            // We hit a constraint, so we need to update our initial values
-            cursor.initialImageLeftPx = updatedRect.left;
-            cursor.initialImageTopPx = updatedRect.top;
-            cursor.initialGrabX = cursor.x;
-            cursor.initialGrabY = cursor.y;
-          }
-        });
       }
       // CASE 3: Just wandering (not dragging)
       else {
@@ -670,7 +781,11 @@
     const rect = imageElement.getBoundingClientRect();
     const touch = event.touches[0];
     
-    // Store the exact point where the touch grabbed the image
+    // Store the exact image dimensions at grab time to ensure consistency
+    grabbedImageWidth = rect.width;
+    grabbedImageHeight = rect.height;
+    
+    // Calculate grab offset from touch position within the image
     grabOffsetX = touch.clientX - rect.left;
     grabOffsetY = touch.clientY - rect.top;
     
@@ -699,21 +814,6 @@
     
     const touch = event.touches[0];
     
-    // Get the image element
-    const imageElement = document.querySelector(`.collage-image-button:nth-child(${draggedImageIndex + 1})`);
-    if (!imageElement) return;
-    
-    // Calculate desired image position to maintain grab point
-    const desiredImageLeft = touch.clientX - grabOffsetX;
-    const desiredImageTop = touch.clientY - grabOffsetY;
-    
-    // Get current image position and dimensions
-    const currentRect = imageElement.getBoundingClientRect();
-    
-    // Calculate the delta in pixels
-    const deltaLeft = desiredImageLeft - currentRect.left;
-    const deltaTop = desiredImageTop - currentRect.top;
-    
     // Get viewport or container dimensions
     const isMobile = window.innerWidth <= 768;
     let containerWidth = window.innerWidth;
@@ -728,46 +828,48 @@
       }
     }
     
-    // Convert to percentage (right/bottom are inverse of left/top)
-    const deltaRightPercent = -(deltaLeft / containerWidth) * 100;
-    const deltaBottomPercent = -(deltaTop / containerHeight) * 100;
+    // DIRECT HUMAN TOUCH DRAG: Use the original stored dimensions
+    // Calculate where the image's top-left corner should be (in pixels)
+    const desiredImageLeft = touch.clientX - grabOffsetX;
+    const desiredImageTop = touch.clientY - grabOffsetY;
     
-    // Get original image data
-    const originalImage = collageImages[draggedImageIndex];
+    // Convert directly to right/bottom CSS position using the STORED dimensions
+    const desiredRightPx = containerWidth - (desiredImageLeft + grabbedImageWidth);
+    const desiredBottomPx = containerHeight - (desiredImageTop + grabbedImageHeight);
     
-    // Calculate new image position
-    const newRight = originalImage.right + deltaRightPercent;
-    const newBottom = originalImage.bottom + deltaBottomPercent;
+    // Convert to percentage
+    const desiredRightPercent = (desiredRightPx / containerWidth) * 100;
+    const desiredBottomPercent = (desiredBottomPx / containerHeight) * 100;
     
     // Apply constraints
     let constrainedRight, constrainedBottom;
     
     if (isMobile) {
       // For mobile, constrain to container boundaries
-      const imageWidthPercent = (originalImage.width / containerWidth) * 100;
-      const imageHeightPercent = (originalImage.height / containerHeight) * 100;
+      const imageWidthPercent = (grabbedImageWidth / containerWidth) * 100;
+      const imageHeightPercent = (grabbedImageHeight / containerHeight) * 100;
       
       constrainedRight = Math.max(
         0,
-        Math.min(100 - imageWidthPercent, newRight)
+        Math.min(100 - imageWidthPercent, desiredRightPercent)
       );
       constrainedBottom = Math.max(
         0,
-        Math.min(100 - imageHeightPercent, newBottom)
+        Math.min(100 - imageHeightPercent, desiredBottomPercent)
       );
     } else {
       // For desktop, use the viewport margin
       const viewportMargin = 3;
-      const imageWidthPercent = (originalImage.width / window.innerWidth) * 100;
+      const imageWidthPercent = (grabbedImageWidth / window.innerWidth) * 100;
       
       constrainedRight = Math.max(
         viewportMargin,
-        Math.min(100 - viewportMargin - imageWidthPercent, newRight)
+        Math.min(100 - viewportMargin - imageWidthPercent, desiredRightPercent)
       );
-      constrainedBottom = Math.max(0, Math.min(100, newBottom));
+      constrainedBottom = Math.max(0, Math.min(100, desiredBottomPercent));
     }
     
-    // Update the image position
+    // Update the image position IMMEDIATELY
     collageImages = collageImages.map((img, i) => {
       if (i === draggedImageIndex) {
         return {
@@ -883,20 +985,27 @@
       return;
     }
     
+    // Mark that user has interacted with collage
+    hasInteractedWithCollage = true;
+    
     // Get the image element and its rect
     const imageElement = document.querySelector(`.collage-image-button:nth-child(${index + 1})`);
     if (!imageElement) return;
     
     const rect = imageElement.getBoundingClientRect();
     
-    // Store the exact point where the cursor grabbed the image
+    // Store the exact image dimensions at grab time to ensure consistency
+    grabbedImageWidth = rect.width;
+    grabbedImageHeight = rect.height;
+    
+    // Calculate grab offset from click position within the image
     grabOffsetX = event.clientX - rect.left;
     grabOffsetY = event.clientY - rect.top;
     
-    console.log(`USER GRAB: offset=(${grabOffsetX.toFixed(2)}, ${grabOffsetY.toFixed(2)}), relative=(${(grabOffsetX / rect.width * 100).toFixed(1)}%, ${(grabOffsetY / rect.height * 100).toFixed(1)}%)`);
-    
     // Record which image is being dragged and initial position
     draggedImageIndex = index;
+    
+    // Track the initial mouse and image positions
     dragStartX = event.clientX;
     dragStartY = event.clientY;
     initialRight = collageImages[index].right;
@@ -916,37 +1025,6 @@
   function handleDrag(event: MouseEvent) {
     if (draggedImageIndex === null) return;
     
-    // Get the image element
-    const imageElement = document.querySelector(`.collage-image-button:nth-child(${draggedImageIndex + 1})`);
-    if (!imageElement) return;
-    
-    // Get the image rect
-    const imgRect = imageElement.getBoundingClientRect();
-    
-    // Log current position relative to image
-    const currentRelX = event.clientX - imgRect.left;
-    const currentRelY = event.clientY - imgRect.top;
-    
-    // Calculate drift from original grab point
-    const driftX = currentRelX - grabOffsetX;
-    const driftY = currentRelY - grabOffsetY;
-    
-    // Log drift occasionally
-    if (Math.random() < 0.05) {
-      console.log(`USER DRIFT: (${driftX.toFixed(2)}px, ${driftY.toFixed(2)}px), current=(${currentRelX.toFixed(2)}, ${currentRelY.toFixed(2)}), expected=(${grabOffsetX.toFixed(2)}, ${grabOffsetY.toFixed(2)})`);
-    }
-    
-    // Calculate desired image position to maintain grab point
-    const desiredImageLeft = event.clientX - grabOffsetX;
-    const desiredImageTop = event.clientY - grabOffsetY;
-    
-    // Get current image position and dimensions
-    const currentRect = imageElement.getBoundingClientRect();
-    
-    // Calculate the delta in pixels
-    const deltaLeft = desiredImageLeft - currentRect.left;
-    const deltaTop = desiredImageTop - currentRect.top;
-    
     // Get viewport or container dimensions
     const isMobile = window.innerWidth <= 768;
     let containerWidth = window.innerWidth;
@@ -961,53 +1039,52 @@
       }
     }
     
-    // Convert to percentage (right/bottom are inverse of left/top)
-    const deltaRightPercent = -(deltaLeft / containerWidth) * 100;
-    const deltaBottomPercent = -(deltaTop / containerHeight) * 100;
+    // DIRECT HUMAN CURSOR DRAG: Use the original stored dimensions from grab time
+    // This prevents jumping due to getBoundingClientRect variations during drag
     
-    // Get original image data
-    const originalImage = collageImages[draggedImageIndex];
+    // Calculate where the image's top-left corner should be (in pixels)
+    const desiredImageLeft = event.clientX - grabOffsetX;
+    const desiredImageTop = event.clientY - grabOffsetY;
     
-    // Calculate new image position
-    const newRight = originalImage.right + deltaRightPercent;
-    const newBottom = originalImage.bottom + deltaBottomPercent;
+    // Convert directly to right/bottom CSS position using the STORED dimensions
+    // Right = containerWidth - (left + width)
+    // Bottom = containerHeight - (top + height)
+    const desiredRightPx = containerWidth - (desiredImageLeft + grabbedImageWidth);
+    const desiredBottomPx = containerHeight - (desiredImageTop + grabbedImageHeight);
+    
+    // Convert to percentage
+    const desiredRightPercent = (desiredRightPx / containerWidth) * 100;
+    const desiredBottomPercent = (desiredBottomPx / containerHeight) * 100;
     
     // Apply constraints
     let constrainedRight, constrainedBottom;
     
     if (isMobile) {
       // For mobile, constrain to container boundaries
-      const imageWidthPercent = (originalImage.width / containerWidth) * 100;
-      const imageHeightPercent = (originalImage.height / containerHeight) * 100;
+      const imageWidthPercent = (grabbedImageWidth / containerWidth) * 100;
+      const imageHeightPercent = (grabbedImageHeight / containerHeight) * 100;
       
       constrainedRight = Math.max(
         0,
-        Math.min(100 - imageWidthPercent, newRight)
+        Math.min(100 - imageWidthPercent, desiredRightPercent)
       );
       constrainedBottom = Math.max(
         0,
-        Math.min(100 - imageHeightPercent, newBottom)
+        Math.min(100 - imageHeightPercent, desiredBottomPercent)
       );
     } else {
       // For desktop, use the viewport margin
       const viewportMargin = 3;
-      const imageWidthPercent = (originalImage.width / window.innerWidth) * 100;
+      const imageWidthPercent = (grabbedImageWidth / window.innerWidth) * 100;
       
       constrainedRight = Math.max(
         viewportMargin,
-        Math.min(100 - viewportMargin - imageWidthPercent, newRight)
+        Math.min(100 - viewportMargin - imageWidthPercent, desiredRightPercent)
       );
-      constrainedBottom = Math.max(0, Math.min(100, newBottom));
+      constrainedBottom = Math.max(0, Math.min(100, desiredBottomPercent));
     }
     
-    // Log if constraints are applied (which could cause drift)
-    if (constrainedRight !== newRight || constrainedBottom !== newBottom) {
-      console.log(`USER CONSTRAINT: right=${newRight.toFixed(2)} -> ${constrainedRight.toFixed(2)}, bottom=${newBottom.toFixed(2)} -> ${constrainedBottom.toFixed(2)}`);
-      
-      // For user dragging, we don't need to adjust the cursor position as it follows the mouse exactly
-    }
-    
-    // Update the image position
+    // Update the image position IMMEDIATELY
     collageImages = collageImages.map((img, i) => {
       if (i === draggedImageIndex) {
         return {
@@ -1017,19 +1094,6 @@
         };
       }
       return img;
-    });
-    
-    // After image is updated, check final position and drift
-    requestAnimationFrame(() => {
-      const finalRect = imageElement.getBoundingClientRect();
-      const finalRelX = event.clientX - finalRect.left;
-      const finalRelY = event.clientY - finalRect.top;
-      const finalDriftX = finalRelX - grabOffsetX;
-      const finalDriftY = finalRelY - grabOffsetY;
-      
-      if (Math.abs(finalDriftX) > 1 || Math.abs(finalDriftY) > 1) {
-        console.log(`USER FINAL DRIFT: (${finalDriftX.toFixed(2)}px, ${finalDriftY.toFixed(2)}px) after constraints`);
-      }
     });
   }
 
