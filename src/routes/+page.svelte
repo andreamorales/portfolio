@@ -4,6 +4,7 @@
   import ContactForm from '$lib/components/ContactForm.svelte';
   import Label from '$lib/components/ui/input/Label.svelte';
   import colibri from '$lib/images/colibri.png';
+  import ImageCollage from '$lib/components/ImageCollage.svelte';
   
   // Import all collage images
   import beetle from '$lib/images/beetle.png';
@@ -96,6 +97,9 @@
 
   // Add a variable to track if user has interacted with collage
   let hasInteractedWithCollage = false;
+
+  // Add image lock tracking to collage images
+  let imageLocks: Record<number, string> = {}; // Map of image index to cursor ID
 
   // Define the dimensions for all images with content-aware offsets
   // Each image has contentOffsets that define where the actual visible content is
@@ -544,9 +548,20 @@
     const handleTouchEnd = () => {
       // Remove dragging class from body
       document.body.classList.remove('dragging');
+      
+      // Release the lock on this image
+      if (draggedImageIndex !== null) {
+        delete imageLocks[draggedImageIndex];
+      }
+      
       draggedImageIndex = null;
     };
 
+    // Add resize and touch event handlers
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd);
+    
     (async () => {
       try {
         // First preload all images
@@ -554,11 +569,6 @@
         
         // Then generate positions and start animation sequence
         collageImages = generateRandomPositions();
-        
-        // Add resize and touch event handlers
-        window.addEventListener('resize', handleResize);
-        window.addEventListener('touchmove', handleTouchMove, { passive: false });
-        window.addEventListener('touchend', handleTouchEnd);
         
         // Start introducing images one by one with a faster speed
         setTimeout(() => {
@@ -570,6 +580,11 @@
               visibleImages = [...visibleImages, index];
             }, 150 + index * 180);
           });
+          
+          document.querySelector(':root')?.classList.add('mounted');
+          
+          // Add a class to the body when javascript is available
+          document.body.classList.add('js-enabled');
         }, 200);
       } catch (error) {
         console.error('Error loading images:', error);
@@ -597,12 +612,22 @@
     event.preventDefault();
     event.stopPropagation();
     
+    // Check if this image is already being dragged by a cursor
+    if (imageLocks[index]) {
+      // Image is locked, can't drag it
+      console.log(`Image ${index} is currently being moved by another cursor`);
+      return;
+    }
+    
     // Record which image is being dragged and initial position
     draggedImageIndex = index;
     dragStartX = event.clientX;
     dragStartY = event.clientY;
     initialRight = collageImages[index].right;
     initialBottom = collageImages[index].bottom;
+    
+    // Lock this image for human user
+    imageLocks[index] = "human-user";
     
     // Add dragging class to body to ensure cursor stays as grabbing
     document.body.classList.add('dragging');
@@ -688,6 +713,12 @@
     // Clean up event listeners
     window.removeEventListener('mousemove', handleDrag);
     window.removeEventListener('mouseup', endDrag);
+    
+    // Release the lock on this image
+    if (draggedImageIndex !== null) {
+      delete imageLocks[draggedImageIndex];
+    }
+    
     draggedImageIndex = null;
   }
 
@@ -729,6 +760,104 @@
       document.body.style.overflow = 'auto';
     }
   }
+
+  // Add fake cursor state with new properties
+  let fakeCursors: Array<{
+    id: string;
+    name: string;
+    x: number;
+    y: number;
+    color: string;
+    isDragging: boolean;
+    isMovingToTarget: boolean;
+    targetImage: number | null;
+    targetX: number;
+    targetY: number;
+    destinationX: number;
+    destinationY: number;
+    delayCount: number;
+    lastVelocity?: number;
+    dragStartTime?: number;
+    curveOffsetX: number;
+    curveOffsetY: number;
+    timeFactor: number;
+    randomOffset: { x: number; y: number };
+    offsetX: number;
+    offsetY: number;
+    rotation: number;
+    originX: number;
+    originY: number;
+    holdDuration: number;
+  }> = [];
+
+  // Handler for updating fakeCursors from the component
+  function updateFakeCursors(cursors: any[]) {
+    fakeCursors = cursors;
+  }
+
+  // Add fake user colors
+  const fakeUserColors = [
+    '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEEAD', '#D4A5A5', '#9B59B6', '#3498DB'
+  ];
+
+  // Function to create a new fake cursor
+  function createFakeCursor() {
+    const id = Math.random().toString(36).substr(2, 9);
+    // Generate a random user number between 100 and 999
+    const randomUserNumber = Math.floor(100 + Math.random() * 900);
+    const name = `User${randomUserNumber}`;
+    const color = fakeUserColors[Math.floor(Math.random() * fakeUserColors.length)];
+    
+    return {
+      id,
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      color,
+      name,
+      isDragging: false,
+      isMovingToTarget: false,
+      targetImage: null,
+      targetX: 0,
+      targetY: 0,
+      destinationX: 100 + Math.random() * (window.innerWidth - 200),
+      destinationY: 100 + Math.random() * (window.innerHeight - 200),
+      delayCount: 0,
+      // Add curve offsets for curved movement
+      curveOffsetX: (Math.random() * 100) - 50,
+      curveOffsetY: (Math.random() * 100) - 50,
+      // Add time counter for curved movement
+      timeFactor: 0,
+      randomOffset: { x: 0, y: 0 },
+      offsetX: 0,
+      offsetY: 0,
+      rotation: 0,
+      originX: 0,
+      originY: 0,
+      holdDuration: 0
+    };
+  }
+
+  // Initialize with one cursor
+  onMount(() => {
+    // Create initial cursor
+    fakeCursors = [createFakeCursor()];
+  });
+
+  // Function to get debug border style for images being moved by cursors
+  function getDebugBorderStyle(imageIndex: number, cursors: Array<any>): string {
+    // Find a cursor that's dragging this image
+    const draggingCursor = cursors.find(cursor => cursor.isDragging && cursor.targetImage === imageIndex);
+    
+    if (draggingCursor) {
+      // Return a visible border style with the cursor's color
+      return `
+        box-shadow: 0 0 0 4px ${draggingCursor.color}, 0 0 0 6px rgba(255,255,255,0.5);
+        border-radius: 2px;
+      `;
+    }
+    
+    return '';
+  }
 </script>
 
 <svelte:head>
@@ -737,6 +866,23 @@
 </svelte:head>
 
 <div class="landing-page">
+  <!-- Add fake cursors overlay -->
+  <div class="fake-cursors-overlay">
+    {#each fakeCursors as cursor}
+      <div 
+        class="fake-cursor"
+        style="
+          left: {cursor.x}px;
+          top: {cursor.y}px;
+          --cursor-color: {cursor.color};
+        "
+      >
+        <div class="fake-cursor-dot"></div>
+        <div class="fake-cursor-name">{cursor.name}</div>
+      </div>
+    {/each}
+  </div>
+
   <main class="container flex-column-left">
     <div class="header flex-column-left gap-large">
       <div class="title-container">
@@ -762,126 +908,17 @@
       </div>
     </div>
 
-    <!-- Desktop collage (hidden on mobile) -->
-    <div class="desktop-collage">
-      {#if collageImages.length > 0 && imagesReady}
-        {#each collageImages as img, i}
-          {#if visibleImages.includes(i)}
-            <button 
-              class="collage-image-button"
-              on:mousedown={(e) => {
-                // Mark that user has interacted with collage
-                hasInteractedWithCollage = true;
-                
-                startDrag(e, i);
-                bringToFront(i);
-              }}
-              style="
-                position: absolute;
-                right: {img.right}%; 
-                bottom: {img.bottom}%; 
-                transform: rotate({img.rotation}deg);
-                z-index: {img.zIndex};
-                padding: 0;
-                border: none;
-                background: none;
-                cursor: grab;
-                width: {img.width}px;
-                height: {img.height}px;
-              "
-            >
-              <img 
-                src={img.src} 
-                alt={img.alt} 
-                class="collage-image" 
-                in:fade={{ duration: 400 }}
-                style="
-                  width: 100%;
-                  height: 100%;
-                  object-fit: contain;
-                  {img.flexShrink !== undefined ? `flex-shrink: ${img.flexShrink};` : ''}
-                  {img.aspectRatio ? `aspect-ratio: ${img.aspectRatio};` : ''}
-                "
-                draggable="false"
-              >
-            </button>
-          {/if}
-        {/each}
-      {/if}
-    </div>
-
-    <!-- Mobile playground collage -->
-    <div class="mobile-collage">
-      {#if !hasInteractedWithCollage && !draggedImageIndex && collageImages.length > 0 && imagesReady}
-        <div class="drag-hint">
-          <Pointer size={36} />
-        </div>
-      {/if}
-      {#if collageImages.length > 0 && imagesReady}
-        {#each collageImages as img, i}
-          {#if visibleImages.includes(i)}
-            <button 
-              class="collage-image-button"
-              on:mousedown={(e) => {
-                // Mark that user has interacted with collage
-                hasInteractedWithCollage = true;
-                
-                startDrag(e, i);
-                bringToFront(i);
-              }}
-              on:touchstart={(e) => {
-                // Prevent default to stop scrolling
-                e.preventDefault();
-                
-                // Mark that user has interacted with collage
-                hasInteractedWithCollage = true;
-                
-                // Handle touch as drag start
-                const touch = e.touches[0];
-                draggedImageIndex = i;
-                dragStartX = touch.clientX;
-                dragStartY = touch.clientY;
-                initialRight = collageImages[i].right;
-                initialBottom = collageImages[i].bottom;
-                
-                // Add dragging class
-                document.body.classList.add('dragging');
-                
-                bringToFront(i);
-              }}
-              style="
-                position: absolute;
-                right: {img.right}%; 
-                bottom: {img.bottom}%; 
-                transform: rotate({img.rotation}deg) scale({img.scale || 1});
-                z-index: {img.zIndex};
-                padding: 0;
-                border: none;
-                background: none;
-                cursor: grab;
-                width: {img.width}px;
-                height: {img.height}px;
-              "
-            >
-              <img 
-                src={img.src} 
-                alt={img.alt} 
-                class="collage-image" 
-                in:fade={{ duration: 400 }}
-                style="
-                  width: 100%;
-                  height: 100%;
-                  object-fit: contain;
-                  {img.flexShrink !== undefined ? `flex-shrink: ${img.flexShrink};` : ''}
-                  {img.aspectRatio ? `aspect-ratio: ${img.aspectRatio};` : ''}
-                "
-                draggable="false"
-              >
-            </button>
-          {/if}
-        {/each}
-      {/if}
-    </div>
+    <!-- Replace the desktop and mobile collage sections with our new component -->
+    <ImageCollage 
+      {imageDimensions}
+      {largeScreenImages}
+      {fakeCursors}
+      onFakeCursorsUpdate={updateFakeCursors}
+    >
+      <svelte:fragment slot="drag-hint">
+        <Pointer size={36} />
+      </svelte:fragment>
+    </ImageCollage>
 
     <div class="portfolio-list">
       {#each portfolioItems as item, index}
@@ -1087,82 +1124,6 @@
     font-variation-settings: 'CASL' 0, 'wght' 400;
   }
 
-  .desktop-collage {
-    position: fixed;
-    bottom: 0;
-    right: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1;
-    overflow: visible;
-    pointer-events: none;
-  }
-
-  .mobile-collage {
-    display: none;
-    position: relative;
-    width: 100%;
-    height: 60vh;
-    overflow: hidden;
-    margin-top: var(--spacing-md);
-    margin-bottom: var(--spacing-md);
-  }
-
-  .drag-hint {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: #363636;
-    z-index: 100;
-    width: 48px;
-    height: 48px;
-    pointer-events: none;
-    animation: pulse 2s infinite;
-  }
-
-  @keyframes pulse {
-    0% {
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
-    }
-    50% {
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1.1);
-    }
-    100% {
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
-    }
-  }
-
-  .collage-image-button {
-    position: absolute;
-    display: block;
-    transform-origin: center;
-    pointer-events: auto;
-    cursor: grab;
-    will-change: transform; /* Optimize for transforms */
-  }
-
-  /* Only apply transition when not dragging */
-  .collage-image-button:not(:active) {
-    transition: transform 0.3s ease;
-  }
-
-  .collage-image {
-    display: block;
-    pointer-events: none;
-    user-select: none;
-    -webkit-user-drag: none;
-    -webkit-backface-visibility: hidden; /* Prevent blurriness */
-    backface-visibility: hidden;
-  }
-  
-  .collage-image-button:active {
-    cursor: grabbing;
-  }
-  
   .cta {
     position: relative;
     z-index: 5;
@@ -1201,8 +1162,8 @@
     }
   }
 
-    /* Contact modal that appears on top of everything */
-    .contact-modal {
+  /* Contact modal that appears on top of everything */
+  .contact-modal {
     position: fixed;
     top: 0;
     left: 0;
@@ -1251,18 +1212,6 @@
   }
 
   @media (max-width: 768px) {
-    .desktop-collage {
-      display: none;
-    }
-
-    .mobile-collage {
-      display: block;
-      margin: var(--spacing-md) 0;
-      height: 60vh;
-      position: relative;
-      overflow: hidden;
-    }
-
     .container {
       gap: var(--spacing-md);
     }
@@ -1357,5 +1306,55 @@
 
   :global(body.dragging *) {
     cursor: grabbing !important;
+  }
+
+  .fake-cursors-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* This ensures fake cursors don't interact with elements */
+    z-index: 1000;
+  }
+
+  .fake-cursor {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    transition: left 0.1s linear, top 0.1s linear;
+    pointer-events: none; /* Double ensure no interaction */
+  }
+
+  .fake-cursor-dot {
+    width: 8px;
+    height: 8px;
+    background-color: var(--cursor-color);
+    border-radius: 50%;
+    position: relative;
+  }
+
+  .fake-cursor-dot::after {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    right: -4px;
+    bottom: -4px;
+    border: 2px solid var(--cursor-color);
+    border-radius: 50%;
+    opacity: 0.5;
+  }
+
+  .fake-cursor-name {
+    position: absolute;
+    top: -20px;
+    left: 10px;
+    background-color: var(--cursor-color);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: var(--font-recursive);
+    white-space: nowrap;
   }
 </style>
