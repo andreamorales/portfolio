@@ -615,7 +615,6 @@
     // Check if this image is already being dragged by a cursor
     if (imageLocks[index]) {
       // Image is locked, can't drag it
-      console.log(`Image ${index} is currently being moved by another cursor`);
       return;
     }
     
@@ -741,7 +740,6 @@
 
   // Remove unused contact form reference and scroll functionality
   function scrollToContact() {
-    console.log('Toggle contact form triggered');
     toggleContactForm();
   }
 
@@ -750,7 +748,6 @@
 
   // Function to toggle contact form visibility
   function toggleContactForm() {
-    console.log('Toggle contact form triggered');
     showContactForm = !showContactForm;
     if (showContactForm) {
       // Prevent body scrolling when modal is open
@@ -1293,19 +1290,6 @@
     .colibri-container {
       transform: translate(17.5%, -3.1%) scale(0.5);
     }
-  }
-
-  /* Add a class for when dragging is active */
-  .dragging {
-    cursor: grabbing !important;
-  }
-
-  :global(body.dragging) {
-    cursor: grabbing !important;
-  }
-
-  :global(body.dragging *) {
-    cursor: grabbing !important;
   }
 
   .fake-cursors-overlay {

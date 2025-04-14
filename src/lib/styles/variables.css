@@ -16,6 +16,16 @@
     --grey-dark: #666666;
     --grey-darker: #444444;
     
+    /* Cursor Colors - Accessible and complementary to the existing palette */
+    --cursor-red: #D64045;
+    --cursor-teal: #4ECDC4;
+    --cursor-blue: #45B7D1;
+    --cursor-green: #7FB069;
+    --cursor-yellow: #E09F3E;
+    --cursor-pink: #D48EAD;
+    --cursor-purple: #9B5DE5;
+    --cursor-indigo: #5D67E9;
+    
     /* Font settings */
     --font-family: 'Recursive', sans-serif;
     --font-family-display: 'Refract', serif;
