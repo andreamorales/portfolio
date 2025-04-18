@@ -37,9 +37,14 @@
   let grabOffsetY: number;
   let grabbedImageWidth: number;
   let grabbedImageHeight: number;
+
+  // Cursor appearance control
+  let lastCursorCreationTime = 0;
+  let cursorActivityTimers: Record<string, number> = {}; // Track cursor inactivity timers
+  let initialStaticCursorCreated = false; // Track if we've created the initial static cursor
   
   // Function to create a new fake cursor
-  function createFakeCursor() {
+  function createFakeCursor(isStatic = false) {
     const id = Math.random().toString(36).substr(2, 9);
     // Generate a random user number between 100 and 999
     const randomUserNumber = Math.floor(100 + Math.random() * 900);
@@ -83,7 +88,11 @@
       initialImageLeftPx: 0,
       initialImageTopPx: 0,
       initialGrabX: 0,
-      initialGrabY: 0
+      initialGrabY: 0,
+      // Activity tracking
+      lastActiveTime: Date.now(),
+      isStatic: isStatic, // Whether this cursor should remain stationary
+      restingPeriod: 0 // How long cursor should remain static after activity
     };
   }
 
@@ -129,13 +138,51 @@
       }
     });
     
-    // Only allow max 2 cursors at a time with higher chance to create one if none exist
-    if (fakeCursors.length < 1 && Math.random() < 0.05) {
-      const newCursor = createFakeCursor();
-      console.log(`Created new cursor: ${newCursor.name} with ID ${newCursor.id}`);
+    // Create initial static cursor if not created yet and no other cursors exist
+    if (!initialStaticCursorCreated && fakeCursors.length === 0) {
+      const newCursor = createFakeCursor(true); // Create a static cursor
+      console.log(`Created initial static cursor: ${newCursor.name} with ID ${newCursor.id}`);
       fakeCursors = [...fakeCursors, newCursor];
       onFakeCursorsUpdate(fakeCursors);
+      initialStaticCursorCreated = true;
+      return; // Exit early after creating the initial cursor
     }
+    
+    // Check for cursor limits - create new cursor only if:
+    // 1. It's been at least 1 hour since last cursor creation (3600000ms)
+    // 2. We have fewer than 2 cursors
+    // 3. Very low random chance (0.005 = about 0.5% chance per frame at 60fps)
+    const currentTime = Date.now();
+    const hourInMs = 3600000;
+    const timeSinceLastCreation = currentTime - lastCursorCreationTime;
+    
+    if (fakeCursors.length < 2 && 
+        timeSinceLastCreation > hourInMs && 
+        Math.random() < 0.005) {
+      const newCursor = createFakeCursor();
+      console.log(`Created new cursor: ${newCursor.name} with ID ${newCursor.id} after ${Math.floor(timeSinceLastCreation/60000)} minutes`);
+      fakeCursors = [...fakeCursors, newCursor];
+      lastCursorCreationTime = currentTime;
+      onFakeCursorsUpdate(fakeCursors);
+    }
+    
+    // Check for inactive cursors and remove them
+    fakeCursors = fakeCursors.filter(cursor => {
+      const inactivityTime = currentTime - cursor.lastActiveTime;
+      // If cursor is not in a resting period and has been inactive for more than 2 minutes (120000ms), remove it
+      if (cursor.restingPeriod <= 0 && inactivityTime > 120000 && !cursor.isStatic) {
+        console.log(`Removing inactive cursor ${cursor.name} after ${Math.floor(inactivityTime/1000)} seconds of inactivity`);
+        
+        // If the cursor was dragging an image, release it
+        if (cursor.isDragging && cursor.targetImage !== null) {
+          const imageIndex = cursor.targetImage;
+          stopDragging(imageIndex);
+          delete imageLocks[imageIndex];
+        }
+        return false;
+      }
+      return true;
+    });
     
     // MODIFIED: Only check the store for cursors that are NOT moving to target
     // This prevents the store from removing locks during the transition
@@ -167,6 +214,17 @@
     
     // Move existing cursors with improved physics
     fakeCursors = fakeCursors.map(cursor => {
+      // Skip static cursors completely
+      if (cursor.isStatic) {
+        return cursor;
+      }
+      
+      // If cursor is in a resting period, decrement it and skip movement
+      if (cursor.restingPeriod > 0) {
+        cursor.restingPeriod -= 16; // Assuming 16ms per frame (60fps)
+        return cursor;
+      }
+      
       // Save previous position for velocity calculation
       const prevX = cursor.x;
       const prevY = cursor.y;
@@ -183,8 +241,8 @@
       // STEP 1: HANDLE STATE TRANSITIONS
       // Note: We'll only check for state changes, but won't apply position changes here
       
-      // If not dragging, randomly decide to start dragging - higher probability (5% chance)
-      if (!cursor.isDragging && !cursor.isMovingToTarget && Math.random() < 0.05) {
+      // If not dragging, randomly decide to start dragging - lower probability (2% chance instead of 5%)
+      if (!cursor.isDragging && !cursor.isMovingToTarget && Math.random() < 0.02) {
         // If cursor was previously targeting an image but state changed,
         // ensure we clean up any existing target
         if (cursor.targetImage !== null) {
@@ -246,6 +304,9 @@
           // Lock this image
           imageLocks[randomImageIndex] = cursor.id;
           
+          // Update activity timestamp
+          cursor.lastActiveTime = Date.now();
+          
           console.log(`Cursor ${cursor.name} preparing to grab image ${randomImageIndex}`);
         }
       }
@@ -276,6 +337,9 @@
           
           // Ensure the imageLocks still points to us
           imageLocks[targetImageIndex] = cursor.id;
+          
+          // Update activity timestamp
+          cursor.lastActiveTime = Date.now();
           
           console.log(`Cursor ${cursor.name} started ACTIVE dragging of image ${targetImageIndex}`);
           
@@ -324,7 +388,13 @@
             stopDragging(releasedImageIndex);
           }
           
-          console.log(`Cursor ${cursor.name} dropped the image at destination`);
+          // Update activity timestamp
+          cursor.lastActiveTime = Date.now();
+          
+          // Set a resting period (8-12 seconds) after dropping the image
+          cursor.restingPeriod = 8000 + Math.random() * 4000;
+          
+          console.log(`Cursor ${cursor.name} dropped the image and will rest for ${Math.round(cursor.restingPeriod/1000)} seconds`);
         }
         
         cursor.isMovingToTarget = false;
@@ -437,7 +507,14 @@
               
               cursor.targetImage = null;
               cursor.isDragging = false;
-              console.log(`Cursor ${cursor.name} dropped the image at destination`);
+              
+              // Set a resting period (10-20 seconds) after dropping the image
+              cursor.restingPeriod = 10000 + Math.random() * 10000;
+              
+              // Update activity timestamp
+              cursor.lastActiveTime = Date.now();
+              
+              console.log(`Cursor ${cursor.name} dropped the image and will rest for ${Math.round(cursor.restingPeriod/1000)} seconds`);
             }
             
             cursor.isMovingToTarget = false;
@@ -470,6 +547,10 @@
             
             // Reset curve progress
             cursor.curveProgress = 0;
+            
+            // Update activity timestamp
+            cursor.lastActiveTime = Date.now();
+            
             return cursor;
           }
         }
@@ -1417,6 +1498,9 @@
               visibleImages = [...visibleImages, index];
             }, 150 + index * 180);
           });
+          
+          // Set the cursor creation time to ensure we wait before creating any additional cursors
+          lastCursorCreationTime = Date.now();
           
           // Start fake cursor simulation after images are visible
           console.log("Starting cursor simulation...");
