@@ -388,6 +388,9 @@
       const containerWidth = container ? container.getBoundingClientRect().width : window.innerWidth;
       const containerHeight = container ? container.getBoundingClientRect().height : window.innerHeight;
       
+      // Define viewport margin for mobile
+      const mobileMargin = 3;
+      
       // Create a layout that maximizes playground space usage while keeping images fully visible
       return sortedBySize.map((img, i) => {
         // Calculate the space needed for the image (accounting for rotation)
@@ -423,9 +426,9 @@
         const randomRight = (Math.random() * 15);
         const randomBottom = (Math.random() * 15);
         
-        // Calculate final position ensuring images stay within bounds
-        const right = Math.min(usableWidth, Math.max(0, baseRight + randomRight));
-        const bottom = Math.min(usableHeight, Math.max(0, baseBottom + randomBottom));
+        // Calculate final position ensuring images stay within bounds and respect margins
+        const right = Math.min(usableWidth - mobileMargin, Math.max(mobileMargin, baseRight + randomRight));
+        const bottom = Math.min(usableHeight - mobileMargin, Math.max(mobileMargin + imageHeightPercent, baseBottom + randomBottom));
         
         // Add rotation
         const rotation = (Math.random() * 40) - 20; // Random rotation between -20 and 20 degrees
@@ -465,11 +468,12 @@
     // Larger images will tend to be positioned more towards the edges
     // Smaller images will tend to be positioned more centrally
     
-    // Define the area bounds for the lower right region (in percentages from edge)
-    const rightMin = 3;   // minimum distance from right edge
+    // Define the area bounds with proper margin constraints
+    const viewportMargin = 3;  // Same margin value used in drag handlers
+    const rightMin = viewportMargin;   // minimum distance from right edge
     const rightMax = 50;  // maximum distance from right edge (reduced to leave space on left)
-    const bottomMin = 3;  // minimum distance from bottom edge
-    const bottomMax = 50; // maximum distance from bottom edge
+    const bottomMin = viewportMargin;  // minimum distance from bottom edge (controls top margin)
+    const bottomMax = 80; // maximum distance from bottom edge
     
     // Width of the positioning area
     const areaWidth = rightMax - rightMin;
@@ -558,11 +562,14 @@
         extraOffsetBottom = (Math.random() * 10) - 5; // Reduced from 20 to 10
       }
       
+      // Calculate image height percentage
+      const imageHeightPercent = (imgData.height / window.innerHeight) * 100;
+      
       return {
         ...imgData,
         // Ensure positions stay within bounds
         right: Math.max(rightMin, Math.min(rightMax, right + extraOffsetRight)),
-        bottom: Math.max(bottomMin, Math.min(bottomMax, bottom + extraOffsetBottom)),
+        bottom: Math.max(bottomMin + imageHeightPercent, Math.min(bottomMax, bottom + extraOffsetBottom)),
         rotation,
         aspectRatio: imgData.aspectRatio
       };
@@ -647,22 +654,24 @@
             // For mobile, constrain to container boundaries
             const imageWidthPercent = (img.width / containerWidth) * 100;
             const imageHeightPercent = (img.height / containerHeight) * 100;
+            const mobileMargin = 3; // Define margin for mobile
             
             return {
               ...img,
               right: Math.max(
-                0,
-                Math.min(100 - imageWidthPercent, newRight)
+                mobileMargin,
+                Math.min(100 - mobileMargin - imageWidthPercent, newRight)
               ),
               bottom: Math.max(
-                0,
-                Math.min(100 - imageHeightPercent, newBottom)
+                mobileMargin + imageHeightPercent,  // Add image height to prevent going above top margin
+                Math.min(100 - mobileMargin - imageHeightPercent, newBottom)
               )
             };
           } else {
             // For desktop, use the existing viewport margin logic
             const viewportMargin = 3;
             const imageWidthPercent = (img.width / window.innerWidth) * 100;
+            const imageHeightPercent = (img.height / window.innerHeight) * 100;
             
             return {
               ...img,
@@ -670,7 +679,10 @@
                 viewportMargin,
                 Math.min(100 - viewportMargin - imageWidthPercent, newRight)
               ),
-              bottom: Math.max(0, Math.min(100, newBottom))
+              bottom: Math.max(
+                viewportMargin + imageHeightPercent,  // Add image height to prevent going above top margin
+                Math.min(100 - viewportMargin, newBottom)  // Add bottom margin constraint
+              )
             };
           }
         }
@@ -808,22 +820,24 @@
           // For mobile, constrain to container boundaries
           const imageWidthPercent = (img.width / containerWidth) * 100;
           const imageHeightPercent = (img.height / containerHeight) * 100;
+          const mobileMargin = 3; // Define margin for mobile
           
           return {
             ...img,
             right: Math.max(
-              0,
-              Math.min(100 - imageWidthPercent, newRight)
+              mobileMargin,
+              Math.min(100 - mobileMargin - imageWidthPercent, newRight)
             ),
             bottom: Math.max(
-              0,
-              Math.min(100 - imageHeightPercent, newBottom)
+              mobileMargin + imageHeightPercent,  // Add image height to prevent going above top margin
+              Math.min(100 - mobileMargin - imageHeightPercent, newBottom)
             )
           };
         } else {
           // For desktop, use the existing viewport margin logic
           const viewportMargin = 3;
           const imageWidthPercent = (img.width / window.innerWidth) * 100;
+          const imageHeightPercent = (img.height / window.innerHeight) * 100;
           
           return {
             ...img,
@@ -831,7 +845,10 @@
               viewportMargin,
               Math.min(100 - viewportMargin - imageWidthPercent, newRight)
             ),
-            bottom: Math.max(0, Math.min(100, newBottom))
+            bottom: Math.max(
+              viewportMargin + imageHeightPercent,  // Add image height to prevent going above top margin
+              Math.min(100 - viewportMargin, newBottom)  // Add bottom margin constraint
+            )
           };
         }
       }
@@ -1191,11 +1208,11 @@
   }
 
   .company-logos :global(svg:nth-child(3)) {
-    height: 20px; /* Roblox: smaller than default */
+    height: 15px; /* Roblox: smaller than mobile default */
   }
 
   .company-logos :global(svg:last-child) {
-    height: 20px; /* Panto: match Roblox height */
+    height: 15px; /* Panto: match Roblox height */
   }
 
   .portfolio-list {
@@ -1421,10 +1438,6 @@
 
     .company-logos :global(svg:nth-child(3)) {
       height: 15px; /* Roblox: smaller than mobile default */
-    }
-
-    .company-logos :global(svg:last-child) {
-      height: 15px; /* Panto: match Roblox height */
     }
 
     .company-logos {

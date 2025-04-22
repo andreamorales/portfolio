@@ -741,7 +741,13 @@
         // Apply constraints
         const margin = 5;
         const constrainedRight = Math.max(margin, Math.min(95 - margin, newRight));
-        const constrainedBottom = Math.max(margin, Math.min(95 - margin, newBottom));
+        
+        // Fix constraint calculation to properly limit top position
+        const imageHeightPercent = (originalImage.height / window.innerHeight) * 100;
+        const constrainedBottom = Math.max(
+          margin, // Ensure bottom margin
+          Math.min(95 - margin - imageHeightPercent, newBottom) // Ensure top margin
+        );
         
         // Only update if we're actually going to move the image
         if (Math.abs(deltaX) > 0.01 || Math.abs(deltaY) > 0.01) {
@@ -1298,28 +1304,35 @@
       // For mobile, constrain to container boundaries
       const imageWidthPercent = (grabbedImageWidth / containerWidth) * 100;
       const imageHeightPercent = (grabbedImageHeight / containerHeight) * 100;
+      const mobileMargin = 3; // Define margin for mobile
       
       constrainedRight = Math.max(
-        0,
-        Math.min(100 - imageWidthPercent, desiredRightPercent)
+        mobileMargin,
+        Math.min(100 - mobileMargin - imageWidthPercent, desiredRightPercent)
       );
+      
+      // Apply the same correct constraint logic for mobile
       constrainedBottom = Math.max(
-        0,
-        Math.min(100 - imageHeightPercent, desiredBottomPercent)
+        mobileMargin, // Bottom margin
+        Math.min(100 - mobileMargin - imageHeightPercent, desiredBottomPercent) // Top margin
       );
     } else {
       // For desktop, use the viewport margin
       const viewportMargin = 3;
       const imageWidthPercent = (grabbedImageWidth / window.innerWidth) * 100;
+      const imageHeightPercent = (grabbedImageHeight / window.innerHeight) * 100;
       
       constrainedRight = Math.max(
         viewportMargin,
         Math.min(100 - viewportMargin - imageWidthPercent, desiredRightPercent)
       );
-      // CRITICAL FIX: Enforce top margin by ensuring bottom doesn't go below viewportMargin
+      
+      // FIXED: Proper constraint calculation for top margin with bottom positioning
+      // Since "bottom: 100%" means the image is at the top, we need:
+      // bottom ≤ 100% - viewportMargin - imageHeightPercent to ensure top margin
       constrainedBottom = Math.max(
-        viewportMargin, // This creates a minimum distance from the top
-        Math.min(100 - viewportMargin, desiredBottomPercent)
+        viewportMargin, // Bottom margin
+        Math.min(100 - viewportMargin - imageHeightPercent, desiredBottomPercent) // Top margin
       );
     }
     
@@ -1575,28 +1588,35 @@
       // For mobile, constrain to container boundaries
       const imageWidthPercent = (grabbedImageWidth / containerWidth) * 100;
       const imageHeightPercent = (grabbedImageHeight / containerHeight) * 100;
+      const mobileMargin = 3; // Define margin for mobile
       
       constrainedRight = Math.max(
-        0,
-        Math.min(100 - imageWidthPercent, desiredRightPercent)
+        mobileMargin,
+        Math.min(100 - mobileMargin - imageWidthPercent, desiredRightPercent)
       );
+      
+      // Apply the same correct constraint logic for mobile
       constrainedBottom = Math.max(
-        0,
-        Math.min(100 - imageHeightPercent, desiredBottomPercent)
+        mobileMargin, // Bottom margin
+        Math.min(100 - mobileMargin - imageHeightPercent, desiredBottomPercent) // Top margin
       );
     } else {
       // For desktop, use the viewport margin
       const viewportMargin = 3;
       const imageWidthPercent = (grabbedImageWidth / window.innerWidth) * 100;
+      const imageHeightPercent = (grabbedImageHeight / window.innerHeight) * 100;
       
       constrainedRight = Math.max(
         viewportMargin,
         Math.min(100 - viewportMargin - imageWidthPercent, desiredRightPercent)
       );
-      // CRITICAL FIX: Enforce top margin by ensuring bottom doesn't go below viewportMargin
+      
+      // FIXED: Proper constraint calculation for top margin with bottom positioning
+      // Since "bottom: 100%" means the image is at the top, we need:
+      // bottom ≤ 100% - viewportMargin - imageHeightPercent to ensure top margin
       constrainedBottom = Math.max(
-        viewportMargin, // This creates a minimum distance from the top
-        Math.min(100 - viewportMargin, desiredBottomPercent)
+        viewportMargin, // Bottom margin
+        Math.min(100 - viewportMargin - imageHeightPercent, desiredBottomPercent) // Top margin
       );
     }
     
