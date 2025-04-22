@@ -177,7 +177,6 @@ button {
   min-height: 40px;
   padding: 0.5rem 1rem;
   margin: var(--button-margin);
-  margin-bottom: 8px;
   cursor: pointer;
   font-family: var(--font-family);
   font-weight: 400;
@@ -660,106 +659,10 @@ button {
   :root { --font-size: 20px; }
 }
 
-/* Dark theme */
-:root.dark {
-  --secondary-text: #2b2d2f;
+/* Dark theme removed - only light theme used */
 
-  /* Status colors */
-  --error: var(--red-mid);
-  --warning: var(--yellow-mid);
-  --caution: var(--orange-mid);
-  --info: var(--blue-mid);
-  --success: var(--green-mid);
-  --excitement: var(--purple-mid);
-
-  /* Theme colors */
-  --bg-color: var(--black);
-  --text-color: var(--white);
-  --muted-text: var(--textgrey-light);
-
-  /* Primary colors */
-  --primary-color: var(--purple-lighter);
-  --primary-hover: var(--purple-lightest);
-  --primary-active: var(--purple-light);
-  --primary-disabled: var(--purple-mid);
-
-  /* Secondary colors */
-  --secondary-color: var(--pink-mid);
-  --secondary-hover: var(--red-mid);
-  --secondary-active: var(--pink-dark);
-  --secondary-disabled: var(--pink-dark);
-
-  /* Accent colors */
-  --accent-color: var(--beige-light);
-  --accent-hover: var(--beige-lighter);
-  --accent-active: var(--beige-lighter);
-  --accent-disabled: var(--beige-dark);
-
-  /* Interactive colors */
-  --interactive-color: var(--purple-light);
-  --interactive-hover: var(--purple-lighter);
-  --interactive-active: var(--purple-dark);
-  --interactive-disabled: var(--purple-dark);
-
-  /* Button styles */
-  --button-bg-color: var(--bg-color);
-  --button-text-color: var(--text-color);
-  --button-secondary-text: var(--white);
-  --button-tertiary-text: var(--white);
-  --tertiary: var(--purple-mid);
-  --button-text-transform: capitalize;
-
-  /* Button shadows */
-  --button-primary-shadow: 
-    0px 0px 4px 0px var(--green-mid),
-    0px 0px 4px 0px var(--purple-mid),
-    1px 0px 3px 0px var(--white),
-    -1px 0px 3px 0px var(--white),
-    -16px 0px 12px 0px var(--purple-dark),
-    16px 0px 12px 0px var(--pink-dark);
-
-  --button-primary-app-shadow: 
-    0px 0px 2px 0px var(--blue-mid),
-    0px 0px 2px 0px var(--green-mid),
-    0.5px 0px 1.5px 0px var(--white),
-    -0.5px 0px 1.5px 0px var(--white),
-    -4.5px 0px 3px 0px var(--blue-lightest),
-    4.5px 0px 3px 0px var(--blue-lightest);
-
-  /* Input styles */
-  --input-bg-color: var(--clear);
-  --input-text-color: var(--textgrey-light);
-  --input-border-color: var(--white);
-  --run-border-color: var(--white);
-  --input-placeholder-color: var(--grey-light);
-
-  /* Inverse colors */
-  --inverse-bg-light: var(--grey-mid);
-  --inverse-bg: var(--white);
-  --inverse-content: var(--black);
-
-  /* Filters */
-  --logo-filter: invert(1);
-  --icon-filter: invert(10%) sepia(3%) saturate(1300%) hue-rotate(295deg) brightness(94%) contrast(88%);
-
-  /* Dark mode gradient */
-  --text-gradient: linear-gradient(180deg, #F3EAD6 60%, #252022 109.6%);
-
-  /* Button styles */
-  --button-primary-bg: var(--white);
-  --button-primary-text: var(--black);
-  --button-primary-border: var(--white);
-  --button-primary-shadow: var(--grey-mid);
-
-  /* Secondary button styles */
-  --button-secondary-bg: var(--bg-color);
-  --button-secondary-text: var(--text-color);
-  --button-secondary-border: var(--text-color);
-  --button-secondary-shadow: var(--grey-mid);
-}
-
-/* Light theme */
-:root.light {
+/* Theme variables (light mode only) */
+:root, :root.light {
   --secondary-text: #E8EBFF;
 
   /* Status colors */

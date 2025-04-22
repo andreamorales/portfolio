@@ -16,8 +16,9 @@
     'var(--cursor-green)', 
     'var(--cursor-purple)', 
     'var(--cursor-pink)', 
-    'var(--cursor-indigo)'
-    // Removed yellow cursor completely as it might be too close to background
+    'var(--cursor-indigo)',
+    'var(--cursor-yellow)'
+    // Using the proper cursor-yellow variable
   ];
   
   // Optional callback for updating fakeCursors
@@ -42,17 +43,42 @@
   let lastCursorCreationTime = 0;
   let cursorActivityTimers: Record<string, number> = {}; // Track cursor inactivity timers
   let initialStaticCursorCreated = false; // Track if we've created the initial static cursor
+  let cursorInitializationDelay = 0; // Delay before any cursors appear
+  let hasCursorInitialized = false; // Track if cursor system has been initialized
+  let guaranteedCursorTimer = 0; // Timer to ensure cursor activity within 1 minute
+  let pageVisitStartTime = 0; // When the user started visiting the page
   
   // Function to create a new fake cursor
-  function createFakeCursor(isStatic = false) {
+  function createFakeCursor(isStatic = false, isPreexisting = false) {
     const id = Math.random().toString(36).substr(2, 9);
     // Generate a random user number between 100 and 999
     const randomUserNumber = Math.floor(100 + Math.random() * 900);
     const name = `User${randomUserNumber}`;
     const color = fakeUserColors[Math.floor(Math.random() * fakeUserColors.length)];
     
-    // DEBUG: Log the cursor color to check for issues
-    console.log(`Creating cursor ${name} with color: ${color}`);
+    // Only log if not a pre-existing cursor (reduces console noise)
+    if (!isPreexisting) {
+      console.log(`Creating cursor ${name} with color: ${color}`);
+    }
+    
+    // For preexisting cursors, start them in a more advanced state
+    // This makes it look like they've been using the system for a while
+    let initialState = {
+      isDragging: false,
+      isMovingToTarget: false,
+      targetImage: null
+    };
+    
+    // For preexisting cursors, sometimes have them already dragging an image
+    if (isPreexisting && Math.random() < 0.3) {
+      // Determine if we should start by dragging an image
+      // We'll set the proper targets after the cursor is created
+      initialState = {
+        isDragging: false, // Will be set to true after target acquisition
+        isMovingToTarget: true, // Start by moving toward an image
+        targetImage: null // Will be set later
+      };
+    }
     
     return {
       id,
@@ -60,9 +86,9 @@
       y: Math.random() * window.innerHeight,
       color,
       name,
-      isDragging: false,
-      isMovingToTarget: false,
-      targetImage: null,
+      isDragging: initialState.isDragging,
+      isMovingToTarget: initialState.isMovingToTarget,
+      targetImage: initialState.targetImage,
       targetX: 0,
       targetY: 0,
       destinationX: 100 + Math.random() * (window.innerWidth - 200),
@@ -72,7 +98,7 @@
       curveOffsetX: (Math.random() * 100) - 50,
       curveOffsetY: (Math.random() * 100) - 50,
       // Add time counter for curved movement
-      timeFactor: 0,
+      timeFactor: isPreexisting ? Math.random() * 10 : 0, // Give preexisting cursors some initial movement
       randomOffset: { x: 0, y: 0 },
       offsetX: 0,
       offsetY: 0,
@@ -92,12 +118,147 @@
       // Activity tracking
       lastActiveTime: Date.now(),
       isStatic: isStatic, // Whether this cursor should remain stationary
-      restingPeriod: 0 // How long cursor should remain static after activity
+      restingPeriod: isPreexisting ? Math.random() * 4000 : 0, // Some preexisting cursors may be resting
+      isPreexisting: isPreexisting, // Used to identify cursors that were "already there"
+      lifespan: 30000 + Math.random() * 60000 // Cursor will stay for 30-90 seconds by default
     };
+  }
+  
+  // Initialize preexisting cursors with proper image targets
+  function setupPreexistingCursor(cursor: any) {
+    if (!cursor.isMovingToTarget) return cursor;
+    
+    // Only for cursors that are supposed to be moving to a target
+    const visibleImageIndexes = [...visibleImages]; 
+    if (visibleImageIndexes.length === 0) {
+      // No images visible yet, can't set up dragging
+      cursor.isMovingToTarget = false;
+      return cursor;
+    }
+    
+    // Filter out images that are already being dragged
+    const availableIndexes = visibleImageIndexes.filter(index => !imageLocks[index]);
+    if (availableIndexes.length === 0) {
+      // No available images, revert to wandering
+      cursor.isMovingToTarget = false;
+      return cursor;
+    }
+    
+    // Pick a random available image
+    const randomIndex = Math.floor(Math.random() * availableIndexes.length);
+    const randomImageIndex = availableIndexes[randomIndex];
+    
+    // Get the DOM element for the selected image
+    const imageElement = document.querySelector(`.collage-image-button:nth-child(${randomImageIndex + 1})`);
+    if (!imageElement) {
+      // Can't find image element, revert to wandering
+      cursor.isMovingToTarget = false;
+      return cursor;
+    }
+    
+    // Get image position and prepare to move cursor there
+    const rect = imageElement.getBoundingClientRect();
+    // Target the center of the image
+    const targetX = rect.left + rect.width / 2;
+    const targetY = rect.top + rect.height / 2;
+    
+    // Set up transition to image
+    cursor.targetImage = randomImageIndex;
+    cursor.targetX = targetX;
+    cursor.targetY = targetY;
+    
+    // For preexisting cursors, position them partway to their target
+    // This makes it look like they're already in the process of grabbing
+    const progress = 0.3 + Math.random() * 0.5; // Position 30-80% of the way there
+    const dirX = targetX - cursor.x;
+    const dirY = targetY - cursor.y;
+    cursor.x += dirX * progress;
+    cursor.y += dirY * progress;
+    
+    // Lock this image
+    imageLocks[randomImageIndex] = cursor.id;
+    
+    return cursor;
   }
 
   // Function to simulate fake cursor interactions
   function simulateFakeInteraction() {
+    // Check if cursor system is initialized
+    if (!hasCursorInitialized) {
+      // If we haven't set the initialization delay yet, set it now
+      if (cursorInitializationDelay === 0) {
+        // Set a variable delay (15-50 seconds) before any cursor activity
+        cursorInitializationDelay = 15000 + Math.random() * 35000;
+        console.log(`Will delay cursor appearance by ${Math.round(cursorInitializationDelay/1000)} seconds`);
+        
+        // Initialize the page visit timer for the guaranteed cursor appearance
+        pageVisitStartTime = Date.now();
+        // Set timer to ensure a cursor appears within 1 minute
+        guaranteedCursorTimer = 60000; // 1 minute
+        
+        return;
+      }
+      
+      // Countdown the initialization delay
+      cursorInitializationDelay -= 16; // Assuming 16ms per frame (60fps)
+      
+      // Also countdown the guaranteed cursor timer
+      guaranteedCursorTimer -= 16;
+      
+      // Check if we've reached the guaranteed cursor appearance time
+      if (guaranteedCursorTimer <= 0 && !hasCursorInitialized) {
+        // Force initialization now to guarantee cursor appears within 1 minute
+        hasCursorInitialized = true;
+        initializeCursorSystem(true); // Force cursor appearance
+        return;
+      }
+      
+      // Check if regular delay has expired
+      if (cursorInitializationDelay <= 0) {
+        hasCursorInitialized = true;
+        // Initialize cursor system without forcing cursor appearance
+        initializeCursorSystem(false);
+      }
+      
+      return; // Wait until initialization is complete
+    }
+    
+    // Update the guaranteed cursor timer if there are no cursors present
+    if (fakeCursors.length === 0) {
+      // If no cursors exist, start or continue the countdown
+      if (guaranteedCursorTimer <= 0 || isNaN(guaranteedCursorTimer)) {
+        // Reset the timer to ensure a cursor appears within 1 minute
+        guaranteedCursorTimer = 60000; // 1 minute
+      } else {
+        // Continue counting down
+        guaranteedCursorTimer -= 16;
+        
+        // If timer expires, create a new cursor
+        if (guaranteedCursorTimer <= 0) {
+          // Create a single cursor to show activity
+          const newCursor = createFakeCursor(false, false);
+          fakeCursors = [...fakeCursors, newCursor];
+          onFakeCursorsUpdate(fakeCursors);
+          console.log(`Created guaranteed activity cursor after quiet period`);
+          
+          // Reset the timer
+          guaranteedCursorTimer = 60000 + Math.random() * 120000; // 1-3 minutes until next guaranteed activity
+        }
+      }
+    } else {
+      // If cursors exist, reset the guaranteed timer
+      // This prevents adding too many cursors
+      guaranteedCursorTimer = 60000 + Math.random() * 120000; // 1-3 minutes
+    }
+    
+    // Decrease cursor lifespan
+    fakeCursors = fakeCursors.map(cursor => {
+      if (cursor.lifespan !== undefined) {
+        cursor.lifespan -= 16;
+      }
+      return cursor;
+    });
+    
     // BRUTE FORCE: Always clear the drag store at the beginning
     // This ensures no highlights will persist
     let activeInStore: Record<string, boolean> = {};
@@ -138,37 +299,25 @@
       }
     });
     
-    // Create initial static cursor if not created yet and no other cursors exist
-    if (!initialStaticCursorCreated && fakeCursors.length === 0) {
-      const newCursor = createFakeCursor(true); // Create a static cursor
-      console.log(`Created initial static cursor: ${newCursor.name} with ID ${newCursor.id}`);
-      fakeCursors = [...fakeCursors, newCursor];
-      onFakeCursorsUpdate(fakeCursors);
-      initialStaticCursorCreated = true;
-      return; // Exit early after creating the initial cursor
-    }
-    
-    // Check for cursor limits - create new cursor only if:
-    // 1. It's been at least 1 hour since last cursor creation (3600000ms)
-    // 2. We have fewer than 2 cursors
-    // 3. Very low random chance (0.005 = about 0.5% chance per frame at 60fps)
-    const currentTime = Date.now();
-    const hourInMs = 3600000;
-    const timeSinceLastCreation = currentTime - lastCursorCreationTime;
-    
-    if (fakeCursors.length < 2 && 
-        timeSinceLastCreation > hourInMs && 
-        Math.random() < 0.005) {
-      const newCursor = createFakeCursor();
-      console.log(`Created new cursor: ${newCursor.name} with ID ${newCursor.id} after ${Math.floor(timeSinceLastCreation/60000)} minutes`);
-      fakeCursors = [...fakeCursors, newCursor];
-      lastCursorCreationTime = currentTime;
-      onFakeCursorsUpdate(fakeCursors);
-    }
-    
-    // Check for inactive cursors and remove them
+    // Only allow cursors to stay for their lifespan (except static first cursor)
     fakeCursors = fakeCursors.filter(cursor => {
-      const inactivityTime = currentTime - cursor.lastActiveTime;
+      // Only remove if there's a defined lifespan and it's expired
+      if (cursor.lifespan !== undefined && cursor.lifespan <= 0) {
+        // If the cursor was dragging an image, release it
+        if (cursor.isDragging && cursor.targetImage !== null) {
+          const imageIndex = cursor.targetImage;
+          stopDragging(imageIndex);
+          delete imageLocks[imageIndex];
+        }
+        console.log(`Cursor ${cursor.name} leaving the site after its visit`);
+        return false;
+      }
+      return true;
+    });
+    
+    // Check for inactive cursors and remove them (additional check)
+    fakeCursors = fakeCursors.filter(cursor => {
+      const inactivityTime = Date.now() - cursor.lastActiveTime;
       // If cursor is not in a resting period and has been inactive for more than 2 minutes (120000ms), remove it
       if (cursor.restingPeriod <= 0 && inactivityTime > 120000 && !cursor.isStatic) {
         console.log(`Removing inactive cursor ${cursor.name} after ${Math.floor(inactivityTime/1000)} seconds of inactivity`);
@@ -690,8 +839,44 @@
     // Update parent component with new cursor states
     onFakeCursorsUpdate(fakeCursors);
     
-    // Very rarely remove a cursor
-    if (fakeCursors.length > 0 && Math.random() < 0.001) {
+    // Check for cursor limits - create new cursor only if:
+    // 1. It's been at least 3-8 minutes since last cursor creation (rare visitor frequency)
+    // 2. We have fewer cursors than our max limit
+    // 3. Very low random chance (0.0005 = about 0.05% chance per frame at 60fps) - MUCH reduced
+    const currentTime = Date.now();
+    const minInterval = 3 * 60 * 1000; // 3 minutes minimum
+    const randomAdditionalTime = 5 * 60 * 1000; // Up to 5 more minutes
+    const minTimeBetweenCursors = minInterval + Math.random() * randomAdditionalTime;
+    const timeSinceLastCreation = currentTime - lastCursorCreationTime;
+    
+    // Limit to max 2 cursors about 30% of the time (increased from 10%)
+    const maxCursors = Math.random() < 0.7 ? 1 : 2; // 70% chance of allowing 1 cursor, 30% chance of allowing 2
+    
+    // Slightly increase the probability of cursor creation
+    if (fakeCursors.length < maxCursors && 
+        timeSinceLastCreation > minTimeBetweenCursors && 
+        Math.random() < 0.001) { // Increased from 0.0005 to 0.001 (2x more likely)
+      const newCursor = createFakeCursor();
+      console.log(`New visitor: ${newCursor.name} with ID ${newCursor.id} after ${Math.floor(timeSinceLastCreation/60000)} minutes`);
+      fakeCursors = [...fakeCursors, newCursor];
+      lastCursorCreationTime = currentTime;
+      onFakeCursorsUpdate(fakeCursors);
+    }
+
+    // If we're below our target of having 2 cursors 30% of the time, increase chances
+    // This helps ensure we maintain the desired distribution
+    if (fakeCursors.length < 2 && Math.random() < 0.3 && 
+        timeSinceLastCreation > 60000 && // At least 1 minute since last cursor
+        Math.random() < 0.0002) { // Still quite rare, but helps maintain 2-cursor state
+      const newCursor = createFakeCursor();
+      console.log(`Adding secondary visitor to reach desired 30% multi-user state`);
+      fakeCursors = [...fakeCursors, newCursor];
+      lastCursorCreationTime = currentTime;
+      onFakeCursorsUpdate(fakeCursors);
+    }
+    
+    // Very rarely remove a cursor (simulating a user leaving)
+    if (fakeCursors.length > 0 && Math.random() < 0.0002) { // 0.02% chance per frame
       const removedIndex = fakeCursors.length - 1;
       const removedCursor = fakeCursors[removedIndex];
       
@@ -727,8 +912,55 @@
         });
       })();
       
+      console.log(`Visitor ${removedCursor.name} left the site`);
       fakeCursors = fakeCursors.slice(0, -1);
       onFakeCursorsUpdate(fakeCursors);
+    }
+  }
+
+  // Function to initialize the cursor system with variety
+  function initializeCursorSystem(forceInitialCursor = false) {
+    console.log("Initializing cursor system with sparse natural behavior");
+    
+    // Decide if we should have any cursors at start (increased to 30% chance normally)
+    // If forceInitialCursor is true, we always create one
+    const shouldHaveCursorsAtStart = forceInitialCursor || Math.random() < 0.3; // 30% chance of initial cursors
+    
+    if (shouldHaveCursorsAtStart) {
+      // Determine how many cursors to start with - 30% chance of 2 cursors at start
+      const initialCursorCount = Math.random() < 0.3 ? 2 : 1;
+      console.log(`Creating ${initialCursorCount} initial visitor${initialCursorCount > 1 ? 's' : ''}`);
+      
+      // Create the initial cursor(s)
+      for (let i = 0; i < initialCursorCount; i++) {
+        // Create a preexisting cursor (appears to already be using the site)
+        const newCursor = createFakeCursor(false, true);
+        
+        // Set up the cursor if it's supposed to be interacting with images
+        const configuredCursor = setupPreexistingCursor(newCursor);
+        
+        // Add to cursor array
+        fakeCursors = [...fakeCursors, configuredCursor];
+        
+        // Set a slightly longer lifespan for these cursors (30-120 seconds)
+        // This ensures the site isn't constantly populated
+        configuredCursor.lifespan = 30000 + Math.random() * 90000;
+      }
+      
+      // Update the parent with new cursor state
+      onFakeCursorsUpdate(fakeCursors);
+      
+      // Mark that we've created cursors
+      initialStaticCursorCreated = true;
+      
+      // Set the last creation time to now to ensure we wait before creating additional cursors
+      lastCursorCreationTime = Date.now();
+    } else {
+      // No cursors at start - still mark as initialized
+      console.log("No cursors at start - site starts empty");
+      
+      // Set a short delay for potential first cursor to appear
+      lastCursorCreationTime = Date.now() - (2.5 * 60 * 1000); // 2.5 minutes ago
     }
   }
 
@@ -1499,11 +1731,12 @@
             }, 150 + index * 180);
           });
           
-          // Set the cursor creation time to ensure we wait before creating any additional cursors
+          // Set the cursor creation time - note we don't initialize cursors yet
+          // cursors will be initialized after the cursorInitializationDelay expires
           lastCursorCreationTime = Date.now();
           
           // Start fake cursor simulation after images are visible
-          console.log("Starting cursor simulation...");
+          console.log("Starting cursor simulation with natural delay...");
           simulationInterval = window.setInterval(simulateFakeInteraction, 16);
         }, 200);
       } catch (error) {

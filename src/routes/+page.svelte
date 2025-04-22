@@ -30,48 +30,182 @@
   // Import Lucide pointer icon
   import { Pointer } from 'lucide-svelte';
 
+  // Import the new PortfolioExpandedView component
+  import PortfolioExpandedView from '$lib/components/portfolio/PortfolioExpandedView.svelte';
+
+  // Import QuickNav component
+  import QuickNav from '$lib/components/portfolio/QuickNav.svelte';
+
   // Portfolio items
   let portfolioItems = [
     { 
       title: 'MongoDB: Realm Schema', 
       tags: ['UX/UI'],
-      expanded: false
+      expanded: false,
+      description: "Reimagined MongoDB's Realm Schema designer with a focus on enhancing developer experience through intuitive UI and streamlined workflows.",
+      videoUrl: "/videos/mongodb-realm-demo.mp4",
+      images: [
+        { src: "/images/portfolio/mongodb/preview1.jpg", alt: "Realm Schema Designer", caption: "Main interface showing relationship mapping" },
+        { src: "/images/portfolio/mongodb/preview2.jpg", alt: "Schema details", caption: "Field type configuration with validation settings" }
+      ],
+      content: [
+        { type: "text", value: "The MongoDB Realm Schema project involved redesigning the database schema interface to make it more intuitive for developers. I focused on streamlining the workflow for creating data models and relationships." },
+        { type: "image", value: "/images/portfolio/mongodb/detail1.jpg", caption: "Early wireframe explorations of the interface" },
+        { type: "text", value: "A key challenge was balancing technical functionality with visual clarity. The final design introduced a visual relationship map that dynamically updates as schemas evolve." }
+      ]
     },
     { 
       title: 'Ducky: Full Product', 
       tags: ['UX/UI', 'FRONTEND DEV'],
-      expanded: false
+      expanded: false,
+      description: "Ducky is a productivity application helping teams manage projects efficiently through customizable workflows and real-time collaboration.",
+      videoUrl: "/videos/ducky-product-demo.mp4",
+      images: [
+        { src: "/images/portfolio/ducky/preview1.jpg", alt: "Ducky Dashboard", caption: "Team dashboard showing active projects" },
+        { src: "/images/portfolio/ducky/preview2.jpg", alt: "Task Management", caption: "Drag-and-drop task management interface" }
+      ],
+      content: [
+        { type: "text", value: "Ducky was designed to solve common project management pain points by combining the visual clarity of kanban with the structured approach of traditional PM tools." },
+        { type: "image", value: "/images/portfolio/ducky/detail1.jpg", caption: "User journey map highlighting key touchpoints" },
+        { type: "text", value: "I led both design and frontend development, implementing the UI with React and handling real-time updates via WebSockets. The design system was built to accommodate future scaling with consistent components." }
+      ]
     },
     { 
       title: 'FireHydrant: Design System', 
       tags: ['UX/UI'],
-      expanded: false
+      expanded: false,
+      description: "Created a comprehensive design system for FireHydrant's incident management platform, increasing design consistency and development efficiency.",
+      videoUrl: "/videos/firehydrant-design-system.mp4",
+      images: [
+        { src: "/images/portfolio/firehydrant/preview1.jpg", alt: "Component Library", caption: "Core component library overview" },
+        { src: "/images/portfolio/firehydrant/preview2.jpg", alt: "Design Tokens", caption: "Color system and design tokens" }
+      ],
+      content: [
+        { type: "text", value: "The FireHydrant design system project addressed inconsistencies across their incident management platform by establishing a unified component library and design guidelines." },
+        { type: "image", value: "/images/portfolio/firehydrant/detail1.jpg", caption: "Before and after comparison showing UI improvements" },
+        { type: "text", value: "The system included comprehensive documentation, Figma component libraries, and coded components that reduced development time by 40% for new features." }
+      ]
     },
     { 
       title: 'Roblox: Creator Hub', 
       tags: ['UX/UI'],
-      expanded: false
+      expanded: false,
+      description: "Redesigned Roblox's Creator Hub to empower developers with better analytics, community engagement tools, and monetization options.",
+      videoUrl: "/videos/roblox-creator-hub.mp4",
+      images: [
+        { src: "/images/portfolio/roblox/preview1.jpg", alt: "Analytics Dashboard", caption: "Game performance analytics" },
+        { src: "/images/portfolio/roblox/preview2.jpg", alt: "Asset Management", caption: "Creator asset management interface" }
+      ],
+      content: [
+        { type: "text", value: "The Roblox Creator Hub redesign focused on giving developers deeper insights into their games and better tools to engage with their communities." },
+        { type: "image", value: "/images/portfolio/roblox/detail1.jpg", caption: "User testing session analyzing key painpoints" },
+        { type: "text", value: "Through extensive user research with Roblox developers, we identified key pain points and opportunities. The new design centralizes the most-used features while providing powerful new tools for monetization and community management." }
+      ]
     },
     { 
       title: 'Panto: Full Product', 
       tags: ['UX/UI', 'FRONTEND DEV'],
-      expanded: false
+      expanded: false,
+      description: "Panto is a design collaboration platform that bridges the gap between designers and developers with automated handoff and version control.",
+      videoUrl: "/videos/panto-demo.mp4",
+      images: [
+        { src: "/images/portfolio/panto/preview1.jpg", alt: "Design Interface", caption: "Main collaborative design interface" },
+        { src: "/images/portfolio/panto/preview2.jpg", alt: "Code Generation", caption: "Automated code generation from designs" }
+      ],
+      content: [
+        { type: "text", value: "Panto was built to solve the designer-developer handoff problem by creating a collaborative environment where designs automatically generate usable code components." },
+        { type: "image", value: "/images/portfolio/panto/detail1.jpg", caption: "System architecture diagram" },
+        { type: "text", value: "I was responsible for the full product lifecycle, from initial concept through design, development and launch. The platform uses a component-based approach that maintains design fidelity while producing clean, maintainable code." }
+      ]
     },
     { 
       title: 'La Güila Toys: Full Product', 
       tags: ['TOY DESIGN'],
-      expanded: false
+      expanded: false,
+      description: "La Güila Toys is a line of educational toys designed to help children learn about ecology and sustainability through play.",
+      videoUrl: "/videos/laguila-product-showcase.mp4",
+      images: [
+        { src: "/images/portfolio/laguila/preview1.jpg", alt: "Toy Collection", caption: "Complete product line overview" },
+        { src: "/images/portfolio/laguila/preview2.jpg", alt: "Packaging Design", caption: "Sustainable packaging design" }
+      ],
+      content: [
+        { type: "text", value: "La Güila Toys focuses on eco-friendly materials and designs that teach environmental concepts in an engaging way. Each toy is made from sustainable materials and designed to spark curiosity about the natural world." },
+        { type: "image", value: "/images/portfolio/laguila/detail1.jpg", caption: "Initial sketches and prototypes" },
+        { type: "text", value: "The design process involved extensive research into sustainable materials, child development principles, and creating engaging ways to introduce complex ecological concepts through play." }
+      ]
     },
     { 
       title: 'Torch: Full Product', 
       tags: ['GAME DESIGN'],
-      expanded: false
+      expanded: false,
+      description: "Torch is a narrative-driven adventure game that explores themes of light and darkness in both gameplay mechanics and storytelling.",
+      videoUrl: "/videos/torch-gameplay.mp4",
+      images: [
+        { src: "/images/portfolio/torch/preview1.jpg", alt: "Game Environment", caption: "In-game environment showcasing lighting effects" },
+        { src: "/images/portfolio/torch/preview2.jpg", alt: "Character Design", caption: "Main character concept art and modeling" }
+      ],
+      content: [
+        { type: "text", value: "Torch was designed as an immersive experience where light serves as both a gameplay mechanic and narrative device. Players use their torch to navigate dark environments, solve puzzles, and interact with the world." },
+        { type: "image", value: "/images/portfolio/torch/detail1.jpg", caption: "Light mechanic prototype testing" },
+        { type: "text", value: "I served as lead game designer, developing the core mechanics, narrative structure, and visual direction. The game uses dynamic lighting as its central interaction model, creating both challenge and atmosphere." }
+      ]
     }
   ];
 
+  // Track which portfolio items are expanded
+  let expandedItems: Array<{id: number, title: string, thumbnail?: string}> = [];
+  
+  // Create an array of all portfolio items for QuickNav
+  $: allNavigationItems = portfolioItems.map((item, index) => {
+    const thumbnail = item.images && item.images.length > 0 
+      ? item.images[0].src 
+      : undefined;
+    
+    return {
+      id: index,
+      title: item.title,
+      thumbnail,
+      expanded: item.expanded
+    };
+  });
+
+  // Function to toggle expansion of portfolio items
   function toggleExpand(index: number) {
-    portfolioItems[index].expanded = !portfolioItems[index].expanded;
-    portfolioItems = portfolioItems; // Trigger reactivity
+    // Create a copy of the portfolio items array
+    const updatedPortfolioItems = [...portfolioItems];
+    
+    // Toggle the expanded state
+    updatedPortfolioItems[index].expanded = !updatedPortfolioItems[index].expanded;
+    
+    // Update the portfolioItems array to trigger reactivity
+    portfolioItems = updatedPortfolioItems;
+    
+    // Update the list of expanded items for QuickNav
+    if (updatedPortfolioItems[index].expanded) {
+      // Add to expanded items
+      const thumbnail = updatedPortfolioItems[index].images && updatedPortfolioItems[index].images.length > 0 
+        ? updatedPortfolioItems[index].images[0].src 
+        : undefined;
+        
+      expandedItems = [...expandedItems, {
+        id: index,
+        title: updatedPortfolioItems[index].title,
+        thumbnail
+      }];
+    } else {
+      // Remove from expanded items
+      expandedItems = expandedItems.filter(item => item.id !== index);
+    }
+    
+    // If expanding, scroll to the item after a short delay to allow render
+    if (updatedPortfolioItems[index].expanded) {
+      setTimeout(() => {
+        const element = document.getElementById(`portfolio-content-${index}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
   }
 
   // Collage image placement
@@ -794,7 +928,7 @@
 
   // Add fake user colors
   const fakeUserColors = [
-    '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEEAD', '#D4A5A5', '#9B59B6', '#3498DB'
+    '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', 'var(--cursor-yellow)', '#D4A5A5', '#9B59B6', '#3498DB'
   ];
 
   // Function to create a new fake cursor
@@ -939,9 +1073,14 @@
             </div>
           </button>
           {#if item.expanded}
-            <div id="portfolio-content-${index}" class="portfolio-content">
-              <!-- Content will be added later -->
-              <p>Portfolio details will expand here.</p>
+            <div id={`portfolio-content-${index}`} class="portfolio-content">
+              <PortfolioExpandedView
+                title={item.title}
+                description={item.description}
+                videoUrl={item.videoUrl}
+                images={item.images}
+                content={item.content}
+              />
             </div>
           {/if}
         </div>
@@ -959,6 +1098,9 @@
     </div>
   </div>
 {/if}
+
+<!-- Add QuickNav component at the end of the template -->
+<QuickNav items={allNavigationItems} hasExpandedItem={expandedItems.length > 0} {expandedItems} />
 
 <style>
   .landing-page {
@@ -1071,14 +1213,15 @@
     justify-content: flex-start;
     align-items: center;
     cursor: pointer;
-    background: transparent;
+    background-color: transparent;
     border: none;
     width: 100%;
     font-family: var(--font-recursive);
-    padding:0;
+    padding: var(--spacing-xs) var(--spacing-sm);
     margin: 0;
     text-align: left;
     gap: var(--spacing-md);
+    border-radius: 4px;
   }
 
   .portfolio-header:hover h2 {
@@ -1097,6 +1240,9 @@
     margin: 0;
     transition: color var(--transition);
     font-variation-settings: 'CASL' 0, 'wght' 370;
+    background-color: var(--bg-color);
+    padding: var(--spacing-xxs) var(--spacing-xs);
+    border-radius: 2px;
   }
 
   .portfolio-item {
@@ -1105,13 +1251,17 @@
   }
 
   .portfolio-content {
-    padding: 1rem;
+    padding: 1.5rem;
     font-family: var(--font-recursive);
     font-weight: 400;
     font-variation-settings: 'CASL' 0, 'wght' 400;
     position: relative;
     z-index: 5;
     background-color: var(--bg-color);
+    border: 1px solid var(--grey-darker);
+    border-radius: 4px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .portfolio-content p {
