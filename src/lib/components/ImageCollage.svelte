@@ -1270,10 +1270,12 @@
     
     const touch = event.touches[0];
     
-    // Get viewport or container dimensions
+    // Get viewport or container dimensions and offset
     const isMobile = window.innerWidth <= 768;
     let containerWidth = window.innerWidth;
     let containerHeight = window.innerHeight;
+    let containerLeft = 0;
+    let containerTop = 0;
     
     if (isMobile) {
       const container = document.querySelector('.mobile-collage');
@@ -1281,68 +1283,49 @@
         const rect = container.getBoundingClientRect();
         containerWidth = rect.width;
         containerHeight = rect.height;
+        containerLeft = rect.left;
+        containerTop = rect.top;
       }
     }
     
-    // DIRECT HUMAN TOUCH DRAG: Use the original stored dimensions
-    // Calculate where the image's top-left corner should be (in pixels)
-    const desiredImageLeft = touch.clientX - grabOffsetX;
-    const desiredImageTop = touch.clientY - grabOffsetY;
+    // Calculate delta in screen coordinates (pixels)
+    const deltaX = touch.clientX - dragStartX;
+    const deltaY = touch.clientY - dragStartY;
     
-    // Convert directly to right/bottom CSS position using the STORED dimensions
-    const desiredRightPx = containerWidth - (desiredImageLeft + grabbedImageWidth);
-    const desiredBottomPx = containerHeight - (desiredImageTop + grabbedImageHeight);
+    // Convert deltas to percentage of container
+    const deltaRightPercent = -(deltaX / containerWidth) * 100;  // Moving right decreases right %
+    const deltaBottomPercent = -(deltaY / containerHeight) * 100; // Moving down decreases bottom %
     
-    // Convert to percentage
-    const desiredRightPercent = (desiredRightPx / containerWidth) * 100;
-    const desiredBottomPercent = (desiredBottomPx / containerHeight) * 100;
+    // Calculate desired new positions
+    let newRight = initialRight + deltaRightPercent;
+    let newBottom = initialBottom + deltaBottomPercent;
     
-    // Apply constraints
-    let constrainedRight, constrainedBottom;
+    // Calculate image dimensions as percentages
+    const imageWidthPercent = (grabbedImageWidth / containerWidth) * 100;
+    const imageHeightPercent = (grabbedImageHeight / containerHeight) * 100;
     
-    if (isMobile) {
-      // For mobile, constrain to container boundaries
-      const imageWidthPercent = (grabbedImageWidth / containerWidth) * 100;
-      const imageHeightPercent = (grabbedImageHeight / containerHeight) * 100;
-      const mobileMargin = 3; // Define margin for mobile
-      
-      constrainedRight = Math.max(
-        mobileMargin,
-        Math.min(100 - mobileMargin - imageWidthPercent, desiredRightPercent)
-      );
-      
-      // Apply the same correct constraint logic for mobile
-      constrainedBottom = Math.max(
-        mobileMargin, // Bottom margin
-        Math.min(100 - mobileMargin - imageHeightPercent, desiredBottomPercent) // Top margin
-      );
-    } else {
-      // For desktop, use the viewport margin
-      const viewportMargin = 3;
-      const imageWidthPercent = (grabbedImageWidth / window.innerWidth) * 100;
-      const imageHeightPercent = (grabbedImageHeight / window.innerHeight) * 100;
-      
-      constrainedRight = Math.max(
-        viewportMargin,
-        Math.min(100 - viewportMargin - imageWidthPercent, desiredRightPercent)
-      );
-      
-      // FIXED: Proper constraint calculation for top margin with bottom positioning
-      // Since "bottom: 100%" means the image is at the top, we need:
-      // bottom ≤ 100% - viewportMargin - imageHeightPercent to ensure top margin
-      constrainedBottom = Math.max(
-        viewportMargin, // Bottom margin
-        Math.min(100 - viewportMargin - imageHeightPercent, desiredBottomPercent) // Top margin
-      );
-    }
+    // Define strict containment boundaries with margin
+    const margin = 5; // percentage margin
     
-    // Update the image position IMMEDIATELY
+    // Apply strict constraints
+    // Right=0% means at right edge, Right=100% means at left edge
+    // Bottom=0% means at bottom edge, Bottom=100% means at top edge
+    
+    // 1. Don't let right go below margin (prevent image moving off right edge)
+    // 2. Don't let right go above (100-margin-width) (prevent image moving off left edge)
+    newRight = Math.max(margin, Math.min(100 - margin - imageWidthPercent, newRight));
+    
+    // 1. Don't let bottom go below margin (prevent image moving off bottom edge)
+    // 2. Don't let bottom go above (100-margin-height) (prevent image moving off top edge)
+    newBottom = Math.max(margin, Math.min(100 - margin - imageHeightPercent, newBottom));
+    
+    // Update the image position immediately
     collageImages = collageImages.map((img, i) => {
       if (i === draggedImageIndex) {
         return {
           ...img,
-          right: constrainedRight,
-          bottom: constrainedBottom
+          right: newRight,
+          bottom: newBottom
         };
       }
       return img;
@@ -1550,10 +1533,12 @@
   function handleDrag(event: MouseEvent) {
     if (draggedImageIndex === null) return;
     
-    // Get viewport or container dimensions
+    // Get viewport or container dimensions and offset
     const isMobile = window.innerWidth <= 768;
     let containerWidth = window.innerWidth;
     let containerHeight = window.innerHeight;
+    let containerLeft = 0;
+    let containerTop = 0;
     
     if (isMobile) {
       const container = document.querySelector('.mobile-collage');
@@ -1561,72 +1546,49 @@
         const rect = container.getBoundingClientRect();
         containerWidth = rect.width;
         containerHeight = rect.height;
+        containerLeft = rect.left;
+        containerTop = rect.top;
       }
     }
     
-    // DIRECT HUMAN CURSOR DRAG: Use the original stored dimensions from grab time
-    // This prevents jumping due to getBoundingClientRect variations during drag
+    // Calculate delta in screen coordinates (pixels)
+    const deltaX = event.clientX - dragStartX;
+    const deltaY = event.clientY - dragStartY;
     
-    // Calculate where the image's top-left corner should be (in pixels)
-    const desiredImageLeft = event.clientX - grabOffsetX;
-    const desiredImageTop = event.clientY - grabOffsetY;
+    // Convert deltas to percentage of container
+    const deltaRightPercent = -(deltaX / containerWidth) * 100;  // Moving right decreases right %
+    const deltaBottomPercent = -(deltaY / containerHeight) * 100; // Moving down decreases bottom %
     
-    // Convert directly to right/bottom CSS position using the STORED dimensions
-    // Right = containerWidth - (left + width)
-    // Bottom = containerHeight - (top + height)
-    const desiredRightPx = containerWidth - (desiredImageLeft + grabbedImageWidth);
-    const desiredBottomPx = containerHeight - (desiredImageTop + grabbedImageHeight);
+    // Calculate desired new positions
+    let newRight = initialRight + deltaRightPercent;
+    let newBottom = initialBottom + deltaBottomPercent;
     
-    // Convert to percentage
-    const desiredRightPercent = (desiredRightPx / containerWidth) * 100;
-    const desiredBottomPercent = (desiredBottomPx / containerHeight) * 100;
+    // Calculate image dimensions as percentages
+    const imageWidthPercent = (grabbedImageWidth / containerWidth) * 100;
+    const imageHeightPercent = (grabbedImageHeight / containerHeight) * 100;
     
-    // Apply constraints
-    let constrainedRight, constrainedBottom;
+    // Define strict containment boundaries with margin
+    const margin = 5; // percentage margin
     
-    if (isMobile) {
-      // For mobile, constrain to container boundaries
-      const imageWidthPercent = (grabbedImageWidth / containerWidth) * 100;
-      const imageHeightPercent = (grabbedImageHeight / containerHeight) * 100;
-      const mobileMargin = 3; // Define margin for mobile
-      
-      constrainedRight = Math.max(
-        mobileMargin,
-        Math.min(100 - mobileMargin - imageWidthPercent, desiredRightPercent)
-      );
-      
-      // Apply the same correct constraint logic for mobile
-      constrainedBottom = Math.max(
-        mobileMargin, // Bottom margin
-        Math.min(100 - mobileMargin - imageHeightPercent, desiredBottomPercent) // Top margin
-      );
-    } else {
-      // For desktop, use the viewport margin
-      const viewportMargin = 3;
-      const imageWidthPercent = (grabbedImageWidth / window.innerWidth) * 100;
-      const imageHeightPercent = (grabbedImageHeight / window.innerHeight) * 100;
-      
-      constrainedRight = Math.max(
-        viewportMargin,
-        Math.min(100 - viewportMargin - imageWidthPercent, desiredRightPercent)
-      );
-      
-      // FIXED: Proper constraint calculation for top margin with bottom positioning
-      // Since "bottom: 100%" means the image is at the top, we need:
-      // bottom ≤ 100% - viewportMargin - imageHeightPercent to ensure top margin
-      constrainedBottom = Math.max(
-        viewportMargin, // Bottom margin
-        Math.min(100 - viewportMargin - imageHeightPercent, desiredBottomPercent) // Top margin
-      );
-    }
+    // Apply strict constraints
+    // Right=0% means at right edge, Right=100% means at left edge
+    // Bottom=0% means at bottom edge, Bottom=100% means at top edge
     
-    // Update the image position IMMEDIATELY
+    // 1. Don't let right go below margin (prevent image moving off right edge)
+    // 2. Don't let right go above (100-margin-width) (prevent image moving off left edge)
+    newRight = Math.max(margin, Math.min(100 - margin - imageWidthPercent, newRight));
+    
+    // 1. Don't let bottom go below margin (prevent image moving off bottom edge)
+    // 2. Don't let bottom go above (100-margin-height) (prevent image moving off top edge)
+    newBottom = Math.max(margin, Math.min(100 - margin - imageHeightPercent, newBottom));
+    
+    // Update the image position immediately
     collageImages = collageImages.map((img, i) => {
       if (i === draggedImageIndex) {
         return {
           ...img,
-          right: constrainedRight,
-          bottom: constrainedBottom
+          right: newRight,
+          bottom: newBottom
         };
       }
       return img;
@@ -1908,6 +1870,7 @@
     overflow: hidden;
     margin-top: var(--spacing-md);
     margin-bottom: var(--spacing-md);
+    border: 1px solid transparent; /* Add invisible border to help with debugging */
   }
 
   .drag-hint {
@@ -1945,6 +1908,8 @@
     pointer-events: auto;
     cursor: grab;
     will-change: transform; /* Optimize for transforms */
+    -webkit-tap-highlight-color: transparent; /* Prevent grey highlight on iOS/Android */
+    touch-action: none; /* Ensure touchmove events fire for dragging */
   }
 
   /* Only apply transition when not dragging */

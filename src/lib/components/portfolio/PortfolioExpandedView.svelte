@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   
   // Props
-  export let title: string;
+  export const title: string = '';
   export let description: string;
   export let videoUrl: string;
   export let images: Array<{src: string, alt: string, caption?: string}> = [];
@@ -12,6 +12,8 @@
   let activeView: 'video' | 'content' = 'content';
   let videoElement: HTMLVideoElement;
   let isVideoLoaded = false;
+  // Add state for image zoom
+  let zoomedImage: {src: string, alt: string, caption?: string} | null = null;
   
   // Function to switch between views
   function toggleView(view: 'video' | 'content') {
@@ -37,7 +39,27 @@
     isVideoLoaded = true;
   }
   
+  // Function to open zoomed image
+  function openZoomImage(img: {src: string, alt: string, caption?: string}) {
+    zoomedImage = img;
+  }
+  
+  // Function to close zoomed image
+  function closeZoomImage() {
+    zoomedImage = null;
+  }
+  
+  // Handle escape key to close image
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape' && zoomedImage) {
+      closeZoomImage();
+    }
+  }
+  
   onMount(() => {
+    // Add keydown listener
+    window.addEventListener('keydown', handleKeydown);
+    
     // Clean up video on component unmount
     return () => {
       if (videoElement) {
@@ -45,11 +67,13 @@
         videoElement.removeAttribute('src');
         videoElement.load();
       }
+      // Remove keydown listener
+      window.removeEventListener('keydown', handleKeydown);
     };
   });
 </script>
 
-<div class="portfolio-expanded-view">
+<div class="portfolio-expanded-view flex-column">
   <!-- Toggle buttons -->
   <div class="view-toggle">
     <button
@@ -88,10 +112,10 @@
   </div>
   
   <!-- Content sections -->
-  <div class="content-container">
+  <div class="content-container flex-column">
     <!-- Video View -->
     {#if activeView === 'video'}
-      <div class="video-container">
+      <div class="video-container width-100">
         {#if videoUrl}
           <video 
             bind:this={videoElement}
@@ -101,6 +125,7 @@
             class:loaded={isVideoLoaded}
           >
             <source src={videoUrl} type="video/mp4">
+            <track kind="captions" src="" label="English" srclang="en" default>
             Your browser doesn't support video playback.
           </video>
           
@@ -122,7 +147,7 @@
       </div>
     {:else}
       <!-- Text & Images View -->
-      <div class="content-view">
+      <div class="content-view width-100">
         <!-- Project description -->
         <div class="project-description">
           <p>{description}</p>
@@ -137,7 +162,12 @@
               </div>
             {:else if block.type === 'image'}
               <div class="image-block">
-                <img src={block.value} alt={block.caption || 'Project image'} />
+                <img 
+                  src={block.value} 
+                  alt={block.caption || 'Project image'} 
+                  on:click={() => openZoomImage({src: block.value, alt: block.caption || 'Project image', caption: block.caption})}
+                  class="clickable-image"
+                />
                 {#if block.caption}
                   <p class="image-caption">{block.caption}</p>
                 {/if}
@@ -151,7 +181,12 @@
           <div class="image-gallery">
             {#each images as image}
               <div class="gallery-item">
-                <img src={image.src} alt={image.alt} />
+                <img 
+                  src={image.src} 
+                  alt={image.alt}
+                  on:click={() => openZoomImage(image)}
+                  class="clickable-image"
+                />
                 {#if image.caption}
                   <p class="image-caption">{image.caption}</p>
                 {/if}
@@ -164,16 +199,63 @@
   </div>
 </div>
 
+<!-- Image zoom overlay -->
+{#if zoomedImage}
+  <div class="image-zoom-overlay" on:click={closeZoomImage}>
+    <div class="image-zoom-container">
+      <button class="close-button" on:click={closeZoomImage}>×</button>
+      <img src={zoomedImage.src} alt={zoomedImage.alt} />
+      {#if zoomedImage.caption}
+        <p class="image-caption">{zoomedImage.caption}</p>
+      {/if}
+    </div>
+  </div>
+{/if}
+
 <style>
   .portfolio-expanded-view {
-    width: 100%;
+    width: 800px;
+    max-width: 800px;
     height: 100%;
     position: relative;
-    display: grid;
-    grid-template-rows: auto 1fr;
+    display: flex;
+    flex-direction: column;
     gap: var(--spacing-lg);
     overflow: hidden;
+    margin: 0 auto;
   }
+  
+  .content-container {
+    width: 800px;
+    max-width: 800px;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Force video and content views to have identical width */
+  .video-container, .content-view {
+    width: 800px;
+    min-width: 800px;
+    box-sizing: border-box;
+    flex: 1;
+    flex-grow: 1;
+  }
+  
+  /* If inside .portfolio-content, apply more specific style */
+  :global(.portfolio-content) .video-container,
+  :global(.portfolio-content) .content-view {
+    width: 800px;
+    min-width: 800px;
+  }
+  
+  .video-container {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background-color: rgba(0, 0, 0, 0.03);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+  }
+  
   .view-toggle {
     display: flex;
     gap: 0;
@@ -223,25 +305,9 @@
     transform: none;
   }
   
-  .content-container {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .video-container {
-    position: relative;
-    width: 100%;
-    max-width: 100%;
-    aspect-ratio: 16 / 9;
-    background-color: rgba(0, 0, 0, 0.03);
-    border-radius: var(--border-radius);
-    overflow: hidden;
-    align-self: flex-start;
-  }
-  
   video {
     width: 100%;
+    min-width: 100%;
     height: 100%;
     object-fit: cover;
     opacity: 0;
@@ -290,7 +356,7 @@
     font-size: var(--font-size-base);
     line-height: 1.6;
     font-variation-settings: 'CASL' 0, 'wght' 370;
-    max-width: 70ch;
+    width: 100%;
   }
   
   .content-blocks {
@@ -304,7 +370,7 @@
     font-size: var(--font-size-base);
     line-height: 1.6;
     font-variation-settings: 'CASL' 0, 'wght' 370;
-    max-width: 70ch;
+    width: 100%;
   }
   
   .image-block {
@@ -344,6 +410,73 @@
     object-fit: cover;
   }
   
+  /* Clickable image styling */
+  .clickable-image {
+    cursor: pointer;
+    transition: transform 0.2s ease;
+  }
+  
+  .clickable-image:hover {
+    transform: scale(1.02);
+  }
+  
+  /* Image zoom overlay styling */
+  .image-zoom-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: var(--spacing-xl);
+    box-sizing: border-box;
+  }
+  
+  .image-zoom-container {
+    position: relative;
+    max-width: 90%;
+    max-height: 90%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .image-zoom-container img {
+    max-width: 100%;
+    max-height: 80vh;
+    object-fit: contain;
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  }
+  
+  .image-zoom-container .image-caption {
+    color: white;
+    max-width: 700px;
+    text-align: center;
+    margin-top: var(--spacing-md);
+  }
+  
+  .close-button {
+    position: absolute;
+    top: -40px;
+    right: -40px;
+    width: 40px;
+    height: 40px;
+    background-color: transparent;
+    border: none;
+    color: white;
+    font-size: 32px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1001;
+  }
+  
   @media (max-width: 768px) {
     .project-description,
     .text-block {
@@ -353,158 +486,27 @@
     .image-gallery {
       grid-template-columns: 1fr;
     }
+    
+    .portfolio-expanded-view, 
+    .content-container, 
+    .video-container, 
+    .content-view,
+    :global(.portfolio-content) .video-container,
+    :global(.portfolio-content) .content-view {
+      width: 100%;
+      min-width: 100%;
+      max-width: 100%;
+    }
+    
+    .close-button {
+      top: -30px;
+      right: 0;
+    }
   }
-
-  .project-gallery {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: var(--spacing-md);
-    margin-bottom: var(--spacing-lg);
-  }
-
-  .detail-section {
-    margin-bottom: var(--spacing-xl);
-  }
-
-  .detail-section h3 {
-    font-size: var(--font-size-lg);
-    font-weight: 600;
-    font-variation-settings: 'CASL' 0, 'wght' 580;
-    margin-bottom: var(--spacing-md);
-    color: var(--text-color);
-  }
-
-  .detail-section p {
-    font-size: var(--font-size-base);
-    color: var(--muted-text);
-    line-height: 1.6;
-    margin-bottom: var(--spacing-md);
-  }
-
-  .technologies {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--spacing-xs);
-    margin-top: var(--spacing-sm);
-  }
-
-  .tech-tag {
-    background-color: var(--bg-color-alt);
-    color: var(--text-color);
-    padding: var(--spacing-xxs) var(--spacing-sm);
-    border-radius: var(--border-radius-sm);
-    font-size: var(--font-size-sm);
-    font-variation-settings: 'CASL' 0, 'wght' 450;
-  }
-
-  .header-section {
-    margin-bottom: var(--spacing-lg);
-  }
-
-  .header-section h2 {
-    font-size: var(--font-size-xl);
-    font-weight: 700;
-    font-variation-settings: 'CASL' 0, 'wght' 650;
-    margin-bottom: var(--spacing-xs);
-    color: var(--text-color);
-  }
-
-  .header-section .subtitle {
-    font-size: var(--font-size-base);
-    color: var(--muted-text);
-    margin-bottom: var(--spacing-md);
-  }
-
-  .project-links {
-    display: flex;
-    gap: var(--spacing-md);
-    margin-top: var(--spacing-md);
-  }
-
-  .project-link {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-xs);
-    color: var(--text-color);
-    text-decoration: none;
-    font-size: var(--font-size-sm);
-    font-variation-settings: 'CASL' 0, 'wght' 500;
-    transition: color var(--transition-fast) ease;
-  }
-
-  .project-link:hover {
-    color: var(--cursor-indigo);
-  }
-
-  .project-link svg {
-    width: 16px;
-    height: 16px;
-  }
-
-  .tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--spacing-xs);
-    margin-bottom: var(--spacing-md);
-  }
-
-  .tag {
-    background-color: var(--bg-color-alt);
-    color: var(--muted-text);
-    font-size: var(--font-size-xs);
-    padding: var(--spacing-xxs) var(--spacing-xs);
-    border-radius: var(--border-radius-sm);
-  }
-
-  .details-section {
-    margin-bottom: var(--spacing-lg);
-  }
-
-  .details-section h3 {
-    font-size: var(--font-size-md);
-    margin-bottom: var(--spacing-xs);
-    font-weight: 500;
-  }
-
-  .details-section p {
-    color: var(--muted-text);
-    font-size: var(--font-size-sm);
-    line-height: 1.6;
-    margin-bottom: var(--spacing-sm);
-  }
-
-  .grid-item {
-    border-radius: var(--border-radius);
-    overflow: hidden;
-    transition: transform var(--transition-normal), box-shadow var(--transition-normal);
-  }
-
-  .grid-item:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow);
-  }
-
-  .link-button {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--spacing-xs);
-    background-color: var(--bg-color-alt);
-    color: var(--text-color);
-    padding: var(--spacing-xs) var(--spacing-sm);
-    border-radius: var(--border-radius);
-    text-decoration: none;
-    transition: background-color var(--transition-fast);
-    font-size: var(--font-size-sm);
-    margin-right: var(--spacing-sm);
-    margin-bottom: var(--spacing-sm);
-  }
-
-  .link-button:hover {
-    background-color: var(--grey-light);
-  }
-
-  .link-button svg {
-    width: 16px;
-    height: 16px;
+  
+  /* Add direct styling to the video container */
+  .content-container > .video-container {
+    width: 100%; 
+    min-width: 100%;
   }
 </style> 

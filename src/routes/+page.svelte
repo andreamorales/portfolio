@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { fade } from 'svelte/transition';
-  import ContactForm from '$lib/components/ContactForm.svelte';
   import Label from '$lib/components/ui/input/Label.svelte';
   import colibri from '$lib/images/colibri.png';
   import ImageCollage from '$lib/components/ImageCollage.svelte';
@@ -36,6 +35,9 @@
   // Import QuickNav component
   import QuickNav from '$lib/components/portfolio/QuickNav.svelte';
 
+  // Import the new Toast component
+  import Toast from '$lib/components/ui/Toast.svelte';
+  
   // Portfolio items
   let portfolioItems = [
     { 
@@ -889,24 +891,39 @@
     });
   }
 
-  // Remove unused contact form reference and scroll functionality
-  function scrollToContact() {
-    toggleContactForm();
-  }
-
-  // Show/hide contact form with a toggle
+  // Add toast state
+  let showToast = false;
+  let toastMessage = '';
+  
+  // Keep the showContactForm variable for backward compatibility
   let showContactForm = false;
-
-  // Function to toggle contact form visibility
+  
+  // Replace the contact form toggle with the copy email function
+  function copyEmailToClipboard() {
+    const email = 'andreamoralescoto@gmail.com';
+    
+    // Use the clipboard API to copy the email
+    navigator.clipboard.writeText(email)
+      .then(() => {
+        // Show success toast
+        toastMessage = 'Email copied!';
+        showToast = true;
+      })
+      .catch(err => {
+        // Show error toast if copying failed
+        console.error('Failed to copy email: ', err);
+        toastMessage = 'Failed to copy email';
+        showToast = true;
+      });
+  }
+  
+  // Legacy function for backward compatibility - now copies email instead
   function toggleContactForm() {
-    showContactForm = !showContactForm;
-    if (showContactForm) {
-      // Prevent body scrolling when modal is open
-      document.body.style.overflow = 'hidden';
-    } else {
-      // Restore scrolling when modal is closed
-      document.body.style.overflow = 'auto';
-    }
+    // Just call our new function instead
+    copyEmailToClipboard();
+    
+    // Toggle showContactForm for compatibility but don't actually show the form
+    showContactForm = false;
   }
 
   // Add fake cursor state with new properties
@@ -1013,6 +1030,9 @@
   <meta name="description" content="Andy Morales - Product designer for creative tools." />
 </svelte:head>
 
+<!-- Add the toast component at the top level of the template -->
+<Toast message={toastMessage} bind:visible={showToast} />
+
 <div class="landing-page">
   <!-- Add fake cursors overlay -->
   <div class="fake-cursors-overlay">
@@ -1106,14 +1126,9 @@
   </main>
 </div>
 
-<!-- Modal contact form that appears over everything when toggled -->
+<!-- Keep this for compatibility but make it not render anything -->
 {#if showContactForm}
-  <div class="contact-modal" transition:fade={{ duration: 300 }}>
-    <div class="contact-modal-content">
-      <button class="close-button" on:click={toggleContactForm}>&times;</button>
-      <ContactForm />
-    </div>
-  </div>
+  <!-- Empty block, doesn't render anything -->
 {/if}
 
 <!-- Add QuickNav component at the end of the template -->
@@ -1234,7 +1249,7 @@
     border: none;
     width: 100%;
     font-family: var(--font-recursive);
-    padding: var(--spacing-xs) var(--spacing-sm);
+    padding: var(--spacing-xs) var(--spacing-sm) var(--spacing-xs) 0;
     margin: 0;
     text-align: left;
     gap: var(--spacing-md);
@@ -1279,6 +1294,14 @@
     border-radius: 4px;
     width: 100%;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Ensure the PortfolioExpandedView has consistent width in both views */
+  .portfolio-content > :global(*) {
+    width: 100%;
+    max-width: 100%;
   }
 
   .portfolio-content p {
