@@ -11,7 +11,7 @@
   export let hasExpandedItem: boolean = false;
   
   // For backward compatibility
-  export let expandedItems: Array<{
+  export const expandedItems: Array<{
     id: number;
     title: string;
     thumbnail?: string;

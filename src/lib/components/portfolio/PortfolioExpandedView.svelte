@@ -6,7 +6,18 @@
   export let description: string;
   export let videoUrl: string;
   export let images: Array<{src: string, alt: string, caption?: string}> = [];
-  export let content: Array<{type: 'text' | 'image', value: string, caption?: string}> = [];
+  export let content: Array<{type: string, value: string, caption?: string}> = [];
+  // Add hero image prop
+  export let heroImage: string = '';
+  
+  // New project details props
+  export let year: string = '';
+  export let role: string = '';
+  export let projectLength: string = '';
+  export let metrics: Array<string> = [];
+  
+  // Computed prop for featured image
+  $: featuredImage = heroImage || (images.length > 0 ? images[0].src : '');
   
   // State
   let activeView: 'video' | 'content' = 'content';
@@ -74,7 +85,40 @@
 </script>
 
 <div class="portfolio-expanded-view flex-column">
-  <!-- Toggle buttons -->
+  <!-- Project details grid -->
+  <div class="project-details-grid">
+    <div class="details-row">
+      <div class="details-cell">
+        <div class="details-label">Year</div>
+        <div class="details-value">{year}</div>
+      </div>
+      <div class="details-cell">
+        <div class="details-label">Role</div>
+        <div class="details-value">{role}</div>
+      </div>
+      <div class="details-cell">
+        <div class="details-label">Project Length</div>
+        <div class="details-value">{projectLength}</div>
+      </div>
+    </div>
+    <div class="details-row metrics-row">
+      {#each metrics as metric, i}
+        <div class="details-cell">
+          <div class="details-label">Impact</div>
+          <div class="details-value">{metric}</div>
+        </div>
+      {/each}
+    </div>
+  </div>
+
+  <!-- Featured hero image -->
+  {#if featuredImage}
+    <div class="hero-image-container">
+      <img src={featuredImage} alt={title} class="hero-image" />
+    </div>
+  {/if}
+
+  <!-- Toggle buttons - now below the grid -->
   <div class="view-toggle">
     <button
       class="button-secondary {activeView === 'content' ? 'active-toggle' : ''}"
@@ -162,12 +206,18 @@
               </div>
             {:else if block.type === 'image'}
               <div class="image-block">
-                <img 
-                  src={block.value} 
-                  alt={block.caption || 'Project image'} 
+                <button 
+                  class="image-button"
                   on:click={() => openZoomImage({src: block.value, alt: block.caption || 'Project image', caption: block.caption})}
-                  class="clickable-image"
-                />
+                  on:keydown={(e) => e.key === 'Enter' && openZoomImage({src: block.value, alt: block.caption || 'Project image', caption: block.caption})}
+                  aria-label="Zoom image"
+                >
+                  <img 
+                    src={block.value} 
+                    alt={block.caption || 'Project image'} 
+                    class="clickable-image"
+                  />
+                </button>
                 {#if block.caption}
                   <p class="image-caption">{block.caption}</p>
                 {/if}
@@ -181,12 +231,18 @@
           <div class="image-gallery">
             {#each images as image}
               <div class="gallery-item">
-                <img 
-                  src={image.src} 
-                  alt={image.alt}
+                <button 
+                  class="image-button"
                   on:click={() => openZoomImage(image)}
-                  class="clickable-image"
-                />
+                  on:keydown={(e) => e.key === 'Enter' && openZoomImage(image)}
+                  aria-label="Zoom image"
+                >
+                  <img 
+                    src={image.src} 
+                    alt={image.alt}
+                    class="clickable-image"
+                  />
+                </button>
                 {#if image.caption}
                   <p class="image-caption">{image.caption}</p>
                 {/if}
@@ -201,8 +257,20 @@
 
 <!-- Image zoom overlay -->
 {#if zoomedImage}
-  <div class="image-zoom-overlay" on:click={closeZoomImage}>
-    <div class="image-zoom-container">
+  <div class="image-zoom-overlay-wrapper">
+    <!-- Use button as the overlay background since it needs click events -->
+    <button 
+      class="image-zoom-overlay-background"
+      on:click={closeZoomImage}
+      aria-label="Close image preview"
+    ></button>
+    <div 
+      class="image-zoom-container"
+      role="dialog" 
+      aria-modal="true"
+      aria-label="Image zoom view"
+      tabindex="-1"
+    >
       <button class="close-button" on:click={closeZoomImage}>×</button>
       <img src={zoomedImage.src} alt={zoomedImage.alt} />
       {#if zoomedImage.caption}
@@ -260,6 +328,7 @@
     display: flex;
     gap: 0;
     margin-bottom: var(--spacing-md);
+    justify-content: center;
   }
   
   .toggle-icon {
@@ -421,19 +490,31 @@
   }
   
   /* Image zoom overlay styling */
-  .image-zoom-overlay {
+  .image-zoom-overlay-wrapper {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
     padding: var(--spacing-xl);
     box-sizing: border-box;
+  }
+  
+  .image-zoom-overlay-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
   }
   
   .image-zoom-container {
@@ -443,6 +524,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    z-index: 1001;
   }
   
   .image-zoom-container img {
@@ -508,5 +590,103 @@
   .content-container > .video-container {
     width: 100%; 
     min-width: 100%;
+  }
+  
+  /* Project details grid */
+  .project-details-grid {
+    width: 100%;
+    background-color: transparent;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    margin-bottom: var(--spacing-md);
+    font-family: var(--font-family);
+  }
+  
+  .details-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  }
+  
+  .details-row:last-child {
+    border-bottom: none;
+  }
+  
+  .metrics-row {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+  
+  .details-cell {
+    padding: var(--spacing-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    border-right: 1px solid rgba(0, 0, 0, 0.12);
+  }
+  
+  .details-cell:last-child {
+    border-right: none;
+  }
+  
+  .details-label {
+    font-size: var(--font-size-sm);
+    color: var(--muted-text);
+    font-variation-settings: 'CASL' 0, 'wght' 400;
+  }
+  
+  .details-value {
+    font-size: var(--font-size-base);
+    color: var(--text-color);
+    font-variation-settings: 'CASL' 0, 'wght' 500;
+    word-wrap: break-word;
+  }
+  
+  /* Make sure the grid is responsive */
+  @media (max-width: 600px) {
+    .details-row {
+      grid-template-columns: 1fr;
+    }
+    
+    .details-cell {
+      border-right: none;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    .details-cell:last-child {
+      border-bottom: none;
+    }
+  }
+  
+  .image-button {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    display: block;
+    width: 100%;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+  }
+  
+  .image-button:focus {
+    outline: 2px solid var(--cursor-indigo);
+    outline-offset: 2px;
+  }
+  
+  /* Hero image styling */
+  .hero-image-container {
+    width: 100%;
+    margin-bottom: var(--spacing-lg);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  }
+  
+  .hero-image {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover;
   }
 </style> 

@@ -49,7 +49,7 @@
   let pageVisitStartTime = 0; // When the user started visiting the page
   
   // Basic constants and variables
-  const viewportMargin = 1;  // Reduced from 3 to allow images closer to edge
+  const viewportMargin = 1;  // Reduced margin for all edges (left, top, right, bottom)
   let isMobile: boolean; // Will be set in onMount
   let rightMin: number; // Will be set in onMount
   let rightMax: number; // Will be set in onMount
@@ -86,7 +86,7 @@
     
     // Only log if not a pre-existing cursor (reduces console noise)
     if (!isPreexisting) {
-      console.log(`Creating cursor ${name} with color: ${color}`);
+    console.log(`Creating cursor ${name} with color: ${color}`);
     }
     
     // For preexisting cursors, start them in a more advanced state
@@ -1105,110 +1105,84 @@
       zIndex: i + 1
     }));
     
-    // Now shuffle positions (but not z-index ordering)
-    // We create position groups to maintain some consistency
-    // Larger images will tend to be positioned more towards the edges
-    // Smaller images will tend to be positioned more centrally
-    
-    // Use global variables instead of redefining them
-    // Width of the positioning area
-    const areaWidth = rightMax - rightMin;
-    const areaHeight = bottomMax - bottomMin;
-    
-    // Calculate roughly how many images can fit in a row and column
-    const imagesPerRow = Math.ceil(Math.sqrt(sizeRankedImages.length * 1.2));
-    const cellWidth = areaWidth / imagesPerRow;
-    const cellHeight = areaHeight / imagesPerRow;
-    
-    // Shuffle horizontal positions only
-    const shuffledHorizontal = [...sizeRankedImages];
-    for (let i = shuffledHorizontal.length - 1; i > 0; i--) {
-      // Only swap items if they're within the same size range (e.g., within 3 positions of each other)
-      const maxSwapDistance = 3;
-      const minPos = Math.max(0, i - maxSwapDistance);
-      const j = minPos + Math.floor(Math.random() * (i - minPos + 1));
-      [shuffledHorizontal[i], shuffledHorizontal[j]] = [shuffledHorizontal[j], shuffledHorizontal[i]];
-    }
-    
-    // Create array of images with positions and random delays
-    const positionedImages = shuffledHorizontal.map((imgData, index) => {
-      // Use a more varied distribution pattern combining:
-      // 1. Spiral base for initial positioning
-      // 2. Size-based offsets to separate images by their dimensions
-      // 3. Unique offsets for each image to prevent perfect stacking
-      
-      // Custom angle with different patterns per image for more unique positions
-      const spiralIndex = index;
-      const baseAngle = spiralIndex * 0.75; // Basic spiral pattern
-      
-      // Add irregularity to the spiral - make it less mathematically perfect
-      const angleVariation = (spiralIndex % 3) * 0.2; // Changes angle pattern every 3 images
-      const angle = baseAngle + angleVariation + (Math.random() * 0.3);
-      
-      // Radius that varies based on image properties, not just index
-      const sizeBasedOffset = (imgData.width / 100) * 0.5; // Larger images get more space
-      const radius = 5 + (spiralIndex * 2.8) + sizeBasedOffset;
-      
-      // Center point with slight offsets based on image attributes
-      const centerRight = rightMin + (areaWidth / 2) + (index % 2 ? 2 : -2); // Slight left-right alternation
-      const centerBottom = bottomMin + (areaHeight / 2) + (index % 3 === 0 ? 3 : -3); // Varied vertical positioning
-      
-      // Calculate base position with spiral pattern
-      const spiralRight = centerRight + radius * Math.cos(angle);
-      const spiralBottom = centerBottom + radius * Math.sin(angle);
-      
-      // Add controlled randomness for artistic overlap without complete stacking
-      const randomRight = (Math.random() * 0.6 - 0.3) * cellWidth;
-      const randomBottom = (Math.random() * 0.6 - 0.3) * cellHeight;
-      
-      // Add unique offsets based on image name/alt to ensure consistenly different positioning
-      const hashOffset = imgData.alt.charCodeAt(0) % 10; // Get a number 0-9 based on first character
-      const hashOffsetRight = ((hashOffset % 3) - 1) * 3; // Convert to -3, 0, or 3
-      const hashOffsetBottom = (Math.floor(hashOffset / 3) - 1) * 3; // Different pattern for bottom
-      
-      // Calculate content-aware positioning based on the visible content area
-      // This helps prevent complete overlaps of important visual elements
-      
-      // Get the contentOffsets (percentage of the image that is empty/transparent)
-      const offsets = imgData.contentOffsets || { top: 0, right: 0, bottom: 0, left: 0 };
-      
-      // Calculate adjusted position based on content area
-      // Shift position to make the content area the center of positioning calculations
-      const contentOffsetRight = (offsets.left - offsets.right) * 0.2; // Adjust horizontal position based on content
-      const contentOffsetBottom = (offsets.top - offsets.bottom) * 0.2; // Adjust vertical position based on content
-      
-      // Final calculated position with all factors combined, including content awareness
-      const right = spiralRight + randomRight + hashOffsetRight + contentOffsetRight;
-      const bottom = spiralBottom + randomBottom + hashOffsetBottom + contentOffsetBottom;
-      
-      // Add more variation to rotation angles to ensure images aren't parallel
-      // Images will have a wider range of rotation angles (-12° to +12°)
-      const baseRotation = imgData.rotation !== undefined ? imgData.rotation : 0;
-      const rotationVariance = 12; // Increased from 8
-      const rotation = baseRotation + (Math.random() * rotationVariance * 2 - rotationVariance);
-      
-      // Add some additional random offsets for specific images
-      let extraOffsetRight = 0;
-      let extraOffsetBottom = 0;
-      
-      // Add special randomness for the owl to ensure it moves more
-      if (imgData.alt === "Owl") {
-        extraOffsetRight = (Math.random() * 10) - 5; // Reduced from 20 to 10
-        extraOffsetBottom = (Math.random() * 10) - 5; // Reduced from 20 to 10
-      }
-      
-      return {
-        ...imgData,
-        // Ensure positions stay within bounds
-        right: Math.max(rightMin, Math.min(rightMax, right + extraOffsetRight)),
-        bottom: Math.max(bottomMin, Math.min(bottomMax, bottom + extraOffsetBottom)),
-        rotation,
-        aspectRatio: imgData.aspectRatio
-      };
-    });
+    /* NEW SPREAD-OUT LAYOUT (Desktop Only) ------------------------------------
+      - Use a larger area (right 55%, bottom 75%).
+      - Calculate grid based on available area and estimated image size + gap.
+      - Place images in grid cells with jitter within the remaining space. */
+    if (!isMobile) {
+      const containerWidth = window.innerWidth;
+      const containerHeight = window.innerHeight;
 
-    // Sort by z-index (ascending) so larger images (back) appear first, followed by smaller images (front)
-    return positionedImages.sort((a, b) => a.zIndex - b.zIndex);
+      // Estimate max image size + gap in percentage
+      const maxImgWidthPct = Math.max(...sizeRankedImages.map(img => img.width / containerWidth * 100));
+      const maxImgHeightPct = Math.max(...sizeRankedImages.map(img => img.height / containerHeight * 100));
+      const gapPct = 3; // Minimum gap between images
+      const requiredCellWidth = maxImgWidthPct + gapPct;
+      const requiredCellHeight = maxImgHeightPct + gapPct;
+
+      // Calculate grid dimensions based on available area and required cell size
+      const availableWidth = rightMax - rightMin;
+      const availableHeight = bottomMax - bottomMin;
+      const cols = Math.max(1, Math.floor(availableWidth / requiredCellWidth));
+      const rows = Math.ceil(sizeRankedImages.length / cols);
+      const cellWidth = availableWidth / cols;
+      const cellHeight = availableHeight / rows;
+
+      // Place images in grid with jitter within free space
+      const positionedImages = sizeRankedImages.map((img, idx) => {
+        const col = idx % cols;
+        const row = Math.floor(idx / cols);
+
+        // Base position (top-left corner of cell)
+        const cellBaseRight = rightMin + col * cellWidth;
+        const cellBaseBottom = bottomMin + row * cellHeight;
+
+        // Calculate image dimensions in percentage
+        const imgWidthPct = img.width / containerWidth * 100;
+        const imgHeightPct = img.height / containerHeight * 100;
+
+        // Calculate free space for jitter
+        const jitterSpaceX = Math.max(0, cellWidth - imgWidthPct);
+        const jitterSpaceY = Math.max(0, cellHeight - imgHeightPct);
+
+        // Add random jitter within the free space (using only a fraction)
+        const jitterX = Math.random() * jitterSpaceX * 0.6;
+        const jitterY = Math.random() * jitterSpaceY * 0.6;
+
+        // Final position
+        const right = cellBaseRight + jitterX;
+        const bottom = cellBaseBottom + jitterY;
+
+        return {
+          ...img,
+          right: Math.max(rightMin, Math.min(rightMax - imgWidthPct, right)), // Ensure stays within bounds
+          bottom: Math.max(bottomMin, Math.min(bottomMax - imgHeightPct, bottom)), // Ensure stays within bounds
+          rotation: getRandomRotation(-6, 6) // Slightly more rotation
+        };
+      });
+
+      return positionedImages.sort((a, b) => a.zIndex - b.zIndex); // Sort by z-index
+    }
+    // --- END DESKTOP SPREAD-OUT LAYOUT -------------------------------------
+
+    // Mobile fallback (can be refined later if needed)
+    if (isMobile) {
+      // Simplified mobile layout - distribute somewhat evenly
+      // Needs refinement based on actual mobile design requirements
+      return sizeRankedImages.map((img, i) => {
+        const right = rightMin + Math.random() * (rightMax - rightMin);
+        const bottom = bottomMin + Math.random() * (bottomMax - bottomMin);
+        return {
+          ...img,
+          right,
+          bottom,
+          rotation: getRandomRotation(-10, 10)
+        };
+      }).sort((a, b) => a.zIndex - b.zIndex);
+    }
+
+    // Default return if somehow neither desktop nor mobile logic ran (shouldn't happen)
+    return sizeRankedImages.sort((a, b) => a.zIndex - b.zIndex);
   }
 
   // Function to preload images
@@ -1251,6 +1225,17 @@
     const rect = imageElement.getBoundingClientRect();
     const touch = event.touches[0];
     
+    // Get container position to ensure consistency with move handler
+    const containerElement = isMobile ? document.querySelector('.mobile-collage') : document.querySelector('.desktop-collage');
+    let containerLeft = 0;
+    let containerTop = 0;
+    
+    if (containerElement) {
+      const containerRect = containerElement.getBoundingClientRect();
+      containerLeft = containerRect.left;
+      containerTop = containerRect.top;
+    }
+    
     // Store the exact image dimensions at grab time to ensure consistency
     grabbedImageWidth = rect.width;
     grabbedImageHeight = rect.height;
@@ -1259,7 +1244,7 @@
     grabOffsetX = touch.clientX - rect.left;
     grabOffsetY = touch.clientY - rect.top;
     
-    // Handle touch as drag start
+    // Handle touch as drag start - store absolute positions for reference
     draggedImageIndex = index;
     dragStartX = touch.clientX;
     dragStartY = touch.clientY;
@@ -1284,22 +1269,34 @@
     
     const touch = event.touches[0];
     
-    // Calculate delta directly from touch position relative to drag start
-    const deltaX = touch.clientX - dragStartX;
-    const deltaY = touch.clientY - dragStartY;
-    
-    // Convert deltas to percentage of container dimensions
+    // Get container dimensions and position
     const containerElement = isMobile ? document.querySelector('.mobile-collage') : document.querySelector('.desktop-collage');
     let containerWidth = window.innerWidth;
     let containerHeight = window.innerHeight;
+    let containerLeft = 0;
+    let containerTop = 0;
     
     if (containerElement) {
       const rect = containerElement.getBoundingClientRect();
       containerWidth = rect.width;
       containerHeight = rect.height;
+      containerLeft = rect.left;
+      containerTop = rect.top;
     }
     
-    // Convert deltas to percentage (moving right decreases right value)
+    // Calculate position relative to the container
+    const adjustedTouchX = touch.clientX - containerLeft;
+    const adjustedTouchY = touch.clientY - containerTop;
+    
+    // Calculate where the drag started, also relative to container
+    const adjustedStartX = dragStartX - containerLeft;
+    const adjustedStartY = dragStartY - containerTop;
+    
+    // Calculate the delta movement based on container-relative positions
+    const deltaX = adjustedTouchX - adjustedStartX;
+    const deltaY = adjustedTouchY - adjustedStartY;
+    
+    // Convert deltas to percentage of container
     const deltaRightPercent = -(deltaX / containerWidth) * 100;
     const deltaBottomPercent = -(deltaY / containerHeight) * 100;
     
@@ -1307,27 +1304,9 @@
     let newRight = initialRight + deltaRightPercent;
     let newBottom = initialBottom + deltaBottomPercent;
     
-    // Get image dimensions for better constraint calculations
-    const currentImage = collageImages[draggedImageIndex];
-    const imageWidthPercent = (currentImage.width / containerWidth) * 100;
-    const imageHeightPercent = (currentImage.height / containerHeight) * 100;
-    
-    // Stronger constraints for mobile to keep images fully visible
-    if (isMobile) {
-      // Apply stricter constraints for mobile to ensure images stay visible
-      newRight = Math.max(
-        rightMin, 
-        Math.min(rightMax - imageWidthPercent, newRight)
-      );
-      newBottom = Math.max(
-        bottomMin, 
-        Math.min(bottomMax - imageHeightPercent, newBottom)
-      );
-    } else {
-      // Apply regular constraints for desktop
-      newRight = Math.max(rightMin, Math.min(rightMax, newRight));
-      newBottom = Math.max(bottomMin, Math.min(bottomMax, newBottom));
-    }
+    // Apply constraints with zero margins to allow positioning at edges
+    newRight = Math.max(0, Math.min(rightMax, newRight));
+    newBottom = Math.max(0, Math.min(bottomMax, newBottom));
     
     // Update the image position immediately
     collageImages = collageImages.map((img, i) => {
@@ -1557,8 +1536,8 @@
       const container = document.querySelector('.mobile-collage');
       if (container) {
         const rect = container.getBoundingClientRect();
-        containerWidth = rect.width;
-        containerHeight = rect.height;
+      containerWidth = rect.width;
+      containerHeight = rect.height;
         containerLeft = rect.left;
         containerTop = rect.top;
       }
@@ -1588,8 +1567,8 @@
     const imageWidthPercent = (grabbedImageWidth / containerWidth) * 100;
     const imageHeightPercent = (grabbedImageHeight / containerHeight) * 100;
     
-    // Define strict containment boundaries with margin
-    const margin = 2; // reduced from 5 to 2 percentage margin
+    // Define zero margin to allow positioning at edges
+    const margin = 0; // Allow images to touch the edges
     
     // Apply constraints to keep image within bounds
     newRight = Math.max(margin, Math.min(100 - margin - imageWidthPercent, newRight));
@@ -1659,10 +1638,10 @@
   onMount(() => {
     // Initialize viewport-dependent variables
     isMobile = window.innerWidth <= 768;
-    rightMin = isMobile ? 1 : 0;   // Reduced from 5 to 1 for mobile - tiny left margin
-    rightMax = isMobile ? 99 : 40;  // Increased from 95 to 99 for mobile - tiny right margin
-    bottomMin = isMobile ? 1 : 0;  // Reduced from 5 to 1 for mobile - tiny bottom margin
-    bottomMax = isMobile ? 99 : 40; // Increased from 95 to 99 for mobile - tiny top margin
+    rightMin = viewportMargin;   // minimum distance from right edge
+    rightMax = isMobile ? 80 : 55;  // Desktop uses right 55% of screen
+    bottomMin = 5; // Start slightly up from bottom edge
+    bottomMax = isMobile ? 70 : 75; // Desktop uses bottom 75% of screen
     
     // Run a force cleanup to ensure no stale state
     if (typeof diagnoseHighlightIssues === 'function') {
@@ -1673,10 +1652,9 @@
     const handleResize = () => {
       // Update viewport variables on resize
       isMobile = window.innerWidth <= 768;
-      rightMin = isMobile ? 1 : 0;   // Reduced from 5 to 1 for mobile
-      rightMax = isMobile ? 99 : 40;  // Increased from 95 to 99 for mobile
-      bottomMin = isMobile ? 1 : 0;  // Reduced from 5 to 1 for mobile
-      bottomMax = isMobile ? 99 : 40; // Increased from 95 to 99 for mobile
+      rightMax = isMobile ? 80 : 55;
+      bottomMax = isMobile ? 70 : 75;
+      bottomMin = 5; // Reset bottomMin on resize too
       
       // Debounce the resize event
       clearTimeout(resizeTimer);
@@ -1770,32 +1748,35 @@
   // For desktop collage, spread images across the available area
   const baseImages = imageDimensions || [];
   
-  // Create the main collage images with random positions
+  // Pre-calculate all image positions using the new grid logic
+  const positionedImageData = generateRandomPositions();
+
+  // Create the main collage images using pre-calculated positions
   let initialCollageImages = baseImages.map((img, index) => {
+    // Get pre-calculated position data for this image
+    const positionData = positionedImageData[index] || {}; // Fallback if lengths mismatch
+
     // Set width/height based on original dimensions but scale down
     const aspectRatio = img.width / img.height;
     const width = aspectRatio >= 1 ? getRandomSize(15, 35) : getRandomSize(15, 25);
     const height = aspectRatio >= 1 ? width / aspectRatio : width * aspectRatio;
-    
-    // Generate position using our responsive function
-    const position = generatePosition();
-    
+
     // Initialize with varying z-index to create depth
     return {
       src: img.src,
       alt: img.alt,
       width,
       height,
-      right: position.right,
-      bottom: position.bottom,
-      zIndex: Math.floor(Math.random() * 10) + 1,
-      rotation: getRandomRotation(-4, 4),
+      right: positionData.right ?? 50, // Use calculated right, fallback to 50%
+      bottom: positionData.bottom ?? 50, // Use calculated bottom, fallback to 50%
+      zIndex: positionData.zIndex ?? Math.floor(Math.random() * 10) + 1, // Use calculated zIndex or random
+      rotation: positionData.rotation ?? getRandomRotation(-6, 6), // Use calculated rotation or random
       scale: 1
     };
   });
-  
+
   // Initialize collage images with our generated positions
-  collageImages = initialCollageImages;
+  collageImages = initialCollageImages; // Assign the generated images
 
   // Helper functions for image generation
   function getRandomSize(min: number, max: number): number {
@@ -1805,100 +1786,100 @@
   function getRandomRotation(min: number, max: number): number {
     return min + Math.random() * (max - min);
   }
-  
-  // Adjust starting position calculation based on viewport size
-  function generatePosition() {
-    if (isMobile) {
-      // For mobile: distribute more evenly across the container
-      return {
-        right: rightMin + Math.random() * (rightMax - rightMin),
-        bottom: bottomMin + Math.random() * (bottomMax - bottomMin),
-      };
-    } else {
-      // For desktop: apply strong bias toward right and bottom (low values)
-      // Use much lower values to push images heavily to right and bottom
-      return {
-        right: rightMin + (Math.random() * Math.random() * (rightMax - rightMin)), // Double random for extreme right bias
-        bottom: bottomMin + (Math.random() * Math.random() * (bottomMax - bottomMin)), // Double random for extreme bottom bias
-      };
+
+  // Generate positions for images with better randomization
+  function generateRandomPositions() {
+    // Calculate a scale factor based on viewport width
+    const viewportWidth = window.innerWidth;
+    let scaleFactor = 1;
+    
+    // Determine which images to use based on screen size
+    let imagesToUse = [...imageDimensions];
+    
+    // Add additional images for large screens
+    if (viewportWidth > 1920) {
+      imagesToUse = [...imageDimensions, ...largeScreenImages];
+      scaleFactor = viewportWidth / 1920; // Scale up proportionally for large screens
+    } else if (viewportWidth < 768) {
+      scaleFactor = Math.max(0.4, viewportWidth / 1024); // Adjust scale for mobile
+      
+      // For mobile, create a layout that fills the playground space
+      const sizedImages = imagesToUse.map(img => ({
+        ...img,
+        width: img.width * scaleFactor,
+        height: img.height * scaleFactor,
+        area: img.width * img.height
+      }));
+
+      // Sort by area (descending) for z-index stacking
+      const sortedBySize = [...sizedImages].sort((a, b) => b.area - a.area);
+      
+      // Get container dimensions
+      const container = document.querySelector('.mobile-collage');
+      const containerWidth = container ? container.getBoundingClientRect().width : window.innerWidth;
+      const containerHeight = container ? container.getBoundingClientRect().height : window.innerHeight;
+      
+      // Create a layout that maximizes playground space usage while keeping images fully visible
+      return sortedBySize.map((img, i) => {
+        // Calculate the space needed for the image (accounting for rotation)
+        const maxRotation = 20; // Maximum rotation in degrees
+        const radians = Math.abs(maxRotation * Math.PI / 180);
+        const imageSpace = {
+          width: img.width * (Math.cos(radians) + Math.sin(radians)),
+          height: img.height * (Math.cos(radians) + Math.sin(radians))
+        };
+
+        // Calculate usable space (percentage) accounting for image dimensions
+        const imageWidthPercent = (imageSpace.width / containerWidth) * 100;
+        const imageHeightPercent = (imageSpace.height / containerHeight) * 100;
+        
+        // Calculate the available space for positioning
+        const usableWidth = 100 - imageWidthPercent;
+        const usableHeight = 100 - imageHeightPercent;
+        
+        // Use a grid-like layout with some randomness
+        const totalImages = sortedBySize.length;
+        const columns = 3; // Number of rough columns
+        const rows = Math.ceil(totalImages / columns);
+        
+        // Calculate base position with more spread
+        const col = i % columns;
+        const row = Math.floor(i / columns);
+        
+        // Calculate base positions within the usable space
+        const baseRight = (usableWidth * (col / (columns - 1)));
+        const baseBottom = (usableHeight * (row / (rows - 1)));
+        
+        // Add controlled randomness
+        const randomRight = (Math.random() * 15);
+        const randomBottom = (Math.random() * 15);
+        
+        // Calculate final position ensuring images stay within bounds
+        const right = Math.min(usableWidth, Math.max(0, baseRight + randomRight));
+        const bottom = Math.min(usableHeight, Math.max(0, baseBottom + randomBottom));
+        
+        // Add rotation
+        const rotation = (Math.random() * 40) - 20; // Random rotation between -20 and 20 degrees
+        
+        return {
+          ...img,
+          right,
+          bottom,
+          rotation,
+          zIndex: sortedBySize.length - i // Stack from back to front
+        };
+      });
     }
-  }
 
-  // REMOVING DUPLICATE FUNCTIONS AND VARIABLES BELOW
-</script>
+    // First, calculate area for each image and sort by size (largest to smallest)
+    const sizedImages = imagesToUse.map(img => ({
+      ...img,
+      // Apply scale factor to dimensions
+      width: img.width * scaleFactor,
+      height: img.height * scaleFactor,
+      area: img.width * img.height
+    }));
 
-<!-- Desktop collage (hidden on mobile) -->
-<div class="desktop-collage">
-  {#if collageImages.length > 0 && imagesReady}
-    {#each collageImages as img, i}
-      {#if visibleImages.includes(i)}
-        <button 
-          class="collage-image-button"
-          on:mousedown={(e) => {
-            // Mark that user has interacted with collage
-            hasInteractedWithCollage = true;
-            
-            startDrag(e, i);
-            bringToFront(i);
-          }}
-          style="
-            position: absolute;
-            right: {img.right}%; 
-            bottom: {img.bottom}%; 
-            transform: rotate({img.rotation}deg);
-            z-index: {img.zIndex};
-            padding: 0;
-            border: none;
-            background: none;
-            cursor: grab;
-            width: {img.width}px;
-            height: {img.height}px;
-            {getDebugBorderStyle(i)}
-          "
-        >
-          <img 
-            src={img.src} 
-            alt={img.alt} 
-            class="collage-image" 
-            in:fade={{ duration: 400 }}
-            style="
-              width: 100%;
-              height: 100%;
-              object-fit: contain;
-              {img.flexShrink !== undefined ? `flex-shrink: ${img.flexShrink};` : ''}
-              {img.aspectRatio ? `aspect-ratio: ${img.aspectRatio};` : ''}
-            "
-            draggable="false"
-          >
-        </button>
-      {/if}
-    {/each}
-  {/if}
-</div>
-
-<!-- Mobile playground collage -->
-<div class="mobile-collage">
-  {#if !hasInteractedWithCollage && !draggedImageIndex && collageImages.length > 0 && imagesReady}
-    <div class="drag-hint">
-      <slot name="drag-hint"></slot>
-    </div>
-  {/if}
-  {#if collageImages.length > 0 && imagesReady}
-    {#each collageImages as img, i}
-      {#if visibleImages.includes(i)}
-        <button 
-          class="collage-image-button"
-          on:mousedown={(e) => {
-            // Mark that user has interacted with collage
-            hasInteractedWithCollage = true;
-            
-            startDrag(e, i);
-            bringToFront(i);
-          }}
-          on:touchstart={(e) => {
-            // Mark that user has interacted with collage
-            hasInteractedWithCollage = true;
-            
             handleTouchStart(e, i);
           }}
           style="
@@ -1956,13 +1937,9 @@
     overflow: hidden;
     margin-top: var(--spacing-md);
     margin-bottom: var(--spacing-md);
-    /* Add position constraints */
-    position: relative;
-    left: 0;
-    transform: none;
-    /* Use padding instead of margins for inner spacing */
-    padding: 10px;
-    box-sizing: border-box;
+    border: 1px solid rgba(0,0,0,0.1); /* Visible border to define container boundaries */
+    box-shadow: inset 0 0 0 5px white; /* Create inner highlight to define draggable area */
+    background-color: rgba(255,255,255,0.5); /* Slightly visible background */
   }
 
   .drag-hint {
