@@ -67,7 +67,7 @@
     },
     { 
       title: 'Ducky: Full Product', 
-      tags: ['UX/UI', 'FRONTEND DEV'],
+      tags: ['UX/UI', 'FRONTEND'],
       expanded: false,
       description: "Ducky is a productivity application helping teams manage projects efficiently through customizable workflows and real-time collaboration.",
       videoUrl: "/videos/ducky-product-demo.mp4",
@@ -142,7 +142,7 @@
     },
     { 
       title: 'Panto: Full Product', 
-      tags: ['UX/UI', 'FRONTEND DEV'],
+      tags: ['UX/UI', 'FRONTEND'],
       expanded: false,
       description: "Panto is a design collaboration platform that bridges the gap between designers and developers with automated handoff and version control.",
       videoUrl: "/videos/panto-demo.mp4",
@@ -338,11 +338,11 @@
       src: owl, 
       alt: "Owl", 
       width: 340, 
-      height: 473.4, 
+      height: 340, // Reduced height to match visible content
       zIndex: 8, 
-      aspectRatio: "425.05/591.76",
-      // Owl has content mostly in center-left
-      contentOffsets: { top: 15, right: 30, bottom: 15, left: 10 }
+      aspectRatio: "1/1", // Corrected aspect ratio to be more square
+      // Owl is more compact than the transparent areas suggest
+      contentOffsets: { top: 5, right: 10, bottom: 5, left: 5 }
     },
     { 
       src: beetle, 
@@ -368,11 +368,11 @@
       src: snake, 
       alt: "Snake", 
       width: 399.94, 
-      height: 574.71, 
+      height: 460, // Reduced height to match visible content
       zIndex: 11, 
-      aspectRatio: "399.94/574.71",
-      // Snake has content in center-right
-      contentOffsets: { top: 15, right: 10, bottom: 15, left: 25 }
+      aspectRatio: "400/460", // Adjusted aspect ratio to better match visible content
+      // Snake has content in center-right, but with less empty space
+      contentOffsets: { top: 5, right: 5, bottom: 15, left: 10 }
     },
     { 
       src: rock, 
@@ -491,9 +491,40 @@
         const randomRight = (Math.random() * 15);
         const randomBottom = (Math.random() * 15);
         
+        // Check if this is one of our special images for custom positioning
+        const isOwl = img.alt === 'Owl' || (typeof img.alt === 'string' && img.alt.includes('owl'));
+        const isSnake = img.alt === 'Snake' || (typeof img.alt === 'string' && img.alt.includes('snake'));
+        
+        // Force special images to specific positions on mobile
+        if (isOwl) {
+          // Position owl lower in the container to ensure it's fully visible
+          return {
+            ...img,
+            right: 40, // Position from right (percentage)
+            bottom: 70, // INCREASED bottom value to position the owl lower on screen
+            rotation: Math.random() * 10 - 5, // Slight random rotation
+            zIndex: sortedBySize.length - i // Stack from back to front
+          };
+        }
+        
+        // Special positioning for snake
+        if (isSnake) {
+          // Position snake on the right side, ensuring it's fully visible
+          return {
+            ...img,
+            right: 70, // Position further right (percentage)
+            bottom: 50, // Position in the middle vertically
+            rotation: Math.random() * 8 - 4, // Slight random rotation
+            zIndex: sortedBySize.length - i // Stack from back to front
+          };
+        }
+        
+        // For all other images, use normal positioning
         // Calculate final position ensuring images stay within bounds and respect margins
+        const mobileTopMargin = mobileMargin; // Standard margin for non-owl images
+        
         const right = Math.min(usableWidth - mobileMargin, Math.max(mobileMargin, baseRight + randomRight));
-        const bottom = Math.min(usableHeight - mobileMargin, Math.max(mobileMargin + imageHeightPercent, baseBottom + randomBottom));
+        const bottom = Math.min(usableHeight - mobileMargin, Math.max(mobileTopMargin + imageHeightPercent, baseBottom + randomBottom));
         
         // Add rotation
         const rotation = (Math.random() * 40) - 20; // Random rotation between -20 and 20 degrees
@@ -630,9 +661,37 @@
       // Calculate image height percentage
       const imageHeightPercent = (imgData.height / window.innerHeight) * 100;
       
+      // Special handling for certain images - force them to positions where they're fully visible
+      const isOwl = imgData.alt === "Owl";
+      const isSnake = imgData.alt === "Snake";
+      
+      // Force the owl to a specific position rather than relying on calculations
+      if (isOwl) {
+        // Position owl in the middle-right area, FULLY visible with MORE distance from top
+        return {
+          ...imgData,
+          right: 30, // Position from right edge (percentage)
+          bottom: 60, // INCREASED distance from bottom (percentage) to ensure it's lower on the page
+          rotation: Math.random() * 8 - 4, // Slight random rotation between -4 and 4 degrees
+          aspectRatio: imgData.aspectRatio
+        };
+      }
+      
+      // Special positioning for the snake
+      if (isSnake) {
+        // Position snake on the right side, ensuring it's fully visible
+        return {
+          ...imgData,
+          right: 65, // Position from right edge (percentage)
+          bottom: 40, // Position in the middle vertically
+          rotation: Math.random() * 8 - 4, // Slight random rotation
+          aspectRatio: imgData.aspectRatio
+        };
+      }
+      
+      // For all other images, use the normal positioning logic
       return {
         ...imgData,
-        // Ensure positions stay within bounds
         right: Math.max(rightMin, Math.min(rightMax, right + extraOffsetRight)),
         bottom: Math.max(bottomMin + imageHeightPercent, Math.min(bottomMax, bottom + extraOffsetBottom)),
         rotation,
@@ -1097,14 +1156,14 @@
 <Toast message={toastMessage} bind:visible={showToast} />
 
 <div class="landing-page">
-  <!-- Add fake cursors overlay -->
+  <!-- Add fake cursors overlay that adjusts for scroll position -->
   <div class="fake-cursors-overlay">
     {#each fakeCursors as cursor}
       <div 
         class="fake-cursor"
         style="
           left: {cursor.x}px;
-          top: {cursor.y}px;
+          top: {cursor.y - window.scrollY}px; /* Adjust for scroll position */
           --cursor-color: {cursor.color};
         "
       >

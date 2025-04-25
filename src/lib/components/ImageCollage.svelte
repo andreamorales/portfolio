@@ -76,6 +76,13 @@
   let initialRight: number;
   let initialBottom: number;
   
+  // Define consistent margin for all images globally
+  const CONSISTENT_MARGIN = 10; // 10% margin from all edges (percentage of container)
+  
+  // Define a fixed margin in pixels instead of percentages
+  const MARGIN_PX = 20; // Reduced from 50px to 20px for all edges
+  const BOTTOM_MARGIN_PX = 20; // Reduced from 50px to 20px
+  
   // Function to create a new fake cursor
   function createFakeCursor(isStatic = false, isPreexisting = false) {
     const id = Math.random().toString(36).substr(2, 9);
@@ -86,7 +93,7 @@
     
     // Only log if not a pre-existing cursor (reduces console noise)
     if (!isPreexisting) {
-      console.log(`Creating cursor ${name} with color: ${color}`);
+    console.log(`Creating cursor ${name} with color: ${color}`);
     }
     
     // For preexisting cursors, start them in a more advanced state
@@ -108,10 +115,13 @@
       };
     }
     
+    const containerWidth = browser ? window.innerWidth : 1200;
+    const containerHeight = browser ? window.innerHeight : 800;
+    
     return {
       id,
-      x: Math.random() * window.innerWidth,
-      y: Math.random() * window.innerHeight,
+      x: Math.random() * containerWidth,
+      y: Math.random() * containerHeight,
       color,
       name,
       isDragging: initialState.isDragging,
@@ -119,8 +129,8 @@
       targetImage: initialState.targetImage,
       targetX: 0,
       targetY: 0,
-      destinationX: 100 + Math.random() * (window.innerWidth - 200),
-      destinationY: 100 + Math.random() * (window.innerHeight - 200),
+      destinationX: 100 + Math.random() * (containerWidth - 200),
+      destinationY: 100 + Math.random() * (containerHeight - 200),
       delayCount: 0,
       // Add curve offsets for curved movement
       curveOffsetX: (Math.random() * 100) - 50,
@@ -766,15 +776,14 @@
         const newRight = originalImage.right + deltaRightPercent;
         const newBottom = originalImage.bottom + deltaBottomPercent;
         
-        // Apply constraints
-        const margin = 5;
+        // Apply constraints - use consistent constraints for all images
+        const margin = 0; // No margin for maximum movement range
         const constrainedRight = Math.max(margin, Math.min(95 - margin, newRight));
         
-        // Fix constraint calculation to properly limit top position
-        const imageHeightPercent = (originalImage.height / window.innerHeight) * 100;
+        // Fix constraint calculation to allow equal movement regardless of image size
         const constrainedBottom = Math.max(
           margin, // Ensure bottom margin
-          Math.min(95 - margin - imageHeightPercent, newBottom) // Ensure top margin
+          Math.min(95 - margin, newBottom) // Ensure top margin without size dependency
         );
         
         // Only update if we're actually going to move the image
@@ -792,26 +801,24 @@
           });
         }
         
+        // Wait a tiny bit to ensure the DOM has updated
+        setTimeout(() => {
+          // Get updated image rect (after position is updated)
+          const updatedElement = document.querySelector(`.collage-image-button:nth-child(${cursor.targetImage + 1})`);
+          if (updatedElement) {
+            const updatedRect = updatedElement.getBoundingClientRect();
+        
         // Update cursor position to match the center of the image
-        // Use synchronous update to avoid lag
-        const updatedRect = imageElement.getBoundingClientRect();
         cursor.x = updatedRect.left + updatedRect.width / 2;
-        cursor.y = updatedRect.top + updatedRect.height / 2;
-        
-        // VITAL FIX: Explicitly manage the highlight state
-        // First remove any existing highlight
-        stopDragging(cursor.targetImage);
-        
-        // Only add the highlight if the cursor is EXACTLY on the image
-        const isExactlyOnImage = 
-          cursor.x >= updatedRect.left && 
-          cursor.x <= updatedRect.right && 
-          cursor.y >= updatedRect.top && 
-          cursor.y <= updatedRect.bottom;
-        
-        if (isExactlyOnImage) {
-          startDragging(cursor.targetImage);
-        }
+            cursor.y = updatedRect.top + updatedRect.height / 2 + window.scrollY; // Add scroll offset
+            
+            // Explicitly add dragging class to the image element
+            updatedElement.classList.add('dragging');
+            
+            // Update parent with cursor position immediately
+            onFakeCursorsUpdate(fakeCursors);
+          }
+        }, 0);
       }
       // CASE 3: Just wandering (not dragging)
       else {
@@ -1004,7 +1011,7 @@
   // Generate positions for images with better randomization
   function generateRandomPositions() {
     // Calculate a scale factor based on viewport width
-    const viewportWidth = window.innerWidth;
+    const viewportWidth = browser ? window.innerWidth : 1200;
     let scaleFactor = 1;
     
     // Determine which images to use based on screen size
@@ -1029,27 +1036,23 @@
       const sortedBySize = [...sizedImages].sort((a, b) => b.area - a.area);
       
       // Get container dimensions
+      let containerWidth = viewportWidth;
+      let containerHeight = browser ? window.innerHeight : 800;
+      
+      if (browser) {
       const container = document.querySelector('.mobile-collage');
-      const containerWidth = container ? container.getBoundingClientRect().width : window.innerWidth;
-      const containerHeight = container ? container.getBoundingClientRect().height : window.innerHeight;
+        if (container) {
+          const rect = container.getBoundingClientRect();
+          containerWidth = rect.width;
+          containerHeight = rect.height;
+        }
+      }
       
       // Create a layout that maximizes playground space usage while keeping images fully visible
       return sortedBySize.map((img, i) => {
-        // Calculate the space needed for the image (accounting for rotation)
-        const maxRotation = 20; // Maximum rotation in degrees
-        const radians = Math.abs(maxRotation * Math.PI / 180);
-        const imageSpace = {
-          width: img.width * (Math.cos(radians) + Math.sin(radians)),
-          height: img.height * (Math.cos(radians) + Math.sin(radians))
-        };
-
-        // Calculate usable space (percentage) accounting for image dimensions
-        const imageWidthPercent = (imageSpace.width / containerWidth) * 100;
-        const imageHeightPercent = (imageSpace.height / containerHeight) * 100;
-        
-        // Calculate the available space for positioning
-        const usableWidth = 100 - imageWidthPercent;
-        const usableHeight = 100 - imageHeightPercent;
+        // Calculate usable area within container, leaving margins
+        const usableWidth = containerWidth - img.width - (MARGIN_PX * 2);
+        const usableHeight = containerHeight - img.height - (MARGIN_PX * 2);
         
         // Use a grid-like layout with some randomness
         const totalImages = sortedBySize.length;
@@ -1060,25 +1063,32 @@
         const col = i % columns;
         const row = Math.floor(i / columns);
         
-        // Calculate base positions within the usable space
-        const baseRight = (usableWidth * (col / (columns - 1)));
-        const baseBottom = (usableHeight * (row / (rows - 1)));
+        // Calculate base positions within usable area
+        const baseLeft = MARGIN_PX + (usableWidth * (col / (columns - 1 || 1)));
+        const baseTop = MARGIN_PX + (usableHeight * (row / (rows - 1 || 1)));
         
         // Add controlled randomness
-        const randomRight = (Math.random() * 15);
-        const randomBottom = (Math.random() * 15);
+        const randomX = (Math.random() * 15);
+        const randomY = (Math.random() * 15);
         
         // Calculate final position ensuring images stay within bounds
-        const right = Math.min(usableWidth, Math.max(0, baseRight + randomRight));
-        const bottom = Math.min(usableHeight, Math.max(0, baseBottom + randomBottom));
+        // Use consistent positioning that allows full movement range
+        const left = Math.max(
+          0, // No minimum margin for maximum movement range
+          Math.min(containerWidth - MARGIN_PX, baseLeft + randomX)
+        );
+        const top = Math.max(
+          0, // No minimum margin for maximum movement range
+          Math.min(containerHeight - MARGIN_PX, baseTop + randomY)
+        );
         
         // Add rotation
         const rotation = (Math.random() * 40) - 20; // Random rotation between -20 and 20 degrees
         
         return {
           ...img,
-          right,
-          bottom,
+          left,
+          top,
           rotation,
           zIndex: sortedBySize.length - i // Stack from back to front
         };
@@ -1098,144 +1108,123 @@
     const sortedBySize = [...sizedImages].sort((a, b) => b.area - a.area);
     
     // Assign z-indexes based on size - largest gets lowest z-index (back)
-    // Preserve some small variation within size groups
     const sizeRankedImages = sortedBySize.map((img, i) => ({
       ...img,
       // The largest image gets z-index 1, and increases as images get smaller
       zIndex: i + 1
     }));
     
-    // Now shuffle positions (but not z-index ordering)
-    // We create position groups to maintain some consistency
-    // Larger images will tend to be positioned more towards the edges
-    // Smaller images will tend to be positioned more centrally
+    // Calculate usable area with margins
+    const containerWidth = browser ? window.innerWidth : 1200;
+    const containerHeight = browser ? window.innerHeight : 800;
+    const usableWidth = containerWidth - (MARGIN_PX * 2);
     
-    // Use global variables instead of redefining them
-    // Width of the positioning area
-    const areaWidth = rightMax - rightMin;
-    const areaHeight = bottomMax - bottomMin;
+    // Return the positioned images
+    return sizeRankedImages;
+  }
+
+  // Function to handle drag events
+  function handleDrag(event: MouseEvent) {
+    if (draggedImageIndex === null) return;
     
-    // Calculate roughly how many images can fit in a row and column
-    const imagesPerRow = Math.ceil(Math.sqrt(sizeRankedImages.length * 1.2));
-    const cellWidth = areaWidth / imagesPerRow;
-    const cellHeight = areaHeight / imagesPerRow;
+    // Get the container's position to adjust for its offset
+    const container = document.querySelector('.desktop-collage') as HTMLElement;
+    const containerRect = container ? container.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+    const containerLeft = containerRect.left;
+    const containerTop = containerRect.top;
     
-    // Shuffle horizontal positions only
-    const shuffledHorizontal = [...sizeRankedImages];
-    for (let i = shuffledHorizontal.length - 1; i > 0; i--) {
-      // Only swap items if they're within the same size range (e.g., within 3 positions of each other)
-      const maxSwapDistance = 3;
-      const minPos = Math.max(0, i - maxSwapDistance);
-      const j = minPos + Math.floor(Math.random() * (i - minPos + 1));
-      [shuffledHorizontal[i], shuffledHorizontal[j]] = [shuffledHorizontal[j], shuffledHorizontal[i]];
+    // Calculate the new position based on mouse movement and initial grab offset
+    // Adjust for the container's position
+    const newLeft = event.clientX - grabOffsetX - containerLeft;
+    const newTop = event.clientY - grabOffsetY - containerTop;
+    
+    // Apply uniform minimum margin to all images regardless of size
+    const MIN_MARGIN = 0; // Allow images to go to edges
+
+    // Get the current image data
+    const imageData = collageImages[draggedImageIndex];
+    if (!imageData) return;
+    
+    // Get image dimensions
+    const imageWidth = imageData.width;
+    const imageHeight = imageData.height;
+
+    // Get the container dimensions
+    const containerWidth = container ? containerRect.width : window.innerWidth;
+    const containerHeight = container ? containerRect.height : window.innerHeight;
+    
+    // Special constraint for the owl to ensure at least its face is visible
+    const isOwl = imageData.alt === 'Owl' || (typeof imageData.alt === 'string' && imageData.alt.includes('owl'));
+    const isSnake = imageData.alt === 'Snake' || (typeof imageData.alt === 'string' && imageData.alt.includes('snake'));
+    const minTop = (isOwl || isSnake) ? -imageHeight * 0.1 : MIN_MARGIN; // Only allow 10% to go off-screen for snake & owl images
+    
+    // For the owl specifically, adjust the grab offset to be centered on visible content
+    let adjustedNewLeft = newLeft;
+    let adjustedNewTop = newTop;
+    
+    if (isOwl || isSnake) {
+      // No adjustment needed for left/right as we fixed the dimensions
+      // Just ensure the owl stays with the cursor
+      adjustedNewLeft = event.clientX - grabOffsetX - containerLeft;
+      adjustedNewTop = event.clientY - grabOffsetY - containerTop;
     }
     
-    // Create array of images with positions and random delays
-    const positionedImages = shuffledHorizontal.map((imgData, index) => {
-      // Use a more varied distribution pattern combining:
-      // 1. Spiral base for initial positioning
-      // 2. Size-based offsets to separate images by their dimensions
-      // 3. Unique offsets for each image to prevent perfect stacking
-      
-      // Custom angle with different patterns per image for more unique positions
-      const spiralIndex = index;
-      const baseAngle = spiralIndex * 0.75; // Basic spiral pattern
-      
-      // Add irregularity to the spiral - make it less mathematically perfect
-      const angleVariation = (spiralIndex % 3) * 0.2; // Changes angle pattern every 3 images
-      const angle = baseAngle + angleVariation + (Math.random() * 0.3);
-      
-      // Radius that varies based on image properties, not just index
-      const sizeBasedOffset = (imgData.width / 100) * 0.5; // Larger images get more space
-      const radius = 5 + (spiralIndex * 2.8) + sizeBasedOffset;
-      
-      // Center point with slight offsets based on image attributes
-      const centerRight = rightMin + (areaWidth / 2) + (index % 2 ? 2 : -2); // Slight left-right alternation
-      const centerBottom = bottomMin + (areaHeight / 2) + (index % 3 === 0 ? 3 : -3); // Varied vertical positioning
-      
-      // Calculate base position with spiral pattern
-      const spiralRight = centerRight + radius * Math.cos(angle);
-      const spiralBottom = centerBottom + radius * Math.sin(angle);
-      
-      // Add controlled randomness for artistic overlap without complete stacking
-      const randomRight = (Math.random() * 0.6 - 0.3) * cellWidth;
-      const randomBottom = (Math.random() * 0.6 - 0.3) * cellHeight;
-      
-      // Add unique offsets based on image name/alt to ensure consistenly different positioning
-      const hashOffset = imgData.alt.charCodeAt(0) % 10; // Get a number 0-9 based on first character
-      const hashOffsetRight = ((hashOffset % 3) - 1) * 3; // Convert to -3, 0, or 3
-      const hashOffsetBottom = (Math.floor(hashOffset / 3) - 1) * 3; // Different pattern for bottom
-      
-      // Calculate content-aware positioning based on the visible content area
-      // This helps prevent complete overlaps of important visual elements
-      
-      // Get the contentOffsets (percentage of the image that is empty/transparent)
-      const offsets = imgData.contentOffsets || { top: 0, right: 0, bottom: 0, left: 0 };
-      
-      // Calculate adjusted position based on content area
-      // Shift position to make the content area the center of positioning calculations
-      const contentOffsetRight = (offsets.left - offsets.right) * 0.2; // Adjust horizontal position based on content
-      const contentOffsetBottom = (offsets.top - offsets.bottom) * 0.2; // Adjust vertical position based on content
-      
-      // Final calculated position with all factors combined, including content awareness
-      const right = spiralRight + randomRight + hashOffsetRight + contentOffsetRight;
-      const bottom = spiralBottom + randomBottom + hashOffsetBottom + contentOffsetBottom;
-      
-      // Add more variation to rotation angles to ensure images aren't parallel
-      // Images will have a wider range of rotation angles (-12° to +12°)
-      const baseRotation = imgData.rotation !== undefined ? imgData.rotation : 0;
-      const rotationVariance = 12; // Increased from 8
-      const rotation = baseRotation + (Math.random() * rotationVariance * 2 - rotationVariance);
-      
-      // Add some additional random offsets for specific images
-      let extraOffsetRight = 0;
-      let extraOffsetBottom = 0;
-      
-      // Add special randomness for the owl to ensure it moves more
-      if (imgData.alt === "Owl") {
-        extraOffsetRight = (Math.random() * 10) - 5; // Reduced from 20 to 10
-        extraOffsetBottom = (Math.random() * 10) - 5; // Reduced from 20 to 10
-      }
-      
-      return {
-        ...imgData,
-        // Ensure positions stay within bounds
-        right: Math.max(rightMin, Math.min(rightMax, right + extraOffsetRight)),
-        bottom: Math.max(bottomMin, Math.min(bottomMax, bottom + extraOffsetBottom)),
-        rotation,
-        aspectRatio: imgData.aspectRatio
+    // Clamp the position to keep image fully within viewport
+    // Account for image dimensions to prevent overflow on right and bottom edges
+    const left = Math.max(
+      MIN_MARGIN,
+      Math.min(containerWidth - imageWidth - MIN_MARGIN, adjustedNewLeft)
+    );
+    const top = Math.max(
+      minTop, // Use the more lenient top constraint for owl
+      Math.min(containerHeight - imageHeight - MIN_MARGIN, adjustedNewTop)
+    );
+
+    // Debug logging for the owl image
+    if (isOwl || isSnake) {
+      console.log(`Moving Owl to: ${left}, ${top}`);
+      console.log(`Owl dimensions - Width: ${imageWidth}, Height: ${imageHeight}`);
+      console.log(`Min/Max - Left: ${MIN_MARGIN} to ${containerWidth - imageWidth - MIN_MARGIN}, Top: ${minTop} to ${containerHeight - imageHeight - MIN_MARGIN}`);
+    }
+    
+    // Get the image element
+    const imageElement = document.querySelector(`.collage-image-button:nth-child(${draggedImageIndex + 1})`) as HTMLElement;
+    if (!imageElement) return;
+    
+    // Update the image position
+    imageElement.style.left = `${left}px`;
+    imageElement.style.top = `${top}px`;
+    
+    // Make the image slightly larger when dragging for better visual feedback
+    // For owl, use slightly larger scale for better grabbability
+    const scaleFactor = isOwl || isSnake ? 1.05 : 1.03;
+    imageElement.style.transform = `rotate(${imageData.rotation}deg) scale(${scaleFactor})`;
+    
+    // Update the image data in our array
+    collageImages[draggedImageIndex] = {
+      ...imageData,
+      left,
+      top
+    };
+    
+    // If it's the human cursor, update its position
+    const humanCursorIndex = fakeCursors.findIndex(c => c.id === "human-user");
+    if (humanCursorIndex !== -1) {
+      fakeCursors[humanCursorIndex] = {
+        ...fakeCursors[humanCursorIndex],
+        x: event.clientX,
+        y: event.clientY + window.scrollY
       };
-    });
-
-    // Sort by z-index (ascending) so larger images (back) appear first, followed by smaller images (front)
-    return positionedImages.sort((a, b) => a.zIndex - b.zIndex);
-  }
-
-  // Function to preload images
-  function preloadImages() {
-    // Determine which images to preload based on screen size
-    let imagesToPreload = [...imageDimensions];
-    if (window.innerWidth > 1920) {
-      imagesToPreload = [...imageDimensions, ...largeScreenImages];
+      
+      // Notify parent component of cursor change
+      onFakeCursorsUpdate(fakeCursors);
     }
-
-    return Promise.all(imagesToPreload.map(img => {
-      return new Promise((resolve, reject) => {
-        const image = new Image();
-        image.onload = () => resolve(true);
-        image.onerror = reject;
-        image.src = img.src;
-      });
-    }));
   }
-  
-  // Define component methods for handling touch events
+
+  // Function to handle touch start events (mobile)
   function handleTouchStart(event: TouchEvent, index: number) {
-    // Prevent default to stop scrolling
+    // Prevent default behavior 
     event.preventDefault();
-    
-    // Mark that user has interacted with collage
-    hasInteractedWithCollage = true;
     
     // Check if this image is already being dragged by a cursor
     if (imageLocks[index]) {
@@ -1249,99 +1238,377 @@
     if (!imageElement) return;
     
     const rect = imageElement.getBoundingClientRect();
+    
+    // Get the first touch
     const touch = event.touches[0];
     
-    // Store the exact image dimensions at grab time to ensure consistency
-    grabbedImageWidth = rect.width;
-    grabbedImageHeight = rect.height;
+    // Get the image data to check if it's the owl
+    const imageData = collageImages[index];
+    const isOwl = imageData && (imageData.alt === 'Owl' || (typeof imageData.alt === 'string' && imageData.alt.includes('owl')));
+    const isSnake = imageData && (imageData.alt === 'Snake' || (typeof imageData.alt === 'string' && imageData.alt.includes('snake')));
     
     // Calculate grab offset from touch position within the image
+    // For the owl, adjust to center the grab on the visible content
     grabOffsetX = touch.clientX - rect.left;
     grabOffsetY = touch.clientY - rect.top;
     
-    // Handle touch as drag start
+    // Record which image is being dragged
     draggedImageIndex = index;
-    dragStartX = touch.clientX;
-    dragStartY = touch.clientY;
-    initialRight = collageImages[index].right;
-    initialBottom = collageImages[index].bottom;
     
     // Lock this image for human user
     imageLocks[index] = "human-user";
     
-    // Add dragging class
+    // Add dragging class to body to ensure cursor stays as grabbing
     document.body.classList.add('dragging');
     
+    // Bring this image to front
     bringToFront(index);
+    
+    // Log debugging info for owl
+    if (isOwl || isSnake) {
+      console.log(`Starting to drag Owl at touch position: ${touch.clientX}, ${touch.clientY}`);
+      console.log(`Owl rect: left=${rect.left}, top=${rect.top}, width=${rect.width}, height=${rect.height}`);
+      console.log(`Grab offset: x=${grabOffsetX}, y=${grabOffsetY}`);
+    }
   }
   
-  // Handle touch move events for dragging
+  // Function to handle touch move events (mobile drag)
   function handleTouchMove(event: TouchEvent) {
     if (draggedImageIndex === null) return;
     
-    // Prevent default to stop scrolling while dragging
+    // Prevent scrolling while dragging
     event.preventDefault();
     
+    // Get the first touch point
     const touch = event.touches[0];
+    if (!touch) return;
     
-    // Calculate delta directly from touch position relative to drag start
-    const deltaX = touch.clientX - dragStartX;
-    const deltaY = touch.clientY - dragStartY;
+    // Get the container's position to adjust for its offset
+    const container = document.querySelector('.mobile-collage') as HTMLElement;
+    const containerRect = container ? container.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+    const containerLeft = containerRect.left;
+    const containerTop = containerRect.top;
     
-    // Convert deltas to percentage of container dimensions
-    const containerElement = isMobile ? document.querySelector('.mobile-collage') : document.querySelector('.desktop-collage');
-    let containerWidth = window.innerWidth;
-    let containerHeight = window.innerHeight;
+    // Calculate the new position based on touch movement and initial grab offset
+    const newLeft = touch.clientX - grabOffsetX - containerLeft;
+    const newTop = touch.clientY - grabOffsetY - containerTop;
     
-    if (containerElement) {
-      const rect = containerElement.getBoundingClientRect();
-      containerWidth = rect.width;
-      containerHeight = rect.height;
+    // Apply uniform minimum margin to all images regardless of size
+    const MIN_MARGIN = 0; // Allow images to go to edges
+    
+    // Get the current image data
+    const imageData = collageImages[draggedImageIndex];
+    if (!imageData) return;
+    
+    // Get image dimensions
+    const imageWidth = imageData.width;
+    const imageHeight = imageData.height;
+    
+    // Get the container dimensions
+    const containerWidth = container ? containerRect.width : window.innerWidth;
+    const containerHeight = container ? containerRect.height : window.innerHeight;
+    
+    // Check if this is the owl image
+    const isOwl = imageData.alt === 'Owl' || (typeof imageData.alt === 'string' && imageData.alt.includes('owl'));
+    const isSnake = imageData.alt === 'Snake' || (typeof imageData.alt === 'string' && imageData.alt.includes('snake'));
+    const minTop = (isOwl || isSnake) ? -imageHeight * 0.1 : MIN_MARGIN; // Only allow 10% to go off-screen for snake & owl images
+    
+    // For the owl specifically, adjust to center on visible content
+    let adjustedNewLeft = newLeft;
+    let adjustedNewTop = newTop;
+    
+    if (isOwl || isSnake) {
+      // No adjustment needed as we fixed the dimensions
+      adjustedNewLeft = touch.clientX - grabOffsetX - containerLeft;
+      adjustedNewTop = touch.clientY - grabOffsetY - containerTop;
     }
     
-    // Convert deltas to percentage (moving right decreases right value)
-    const deltaRightPercent = -(deltaX / containerWidth) * 100;
-    const deltaBottomPercent = -(deltaY / containerHeight) * 100;
+    // Clamp the position to keep image fully within viewport
+    // Account for image dimensions to prevent overflow on right and bottom edges
+    const left = Math.max(
+      MIN_MARGIN,
+      Math.min(containerWidth - imageWidth - MIN_MARGIN, adjustedNewLeft)
+    );
+    const top = Math.max(
+      minTop, // Use the more lenient top constraint for owl
+      Math.min(containerHeight - imageHeight - MIN_MARGIN, adjustedNewTop)
+    );
     
-    // Calculate desired new positions
-    let newRight = initialRight + deltaRightPercent;
-    let newBottom = initialBottom + deltaBottomPercent;
-    
-    // Get image dimensions for better constraint calculations
-    const currentImage = collageImages[draggedImageIndex];
-    const imageWidthPercent = (currentImage.width / containerWidth) * 100;
-    const imageHeightPercent = (currentImage.height / containerHeight) * 100;
-    
-    // Stronger constraints for mobile to keep images fully visible
-    if (isMobile) {
-      // Apply stricter constraints for mobile to ensure images stay visible
-      newRight = Math.max(
-        rightMin, 
-        Math.min(rightMax - imageWidthPercent, newRight)
-      );
-      newBottom = Math.max(
-        bottomMin, 
-        Math.min(bottomMax - imageHeightPercent, newBottom)
-      );
-    } else {
-      // Apply regular constraints for desktop
-      newRight = Math.max(rightMin, Math.min(rightMax, newRight));
-      newBottom = Math.max(bottomMin, Math.min(bottomMax, newBottom));
+    // Debug logging for the owl image
+    if (isOwl || isSnake) {
+      console.log(`Moving Owl to: ${left}, ${top} (Touch)`);
+      console.log(`Owl dimensions - Width: ${imageWidth}, Height: ${imageHeight}`);
+      console.log(`Min/Max - Left: ${MIN_MARGIN} to ${containerWidth - imageWidth - MIN_MARGIN}, Top: ${minTop} to ${containerHeight - imageHeight - MIN_MARGIN}`);
     }
     
-    // Update the image position immediately
-    collageImages = collageImages.map((img, i) => {
-      if (i === draggedImageIndex) {
-        return {
-          ...img,
-          right: newRight,
-          bottom: newBottom,
-          scale: 1.05 // Slightly increase scale while dragging to give feedback
-        };
-      }
-      return img;
-    });
+    // Get the image element
+    const imageElement = document.querySelector(`.collage-image-button:nth-child(${draggedImageIndex + 1})`) as HTMLElement;
+    if (!imageElement) return;
+    
+    // Update the image position
+    imageElement.style.left = `${left}px`;
+    imageElement.style.top = `${top}px`;
+    
+    // Make the image slightly larger when dragging for better visual feedback
+    // For owl, use slightly larger scale for better grabbability
+    const scaleFactor = isOwl || isSnake ? 1.05 : 1.03;
+    imageElement.style.transform = `rotate(${imageData.rotation}deg) scale(${scaleFactor})`;
+    
+    // Update the image data in our array
+    collageImages[draggedImageIndex] = {
+      ...imageData,
+      left,
+      top
+    };
+    
+    // If it's the human cursor, update its position
+    const humanCursorIndex = fakeCursors.findIndex(c => c.id === "human-user");
+    if (humanCursorIndex !== -1) {
+      fakeCursors[humanCursorIndex] = {
+        ...fakeCursors[humanCursorIndex],
+        x: touch.clientX,
+        y: touch.clientY + window.scrollY
+      };
+      
+      // Notify parent component of cursor change
+      onFakeCursorsUpdate(fakeCursors);
+    }
   }
+
+  // Update cursor position calculation to account for scroll
+  function updateCursorPositions() {
+    // For each cursor that's dragging an image, update its position
+    fakeCursors = fakeCursors.map(cursor => {
+      if (cursor.isDragging && cursor.targetImage !== null) {
+        const imageElement = document.querySelector(`.collage-image-button:nth-child(${cursor.targetImage + 1})`);
+        if (imageElement) {
+          const rect = imageElement.getBoundingClientRect();
+          // Update cursor position with the center of the image
+          cursor.x = rect.left + rect.width / 2;
+          cursor.y = rect.top + rect.height / 2 + window.scrollY; // Add scroll offset
+        }
+      }
+      return cursor;
+    });
+    
+    // Notify parent of cursor updates
+    onFakeCursorsUpdate(fakeCursors);
+  }
+  
+  // Add scroll event listener
+  onMount(() => {
+    if (!browser) return; // Skip if not in browser environment
+    
+    // Initialize viewport-dependent variables
+    isMobile = window.innerWidth <= 768;
+    
+    // Use consistent margin for all boundaries
+    rightMin = 0;
+    rightMax = 100;
+    bottomMin = 0;
+    bottomMax = 100;
+    
+    // Run a force cleanup to ensure no stale state
+    if (typeof diagnoseHighlightIssues === 'function') {
+      diagnoseHighlightIssues();
+    }
+    
+    // Define event handlers for both mouse and touch
+    const handleResize = () => {
+      // Update viewport variables on resize
+      isMobile = window.innerWidth <= 768;
+      
+      // Use the same consistent margin regardless of viewport
+      rightMin = 0;
+      rightMax = 100;
+      bottomMin = 0;
+      bottomMax = 100;
+      
+      // Debounce the resize event
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        collageImages = generateRandomPositions();
+      }, 250); // Wait 250ms after resize ends before updating
+    };
+    
+    // Handle touch dragging by converting to mouse events
+    const handleTouchMove = (event: TouchEvent) => {
+      if (draggedImageIndex === null) return;
+      
+      // Prevent default to stop scrolling
+      event.preventDefault();
+      
+      // Get the first touch
+      const touch = event.touches[0];
+      
+      // Create a mouse-like event
+      const mouseEvent = {
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        preventDefault: function() { event.preventDefault(); }
+      };
+      
+      // Use the existing handleDrag function with our touch data
+      // @ts-ignore - treating touch as mouse event
+      handleDrag(mouseEvent);
+    };
+
+    // Add resize and touch event handlers
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('touchend', endDrag);
+    
+    // Handle touch end events for cleaning up after touch dragging
+    const handleTouchEnd = () => {
+      // Remove dragging class from body
+      document.body.classList.remove('dragging');
+      
+      // Release the lock on this image
+      if (draggedImageIndex !== null) {
+        delete imageLocks[draggedImageIndex];
+      }
+      
+      draggedImageIndex = null;
+    };
+    
+    // Set up periodic cleanup of orphaned locks
+    const lockCleanupInterval = setInterval(() => {
+      // Clean up any inconsistent state
+      const activeCursorIds = fakeCursors.map(cursor => cursor.id);
+      activeCursorIds.push("human-user");
+      
+      // Check each lock
+      Object.entries(imageLocks).forEach(([imageIndexStr, lockId]) => {
+        const imageIndex = parseInt(imageIndexStr, 10);
+        if (!activeCursorIds.includes(lockId)) {
+          // This is an orphaned lock
+          delete imageLocks[imageIndex];
+          stopDragging(imageIndex);
+        }
+      });
+    }, 5000);
+    
+    // Start the app
+    (async () => {
+      try {
+        // First preload all images
+        await preloadImages();
+        
+        // Then generate positions
+        collageImages = generateRandomPositions();
+        
+        // Start introducing images one by one
+        setTimeout(() => {
+          imagesReady = true;
+          
+          // Add images one by one with staggered timing
+          collageImages.forEach((img, index) => {
+            setTimeout(() => {
+              // Add index to visibleImages array to keep track of which images are displayed
+              visibleImages = [...visibleImages, index];
+            }, 150 + index * 180);
+          });
+          
+          // Set the cursor creation time - note we don't initialize cursors yet
+          // cursors will be initialized after the cursorInitializationDelay expires
+          lastCursorCreationTime = Date.now();
+          
+          // EXPLICITLY POSITION SPECIAL IMAGES ON THE SCREEN
+          // This is a direct fix for images with initial position issues
+          setTimeout(() => {
+            // Find special images in the collage
+            const owlIndex = collageImages.findIndex(img => 
+              img.alt === 'Owl' || (typeof img.alt === 'string' && img.alt.includes('owl'))
+            );
+            
+            const snakeIndex = collageImages.findIndex(img => 
+              img.alt === 'Snake' || (typeof img.alt === 'string' && img.alt.includes('snake'))
+            );
+            
+            // Position the owl if found
+            if (owlIndex !== -1) {
+              // Get the owl element
+              const owlElement = document.querySelector(`.collage-image-button:nth-child(${owlIndex + 1})`) as HTMLElement;
+              if (owlElement) {
+                // Force the owl to a lower position
+                const owlData = collageImages[owlIndex];
+                
+                // Set different positions based on screen size
+                if (window.innerWidth <= 768) {
+                  // Mobile view - position owl in the container
+                  const container = document.querySelector('.mobile-collage');
+                  if (container) {
+                    const containerRect = container.getBoundingClientRect();
+                    // Position owl in the bottom part of the mobile container
+                    const newTop = containerRect.height - owlData.height - 50;
+                    const newLeft = containerRect.width / 2 - owlData.width / 2;
+                    
+                    // Update the owl's position
+                    owlElement.style.top = `${newTop}px`;
+                    owlElement.style.left = `${newLeft}px`;
+                    
+                    // Update data structure
+                    collageImages = collageImages.map((img, i) => {
+                      if (i === owlIndex) {
+                        return {
+                          ...img,
+                          top: newTop,
+                          left: newLeft
+                        };
+                      }
+                      return img;
+                    });
+                    
+                    console.log(`Explicitly positioned owl in mobile view at top: ${newTop}px, left: ${newLeft}px`);
+                  }
+                } else {
+                  // Desktop view
+                  const containerHeight = window.innerHeight;
+                  // Position owl in the bottom quarter of the screen
+                  const newTop = containerHeight - owlData.height - 150;
+                  
+                  // Update the owl's position directly in the DOM
+                  owlElement.style.top = `${newTop}px`;
+                  
+                  // Update our data structure as well
+                  collageImages = collageImages.map((img, i) => {
+                    if (i === owlIndex) {
+                      return {
+                        ...img,
+                        top: newTop
+                      };
+                    }
+                    return img;
+                  });
+                  
+                  console.log(`Explicitly positioned owl in desktop view at top: ${newTop}px`);
+                }
+              }
+            }
+          }, 1000); // Increased delay to 1 second to ensure images have loaded
+          
+          // Start fake cursor simulation after images are visible
+          console.log("Starting cursor simulation with natural delay...");
+          simulationInterval = window.setInterval(simulateFakeInteraction, 16);
+        }, 200);
+      } catch (error) {
+        console.error('Error loading images:', error);
+      }
+    })();
+
+    // Cleanup event listeners and timer on component unmount
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+      clearTimeout(resizeTimer);
+      if (simulationInterval) clearInterval(simulationInterval);
+      if (lockCleanupInterval) clearInterval(lockCleanupInterval);
+      
+      // Clean up any remaining active drags in the store
+      draggingStore.update(state => ({ activeDrags: {} }));
+    };
+  });
 
   function endDrag() {
     // Remove dragging class from body
@@ -1378,20 +1645,25 @@
 
   // Function to get debug border style for images being moved by cursors
   function getDebugBorderStyle(imageIndex: number): string {
-    // COMPLETELY REVAMPED - ONLY show highlight when cursor is physically ON the image
-    
-    // Get the cursor that is locking this image
+    // Only show highlight when cursor is physically on the image
     const lockOwnerId = imageLocks[imageIndex];
-    
-    // Skip if no owner or human user
     if (!lockOwnerId || lockOwnerId === "human-user") {
       return '';
     }
     
-    // Find the cursor
     const cursor = fakeCursors.find(c => c.id === lockOwnerId);
-    if (!cursor || !cursor.isDragging) {
+    if (!cursor) {
       return '';
+    }
+    
+    // Always show highlight if cursor is dragging this image
+    if (cursor.isDragging && cursor.targetImage === imageIndex) {
+      return `
+        box-shadow: 0 0 0 4px ${cursor.color}, 0 0 0 6px rgba(255,255,255,0.8);
+        border-radius: var(--border-radius-md);
+        outline: 2px dashed ${cursor.color};
+        outline-offset: 2px;
+      `;
     }
     
     // Get image element
@@ -1405,21 +1677,20 @@
     const cursorX = cursor.x;
     const cursorY = cursor.y;
     
-    // STRICT CHECK - Only show if cursor is INSIDE the image bounds
-    if (!(cursorX >= imgRect.left && 
+    // Check if cursor is INSIDE the image bounds
+    if (cursorX >= imgRect.left && 
         cursorX <= imgRect.right && 
         cursorY >= imgRect.top && 
-        cursorY <= imgRect.bottom)) {
-      return '';
-    }
-    
-    // If we got here, all conditions are met - show the highlight
+        cursorY <= imgRect.bottom) {
     return `
       box-shadow: 0 0 0 4px ${cursor.color}, 0 0 0 6px rgba(255,255,255,0.8);
       border-radius: var(--border-radius-md);
       outline: 2px dashed ${cursor.color};
       outline-offset: 2px;
     `;
+    }
+    
+    return '';
   }
   
   // Add a dedicated function to diagnose highlight issues
@@ -1540,74 +1811,6 @@
     console.log('-----------------------------------');
   }
 
-  // Add the handleDrag function that's referenced but not defined
-  function handleDrag(event: MouseEvent) {
-    if (draggedImageIndex === null) return;
-    
-    event.preventDefault();
-    
-    // Get container dimensions and position
-    const isMobile = window.innerWidth <= 768;
-    let containerWidth = window.innerWidth;
-    let containerHeight = window.innerHeight;
-    let containerLeft = 0;
-    let containerTop = 0;
-    
-    if (isMobile) {
-      const container = document.querySelector('.mobile-collage');
-      if (container) {
-        const rect = container.getBoundingClientRect();
-        containerWidth = rect.width;
-        containerHeight = rect.height;
-        containerLeft = rect.left;
-        containerTop = rect.top;
-      }
-    }
-    
-    // Calculate position relative to the container
-    const adjustedMouseX = event.clientX - containerLeft;
-    const adjustedMouseY = event.clientY - containerTop;
-    
-    // Calculate where the drag started, also relative to container
-    const adjustedStartX = dragStartX - containerLeft;
-    const adjustedStartY = dragStartY - containerTop;
-    
-    // Calculate the delta movement
-    const deltaX = adjustedMouseX - adjustedStartX;
-    const deltaY = adjustedMouseY - adjustedStartY;
-    
-    // Convert deltas to percentage of container
-    const deltaRightPercent = -(deltaX / containerWidth) * 100;  // Moving right decreases right %
-    const deltaBottomPercent = -(deltaY / containerHeight) * 100; // Moving down decreases bottom %
-    
-    // Calculate desired new positions
-    let newRight = initialRight + deltaRightPercent;
-    let newBottom = initialBottom + deltaBottomPercent;
-    
-    // Calculate image dimensions as percentages
-    const imageWidthPercent = (grabbedImageWidth / containerWidth) * 100;
-    const imageHeightPercent = (grabbedImageHeight / containerHeight) * 100;
-    
-    // Define strict containment boundaries with margin
-    const margin = 2; // reduced from 5 to 2 percentage margin
-    
-    // Apply constraints to keep image within bounds
-    newRight = Math.max(margin, Math.min(100 - margin - imageWidthPercent, newRight));
-    newBottom = Math.max(margin, Math.min(100 - margin - imageHeightPercent, newBottom));
-    
-    // Update the image position immediately
-    collageImages = collageImages.map((img, i) => {
-      if (i === draggedImageIndex) {
-        return {
-          ...img,
-          right: newRight,
-          bottom: newBottom
-        };
-      }
-      return img;
-    });
-  }
-
   // Add the startDrag function that's referenced but not defined
   function startDrag(event: MouseEvent, index: number) {
     // Prevent default behavior and propagation
@@ -1627,22 +1830,32 @@
     
     const rect = imageElement.getBoundingClientRect();
     
-    // Store the exact image dimensions at grab time to ensure consistency
-    grabbedImageWidth = rect.width;
-    grabbedImageHeight = rect.height;
+    // For mobile view, adjust for container's position
+    let offsetX = 0;
+    let offsetY = 0;
+    
+    if (window.innerWidth <= 768) {
+      // Only apply offset adjustment on mobile
+      const container = document.querySelector('.mobile-collage');
+      if (container) {
+        const containerRect = container.getBoundingClientRect();
+        offsetX = containerRect.left;
+        offsetY = containerRect.top;
+      }
+    }
+    
+    // Get the image data to check if it's the owl
+    const imageData = collageImages[index];
+    const isOwl = imageData && (imageData.alt === 'Owl' || (typeof imageData.alt === 'string' && imageData.alt.includes('owl')));
+    const isSnake = imageData && (imageData.alt === 'Snake' || (typeof imageData.alt === 'string' && imageData.alt.includes('snake')));
     
     // Calculate grab offset from click position within the image
+    // Adjust for container offset on mobile
     grabOffsetX = event.clientX - rect.left;
     grabOffsetY = event.clientY - rect.top;
     
-    // Record which image is being dragged and initial position
+    // Record which image is being dragged
     draggedImageIndex = index;
-    
-    // Track the initial mouse and image positions
-    dragStartX = event.clientX;
-    dragStartY = event.clientY;
-    initialRight = collageImages[index].right;
-    initialBottom = collageImages[index].bottom;
     
     // Lock this image for human user
     imageLocks[index] = "human-user";
@@ -1650,126 +1863,25 @@
     // Add dragging class to body to ensure cursor stays as grabbing
     document.body.classList.add('dragging');
     
+    // Log debugging info for owl
+    if (isOwl || isSnake) {
+      console.log(`Starting to drag Owl at mouse position: ${event.clientX}, ${event.clientY}`);
+      console.log(`Owl rect: left=${rect.left}, top=${rect.top}, width=${rect.width}, height=${rect.height}`);
+      console.log(`Grab offset: x=${grabOffsetX}, y=${grabOffsetY}`);
+    }
+    
     // Add event listeners for move and end
     window.addEventListener('mousemove', handleDrag);
     window.addEventListener('mouseup', endDrag);
   }
 
-  // Add or fix the onMount function that starts everything
-  onMount(() => {
-    // Initialize viewport-dependent variables
-    isMobile = window.innerWidth <= 768;
-    rightMin = isMobile ? 1 : 0;   // Reduced from 5 to 1 for mobile - tiny left margin
-    rightMax = isMobile ? 99 : 40;  // Increased from 95 to 99 for mobile - tiny right margin
-    bottomMin = isMobile ? 1 : 0;  // Reduced from 5 to 1 for mobile - tiny bottom margin
-    bottomMax = isMobile ? 99 : 40; // Increased from 95 to 99 for mobile - tiny top margin
-    
-    // Run a force cleanup to ensure no stale state
-    if (typeof diagnoseHighlightIssues === 'function') {
-      diagnoseHighlightIssues();
-    }
-    
-    // Define event handlers for both mouse and touch
-    const handleResize = () => {
-      // Update viewport variables on resize
-      isMobile = window.innerWidth <= 768;
-      rightMin = isMobile ? 1 : 0;   // Reduced from 5 to 1 for mobile
-      rightMax = isMobile ? 99 : 40;  // Increased from 95 to 99 for mobile
-      bottomMin = isMobile ? 1 : 0;  // Reduced from 5 to 1 for mobile
-      bottomMax = isMobile ? 99 : 40; // Increased from 95 to 99 for mobile
-      
-      // Debounce the resize event
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => {
-        collageImages = generateRandomPositions();
-      }, 250); // Wait 250ms after resize ends before updating
-    };
-
-    // Add resize and touch event handlers
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('touchmove', handleTouchMove, { passive: false });
-    window.addEventListener('touchend', endDrag);
-    
-    // Handle touch end events for cleaning up after touch dragging
-    const handleTouchEnd = () => {
-      // Remove dragging class from body
-      document.body.classList.remove('dragging');
-      
-      // Release the lock on this image
-      if (draggedImageIndex !== null) {
-        delete imageLocks[draggedImageIndex];
-      }
-      
-      draggedImageIndex = null;
-    };
-    
-    // Set up periodic cleanup of orphaned locks
-    const lockCleanupInterval = setInterval(() => {
-      // Clean up any inconsistent state
-      const activeCursorIds = fakeCursors.map(cursor => cursor.id);
-      activeCursorIds.push("human-user");
-      
-      // Check each lock
-      Object.entries(imageLocks).forEach(([imageIndexStr, lockId]) => {
-        const imageIndex = parseInt(imageIndexStr, 10);
-        if (!activeCursorIds.includes(lockId)) {
-          // This is an orphaned lock
-          delete imageLocks[imageIndex];
-          stopDragging(imageIndex);
-        }
-      });
-    }, 5000);
-    
-    // Start the app
-    (async () => {
-      try {
-        // First preload all images
-        await preloadImages();
-        
-        // Then generate positions
-        collageImages = generateRandomPositions();
-        
-        // Start introducing images one by one
-        setTimeout(() => {
-          imagesReady = true;
-          
-          // Add images one by one with staggered timing
-          collageImages.forEach((img, index) => {
-            setTimeout(() => {
-              visibleImages = [...visibleImages, index];
-            }, 150 + index * 180);
-          });
-          
-          // Set the cursor creation time - note we don't initialize cursors yet
-          // cursors will be initialized after the cursorInitializationDelay expires
-          lastCursorCreationTime = Date.now();
-          
-          // Start fake cursor simulation after images are visible
-          console.log("Starting cursor simulation with natural delay...");
-          simulationInterval = window.setInterval(simulateFakeInteraction, 16);
-        }, 200);
-      } catch (error) {
-        console.error('Error loading images:', error);
-      }
-    })();
-
-    // Cleanup event listeners and timer on component unmount
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('touchmove', handleTouchMove);
-      window.removeEventListener('touchend', handleTouchEnd);
-      clearTimeout(resizeTimer);
-      clearInterval(simulationInterval);
-      clearInterval(lockCleanupInterval);
-      
-      // Clean up any remaining active drags in the store
-      draggingStore.update(state => ({ activeDrags: {} }));
-    };
-  });
-
   // For desktop collage, spread images across the available area
   const baseImages = imageDimensions || [];
   
+  // Add browser detection at the top of the script
+  const browser = typeof window !== 'undefined';
+  
+  // Ensure all window references are guarded
   // Create the main collage images with random positions
   let initialCollageImages = baseImages.map((img, index) => {
     // Set width/height based on original dimensions but scale down
@@ -1777,8 +1889,13 @@
     const width = aspectRatio >= 1 ? getRandomSize(15, 35) : getRandomSize(15, 25);
     const height = aspectRatio >= 1 ? width / aspectRatio : width * aspectRatio;
     
-    // Generate position using our responsive function
-    const position = generatePosition();
+    // Generate position using absolute pixel positions within bounds
+    const containerWidth = browser ? window.innerWidth : 1200; // Fallback for SSR
+    const containerHeight = browser ? window.innerHeight : 800; // Fallback for SSR
+    
+    // Random position within allowable range considering margins
+    const left = MARGIN_PX + Math.random() * (containerWidth - width - MARGIN_PX * 2);
+    const top = MARGIN_PX + Math.random() * (containerHeight - height - MARGIN_PX * 2);
     
     // Initialize with varying z-index to create depth
     return {
@@ -1786,8 +1903,8 @@
       alt: img.alt,
       width,
       height,
-      right: position.right,
-      bottom: position.bottom,
+      left,
+      top,
       zIndex: Math.floor(Math.random() * 10) + 1,
       rotation: getRandomRotation(-4, 4),
       scale: 1
@@ -1824,7 +1941,145 @@
     }
   }
 
-  // REMOVING DUPLICATE FUNCTIONS AND VARIABLES BELOW
+  // Handle touch end events to stop dragging
+  function handleTouchEnd(event: TouchEvent) {
+    if (draggedImageIndex === null) return;
+    
+    // Find the image element and remove the dragging class
+    const imageElement = document.querySelector(`.collage-image-button:nth-child(${draggedImageIndex + 1})`);
+    if (imageElement) {
+      imageElement.classList.remove('dragging');
+    }
+    
+    // Release the image lock
+    delete imageLocks[draggedImageIndex];
+    
+    // Reset drag state
+    collageImages = collageImages.map((img, i) => {
+      if (i === draggedImageIndex) {
+        return {
+          ...img,
+          scale: 1 // Reset scale to normal
+        };
+      }
+      return img;
+    });
+    
+    // For local cursors that might be watching this image
+    fakeCursors.forEach(cursor => {
+      if (cursor.targetImage === draggedImageIndex) {
+        // Update cursor position one last time with scroll offset
+        if (imageElement) {
+          const rect = imageElement.getBoundingClientRect();
+          cursor.x = rect.left + rect.width / 2;
+          cursor.y = rect.top + rect.height / 2 + window.scrollY; // Add scroll offset
+        }
+      }
+    });
+    
+    // Update parent with cursor changes
+    onFakeCursorsUpdate(fakeCursors);
+    
+    // Clean up dragging state
+    draggedImageIndex = null;
+    document.body.classList.remove('dragging');
+  }
+
+  // Add preloadImages function near the other helper functions
+  // Function to preload images to avoid flickering
+  async function preloadImages() {
+    const promises = collageImages.map(img => {
+      return new Promise((resolve) => {
+        const image = new Image();
+        image.onload = () => resolve(true);
+        image.onerror = () => {
+          console.error(`Failed to load image: ${img.src}`);
+          resolve(false);
+        };
+        image.src = img.src;
+      });
+    });
+    return Promise.all(promises);
+  }
+
+  interface CursorState {
+    id: string;
+    x: number;
+    y: number;
+    color: string;
+    imageLockedIndex: number | null;
+    grabOffsetX: number;
+    grabOffsetY: number;
+    isDragging: boolean;
+    isMovingToTarget: boolean;
+    targetImage: number | null;
+    [key: string]: any; // Allow additional properties
+  }
+
+  function updateFakeCursorLockedImage(cursor: CursorState, deltaTime: number) {
+    const lockedIndex = cursor.imageLockedIndex;
+    if (lockedIndex === null || lockedIndex >= collageImages.length) return;
+
+    // Get the image data
+    const imageData = collageImages[lockedIndex];
+    if (!imageData) return;
+
+    // Get image dimensions
+    const imageWidth = imageData.width;
+    const imageHeight = imageData.height;
+
+    // Get current position of cursor and image
+    const { x, y } = cursor;
+    let { left, top } = imageData;
+
+    // Calculate new position based on cursor movement
+    const newLeft = x - cursor.grabOffsetX;
+    const newTop = y - cursor.grabOffsetY;
+
+    // Get the container element
+    const container = document.querySelector('.mobile-collage') || document.querySelector('.desktop-collage');
+    const containerRect = container ? container.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+    
+    // Get container dimensions for constraints
+    const containerWidth = container ? containerRect.width : window.innerWidth;
+    const containerHeight = container ? containerRect.height : window.innerHeight;
+    const containerLeft = containerRect.left;
+    const containerTop = containerRect.top;
+
+    // Apply the same MIN_MARGIN as used in handleDrag and handleTouchMove
+    const MIN_MARGIN = 0;
+    
+    // Check if this is the owl image
+    const isOwl = imageData.alt === 'Owl' || (typeof imageData.alt === 'string' && imageData.alt.includes('owl'));
+    const isSnake = imageData.alt === 'Snake' || (typeof imageData.alt === 'string' && imageData.alt.includes('snake'));
+    const minTop = (isOwl || isSnake) ? -imageHeight * 0.1 : MIN_MARGIN; // Only allow 10% to go off-screen for snake & owl images
+
+    // Clamp the position to keep image fully within viewport
+    // Account for image dimensions to prevent overflow on right and bottom edges
+    const clampedLeft = Math.max(
+      MIN_MARGIN,
+      Math.min(containerWidth - imageWidth - MIN_MARGIN, newLeft)
+    );
+    const clampedTop = Math.max(
+      minTop, 
+      Math.min(containerHeight - imageHeight - MIN_MARGIN, newTop)
+    );
+
+    // Update the image element's position
+    const imageElement = document.querySelector(`.collage-image-button:nth-child(${lockedIndex + 1})`) as HTMLElement;
+    if (imageElement) {
+      imageElement.style.left = `${clampedLeft}px`;
+      imageElement.style.top = `${clampedTop}px`;
+      imageElement.style.transform = `rotate(${imageData.rotation}deg) scale(1.03)`;
+    }
+
+    // Update the image data
+    collageImages[lockedIndex] = {
+      ...imageData,
+      left: clampedLeft,
+      top: clampedTop
+    };
+  }
 </script>
 
 <!-- Desktop collage (hidden on mobile) -->
@@ -1843,8 +2098,8 @@
           }}
           style="
             position: absolute;
-            right: {img.right}%; 
-            bottom: {img.bottom}%; 
+            left: {img.left}px; 
+            top: {img.top}px; 
             transform: rotate({img.rotation}deg);
             z-index: {img.zIndex};
             padding: 0;
@@ -1899,12 +2154,23 @@
             // Mark that user has interacted with collage
             hasInteractedWithCollage = true;
             
-            handleTouchStart(e, i);
+            // Convert touch event to mouse-like event for startDrag
+            const touch = e.touches[0];
+            const mouseEvent = {
+              clientX: touch.clientX,
+              clientY: touch.clientY,
+              preventDefault: function() { e.preventDefault(); },
+              stopPropagation: function() { e.stopPropagation(); }
+            };
+            
+            // @ts-ignore - treating touch as mouse event for reuse
+            startDrag(mouseEvent, i);
+            bringToFront(i);
           }}
           style="
             position: absolute;
-            right: {img.right}%; 
-            bottom: {img.bottom}%; 
+            left: {img.left}px; 
+            top: {img.top}px; 
             transform: rotate({img.rotation}deg) scale({img.scale || 1});
             z-index: {img.zIndex};
             padding: 0;
@@ -2033,6 +2299,21 @@
       height: 60vh;
       position: relative;
       overflow: hidden;
+    }
+  }
+
+  /* Add styles for the selected/dragging image */
+  .collage-image-button.dragging {
+    box-shadow: 0 0 0 4px var(--cursor-color, #4ECDC4), 0 0 0 6px rgba(255,255,255,0.5);
+    z-index: 1000 !important; /* Ensure dragged image is always on top */
+    transform: scale(1.05); /* Slightly enlarge the dragged image */
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  
+  /* Ensure mobile .dragging class works */
+  @media (max-width: 768px) {
+    .collage-image-button.dragging {
+      box-shadow: 0 0 0 3px var(--cursor-color, #4ECDC4), 0 0 0 5px rgba(255,255,255,0.5);
     }
   }
 </style> 
