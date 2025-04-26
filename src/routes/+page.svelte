@@ -1268,7 +1268,7 @@
     min-height: 100vh;
     background-color: var(--bg-color);
     color: var(--text-color);
-    padding: 5.5rem;
+    padding: 4.5rem;
   }
 
   .container {

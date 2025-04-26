@@ -8,6 +8,24 @@
   export let largeScreenImages: any[] = [];
   export let fakeCursors: any[] = [];
   
+  // Type definition for collage images
+  interface CollageImage {
+    src: string;
+    alt: string;
+    width: number;
+    height: number;
+    left: number;
+    top: number;
+    zIndex: number;
+    rotation: number;
+    scale: number;
+    area?: number;
+    isSpecialImage?: boolean;
+    specialImageType?: string;
+    positioned?: boolean; // Flag to indicate if this image has already been positioned
+    processed?: boolean; // Flag to indicate if this image has been processed
+  }
+  
   // Updated to use CSS variables with better contrast
   const fakeUserColors = [
     'var(--cursor-red)', 
@@ -443,58 +461,65 @@
           cursor.targetImage = null;
         }
 
-        // Pick a random image to drag, preferring ones already near the top
-        const visibleImageIndexes = [...visibleImages]; // Get array of indexes that are visible
+        // CRITICAL FIX: Check if the cursor is over an image before selecting it
+        // Instead of randomly choosing any image, find one that the cursor is positioned over
+        const cursorX = cursor.x;
+        const cursorY = cursor.y;
         
-        // Filter out images that are already being dragged
-        const availableIndexes = visibleImageIndexes.filter(index => !imageLocks[index]);
+        // Find all image elements
+        const imageElements = document.querySelectorAll('.collage-image-button');
+        const imagesUnderCursor: {element: Element, index: number, distance: number}[] = [];
         
-        if (availableIndexes.length === 0) {
-          // All images are locked, can't drag any
-          return cursor;
-        }
-        
-        // Don't filter by z-index - pick any available image
-        const randomIndex = Math.floor(Math.random() * availableIndexes.length);
-        const randomImageIndex = availableIndexes[randomIndex];
-        
-        // Get the DOM element for the selected image
-        const imageElement = document.querySelector(`.collage-image-button:nth-child(${randomImageIndex + 1})`);
-        
-        if (imageElement) {
-          // First, ensure we release any existing image this cursor might be targeting
-          // (This is a safety check in case our previous state cleanup missed anything)
-          if (cursor.targetImage !== null && cursor.targetImage !== randomImageIndex) {
-            // Double check we're not already targeting this same image
-            if (imageLocks[cursor.targetImage] === cursor.id) {
-              delete imageLocks[cursor.targetImage];
-              stopDragging(cursor.targetImage);
-              console.log(`Cursor ${cursor.name} releasing previous target ${cursor.targetImage} before grabbing ${randomImageIndex}`);
+        // Check each image to see if cursor is over it
+        imageElements.forEach((el, index) => {
+          if (!imageLocks[index]) { // Skip images that are already locked/being dragged
+            const rect = el.getBoundingClientRect();
+            
+            // IMPROVED: Add a small buffer zone around the image (5px) to make hit detection more reliable
+            // This helps with edge cases where cursor is nearly on the image but not quite
+            const bufferSize = 5;
+            if (
+              cursorX >= rect.left - bufferSize && 
+              cursorX <= rect.right + bufferSize && 
+              cursorY >= rect.top - bufferSize && 
+              cursorY <= rect.bottom + bufferSize
+            ) {
+              // Found an image the cursor is over (or very near)
+              const distance = Math.min(
+                Math.abs(cursorX - rect.left),
+                Math.abs(cursorX - rect.right),
+                Math.abs(cursorY - rect.top),
+                Math.abs(cursorY - rect.bottom)
+              );
+              
+              // Store the element, index, and distance for sorting
+              imagesUnderCursor.push({ 
+                element: el, 
+                index, 
+                distance: distance < bufferSize ? distance : 0 // Prioritize actual overlaps
+              });
             }
           }
+        });
+        
+        // Sort by distance (0 = direct hit, higher = nearby)
+        imagesUnderCursor.sort((a, b) => a.distance - b.distance);
+        
+        // If cursor is over any images, select the one with the best hit
+        if (imagesUnderCursor.length > 0) {
+          // Take the first (closest) match
+          const selected = imagesUnderCursor[0];
           
-          // Get image position and prepare to move cursor there
-          const rect = imageElement.getBoundingClientRect();
-          // Target the center of the image instead of a random point
-          const targetX = rect.left + rect.width / 2;
-          const targetY = rect.top + rect.height / 2;
-          
-          // Set up transition to image - cursor will move to image before dragging
-          cursor.isMovingToTarget = true; // Moving to target
-          cursor.targetImage = randomImageIndex;
-          cursor.targetX = targetX;
-          cursor.targetY = targetY;
-          
-          // Make sure isDragging is explicitly false during approach
-          cursor.isDragging = false;
-          
-          // Lock this image
-          imageLocks[randomImageIndex] = cursor.id;
+          // Proceed with selection
+          proceedWithImageSelection(selected.element, cursor, selected.index);
           
           // Update activity timestamp
           cursor.lastActiveTime = Date.now();
           
-          console.log(`Cursor ${cursor.name} preparing to grab image ${randomImageIndex}`);
+          console.log(`Cursor ${cursor.name} grabbing image ${selected.index} that it's positioned over`);
+        } else {
+          // Cursor isn't over any image, so do nothing for now
+          return cursor;
         }
       }
       // If moving to target and reached it, start dragging
@@ -597,8 +622,8 @@
       }
       
       // STEP 2: HANDLE MOVEMENT BASED ON STATE
-      // Use faster speeds for all movement
-      const MOVEMENT_SPEED = 5.0; // Faster movement
+      // Use slower speeds for all movement - CONSISTENT for all cases
+      const MOVEMENT_SPEED = 5.0; // Consistent speed for all cursor movement
       
       // CASE 1: Moving to target image
       if (cursor.isMovingToTarget && !cursor.isDragging) {
@@ -634,12 +659,11 @@
           return cursor;
         }
         
-        // Move toward target
-        const SPEED = 8.0; // Faster approach to images
+        // Move toward target at CONSISTENT speed
         const dirX = dx / distance;
         const dirY = dy / distance;
-        cursor.x += dirX * SPEED;
-        cursor.y += dirY * SPEED;
+        cursor.x += dirX * MOVEMENT_SPEED;
+        cursor.y += dirY * MOVEMENT_SPEED;
       }
       // CASE 2: Dragging an image
       else if (cursor.isDragging && cursor.targetImage !== null) {
@@ -653,7 +677,39 @@
         
         // Get the image element
         const imageElement = document.querySelector(`.collage-image-button:nth-child(${cursor.targetImage + 1})`);
+        
+        // IMPROVEMENT: Try an alternative selector if the first one fails
+        let imageFound = !!imageElement;
+        let alternativeImageElement = null;
+        
         if (!imageElement) {
+          // Try by z-index
+          const targetZIndex = collageImages[cursor.targetImage]?.zIndex;
+          if (targetZIndex) {
+            alternativeImageElement = document.querySelector(`.collage-image-button[style*="z-index: ${targetZIndex}"]`);
+            if (alternativeImageElement) {
+              imageFound = true;
+            }
+          }
+          
+          // If still not found, try by array index
+          if (!alternativeImageElement) {
+            const allImageButtons = document.querySelectorAll('.collage-image-button');
+            const imageArray = Array.from(allImageButtons);
+            if (cursor.targetImage < imageArray.length) {
+              alternativeImageElement = imageArray[cursor.targetImage];
+              if (alternativeImageElement) {
+                imageFound = true;
+              }
+            }
+          }
+        }
+        
+        // Use the original or alternative element
+        const activeElement = imageElement || alternativeImageElement;
+        
+        // Image element not found, release the image
+        if (!imageFound || !activeElement) {
           // Image element not found, release the image
           if (cursor.targetImage !== null) {
             delete imageLocks[cursor.targetImage];
@@ -695,8 +751,8 @@
               cursor.targetImage = null;
               cursor.isDragging = false;
               
-              // Set a resting period (10-20 seconds) after dropping the image
-              cursor.restingPeriod = 10000 + Math.random() * 10000;
+              // Set a resting period (8-12 seconds) after dropping the image
+              cursor.restingPeriod = 8000 + Math.random() * 4000;
               
               // Update activity timestamp
               cursor.lastActiveTime = Date.now();
@@ -707,8 +763,8 @@
             cursor.isMovingToTarget = false;
             
             // Choose a new wandering destination with margins
-            const horizontalMargin = 100;
-            const verticalMargin = 100;
+            const horizontalMargin = 100; // 100px from sides
+            const verticalMargin = 100; // 100px from top/bottom
             cursor.destinationX = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
             cursor.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
             
@@ -742,85 +798,85 @@
           }
         }
         
-        // Get current image center
-        const imgRect = imageElement.getBoundingClientRect();
+        // Get current image center position
+        const imgRect = activeElement.getBoundingClientRect();
         const imageCenterX = imgRect.left + imgRect.width / 2;
         const imageCenterY = imgRect.top + imgRect.height / 2;
         
         // Calculate direction to destination
-        const dirX = (cursor.destinationX - imageCenterX) / distance;
-        const dirY = (cursor.destinationY - imageCenterY) / distance;
-
-        // Direct movement approach - move image with cursor
-        const MOVEMENT_DELTA = 4.0; // Larger movement for more visible motion
+        const dirX = dx / distance;
+        const dirY = dy / distance;
         
-        // Calculate the exact position where the cursor should move
-        const newCursorX = imageCenterX + dirX * MOVEMENT_DELTA;
-        const newCursorY = imageCenterY + dirY * MOVEMENT_DELTA;
+        // FIXING CURSOR-IMAGE SYNC ISSUE:
+        // 1. First move the cursor
+        // 2. THEN update the image based on the cursor's new position
         
-        // Calculate the delta (how much the cursor has moved)
-        const deltaX = newCursorX - imageCenterX;
-        const deltaY = newCursorY - imageCenterY;
+        // Move the cursor toward the destination - at consistent speed
+        cursor.x += dirX * MOVEMENT_SPEED;
+        cursor.y += dirY * MOVEMENT_SPEED;
         
-        // Convert delta to percentage for image position update
-        const containerWidth = window.innerWidth;
-        const containerHeight = window.innerHeight;
+        // CRITICAL FIX: Update the image position based on cursor movement
+        // Get the current image data
+        const imageData = collageImages[cursor.targetImage];
+        if (!imageData) return cursor;
         
-        const deltaRightPercent = -(deltaX / containerWidth) * 100;
-        const deltaBottomPercent = -(deltaY / containerHeight) * 100;
-        
-        // Get current image data
-        const originalImage = collageImages[cursor.targetImage];
-        
-        // Calculate new position with the delta
-        const newRight = originalImage.right + deltaRightPercent;
-        const newBottom = originalImage.bottom + deltaBottomPercent;
-        
-        // Apply constraints - use consistent constraints for all images
-        const margin = 0; // No margin for maximum movement range
-        const constrainedRight = Math.max(margin, Math.min(95 - margin, newRight));
-        
-        // Fix constraint calculation to allow equal movement regardless of image size
-        const constrainedBottom = Math.max(
-          margin, // Ensure bottom margin
-          Math.min(95 - margin, newBottom) // Ensure top margin without size dependency
-        );
-        
-        // Only update if we're actually going to move the image
-        if (Math.abs(deltaX) > 0.01 || Math.abs(deltaY) > 0.01) {
-          // Update the image position directly
-          collageImages = collageImages.map((img, i) => {
-            if (i === cursor.targetImage) {
-              return {
-                ...img,
-                right: constrainedRight,
-                bottom: constrainedBottom
-              };
-            }
-            return img;
-          });
+        // Set grab offset if not already set - this records where on the image the cursor grabbed
+        if (!cursor.grabOffsetX || !cursor.grabOffsetY) {
+          // Calculate the offset from the cursor to the top-left corner of the image
+          // This makes sure we grab the image exactly where the cursor is positioned
+          cursor.grabOffsetX = cursor.x - imageData.left;
+          cursor.grabOffsetY = cursor.y - imageData.top;
+          
+          // Ensure grab offset is within image bounds
+          cursor.grabOffsetX = Math.max(0, Math.min(imgRect.width, cursor.grabOffsetX));
+          cursor.grabOffsetY = Math.max(0, Math.min(imgRect.height, cursor.grabOffsetY));
+          
+          console.log(`Cursor ${cursor.name} grabbed image at offset: ${cursor.grabOffsetX.toFixed(1)}, ${cursor.grabOffsetY.toFixed(1)}`);
         }
         
-        // Wait a tiny bit to ensure the DOM has updated
-        setTimeout(() => {
-          // Get updated image rect (after position is updated)
-          const updatedElement = document.querySelector(`.collage-image-button:nth-child(${cursor.targetImage + 1})`);
-          if (updatedElement) {
-            const updatedRect = updatedElement.getBoundingClientRect();
+        // IMPROVED SYNC: Calculate new position based on cursor's exact current position
+        const newLeft = cursor.x - cursor.grabOffsetX;
+        const newTop = cursor.y - cursor.grabOffsetY;
         
-        // Update cursor position to match the center of the image
-        cursor.x = updatedRect.left + updatedRect.width / 2;
-            cursor.y = updatedRect.top + updatedRect.height / 2 + window.scrollY; // Add scroll offset
-            
-            // Explicitly add dragging class to the image element
-            updatedElement.classList.add('dragging');
-            
-            // Update parent with cursor position immediately
-            onFakeCursorsUpdate(fakeCursors);
-          }
-        }, 0);
+        // Get container for constraints
+        const container = document.querySelector('.desktop-collage') || document.querySelector('.mobile-collage');
+        const containerRect = container ? container.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+        
+        // Apply constraints to keep within bounds
+        const constrainedLeft = Math.max(
+          0,
+          Math.min(containerRect.width - imgRect.width, newLeft)
+        );
+        const constrainedTop = Math.max(
+          0,
+          Math.min(containerRect.height - imgRect.height, newTop)
+        );
+        
+        // IMPROVED SYNC: If the image position was constrained, update the cursor position too
+        // This ensures the cursor and image remain perfectly in sync at boundaries
+        if (constrainedLeft !== newLeft) {
+          cursor.x = constrainedLeft + cursor.grabOffsetX;
+        }
+        if (constrainedTop !== newTop) {
+          cursor.y = constrainedTop + cursor.grabOffsetY;
+        }
+        
+        // Update the collageImages array directly
+        collageImages[cursor.targetImage] = {
+          ...collageImages[cursor.targetImage],
+          left: constrainedLeft,
+          top: constrainedTop
+        };
+        
+        // Update the element's position directly
+        if (activeElement instanceof HTMLElement) {
+          activeElement.style.left = `${constrainedLeft}px`;
+          activeElement.style.top = `${constrainedTop}px`;
+        }
+        
+        return cursor;
       }
-      // CASE 3: Just wandering (not dragging)
+      // CASE 3: Wandering (not dragging, not moving to target)
       else {
         // If we don't have a destination or are close to it, set a new one
         if (!cursor.destinationX || 
@@ -879,84 +935,6 @@
     
     // Update parent component with new cursor states
     onFakeCursorsUpdate(fakeCursors);
-    
-    // Check for cursor limits - create new cursor only if:
-    // 1. It's been at least 3-8 minutes since last cursor creation (rare visitor frequency)
-    // 2. We have fewer cursors than our max limit
-    // 3. Very low random chance (0.0005 = about 0.05% chance per frame at 60fps) - MUCH reduced
-    const currentTime = Date.now();
-    const minInterval = 3 * 60 * 1000; // 3 minutes minimum
-    const randomAdditionalTime = 5 * 60 * 1000; // Up to 5 more minutes
-    const minTimeBetweenCursors = minInterval + Math.random() * randomAdditionalTime;
-    const timeSinceLastCreation = currentTime - lastCursorCreationTime;
-    
-    // Limit to max 2 cursors about 30% of the time (increased from 10%)
-    const maxCursors = Math.random() < 0.7 ? 1 : 2; // 70% chance of allowing 1 cursor, 30% chance of allowing 2
-    
-    // Slightly increase the probability of cursor creation
-    if (fakeCursors.length < maxCursors && 
-        timeSinceLastCreation > minTimeBetweenCursors && 
-        Math.random() < 0.001) { // Increased from 0.0005 to 0.001 (2x more likely)
-      const newCursor = createFakeCursor();
-      console.log(`New visitor: ${newCursor.name} with ID ${newCursor.id} after ${Math.floor(timeSinceLastCreation/60000)} minutes`);
-      fakeCursors = [...fakeCursors, newCursor];
-      lastCursorCreationTime = currentTime;
-      onFakeCursorsUpdate(fakeCursors);
-    }
-
-    // If we're below our target of having 2 cursors 30% of the time, increase chances
-    // This helps ensure we maintain the desired distribution
-    if (fakeCursors.length < 2 && Math.random() < 0.3 && 
-        timeSinceLastCreation > 60000 && // At least 1 minute since last cursor
-        Math.random() < 0.0002) { // Still quite rare, but helps maintain 2-cursor state
-      const newCursor = createFakeCursor();
-      console.log(`Adding secondary visitor to reach desired 30% multi-user state`);
-      fakeCursors = [...fakeCursors, newCursor];
-      lastCursorCreationTime = currentTime;
-      onFakeCursorsUpdate(fakeCursors);
-    }
-    
-    // Very rarely remove a cursor (simulating a user leaving)
-    if (fakeCursors.length > 0 && Math.random() < 0.0002) { // 0.02% chance per frame
-      const removedIndex = fakeCursors.length - 1;
-      const removedCursor = fakeCursors[removedIndex];
-      
-      // If the removed cursor was dragging an image, release the lock
-      if (removedCursor.isDragging && removedCursor.targetImage !== null) {
-        const imageIndex = removedCursor.targetImage;
-        
-        // IMMEDIATELY update the store FIRST to remove highlight
-        stopDragging(imageIndex);
-        console.log(`Cursor ${removedCursor.name} removed - CLEANING drag store for image ${imageIndex}`);
-        
-        // Then remove from image locks
-        delete imageLocks[imageIndex];
-        
-        // Then update cursor state
-        removedCursor.targetImage = null;
-        removedCursor.isDragging = false;
-      }
-      
-      // Force immediate store cleanup check when removing a cursor
-      // This is a safeguard to ensure no highlights remain
-      draggingStore.subscribe((state: {activeDrags: Record<string, boolean>}) => {
-        Object.keys(state.activeDrags).forEach(indexStr => {
-          const imageIndex = parseInt(indexStr, 10);
-          const isCursorDragging = fakeCursors
-            .filter((c, i) => i !== removedIndex) // Exclude the cursor being removed
-            .some(c => c.isDragging && c.targetImage === imageIndex);
-          
-          if (!isCursorDragging) {
-            console.log(`Cursor removal cleanup: Image ${imageIndex} highlight removed`);
-            stopDragging(imageIndex);
-          }
-        });
-      })();
-      
-      console.log(`Visitor ${removedCursor.name} left the site`);
-      fakeCursors = fakeCursors.slice(0, -1);
-      onFakeCursorsUpdate(fakeCursors);
-    }
   }
 
   // Function to initialize the cursor system with variety
@@ -1048,49 +1026,70 @@
         }
       }
       
-      // Create a layout that maximizes playground space usage while keeping images fully visible
+      // For mobile, create a layout that maximizes playground space usage while keeping images fully visible
       return sortedBySize.map((img, i) => {
-        // Calculate usable area within container, leaving margins
-        const usableWidth = containerWidth - img.width - (MARGIN_PX * 2);
-        const usableHeight = containerHeight - img.height - (MARGIN_PX * 2);
+        // Use much more of the container space 
+        const leftMin = containerWidth * 0.4; // Use more horizontal space (was 0.55)
+        const leftMax = containerWidth - img.width - MARGIN_PX;
+        const topMin = 0; // Use full height
+        const topMax = containerHeight - img.height - MARGIN_PX;
         
-        // Use a grid-like layout with some randomness
-        const totalImages = sortedBySize.length;
-        const columns = 3; // Number of rough columns
-        const rows = Math.ceil(totalImages / columns);
+        // Distribution factor: 0 for largest image, 1 for smallest
+        const distributionFactor = i / (sortedBySize.length - 1 || 1);
         
-        // Calculate base position with more spread
-        const col = i % columns;
-        const row = Math.floor(i / columns);
+        // Generate position with better spread
+        let left, top;
         
-        // Calculate base positions within usable area
-        const baseLeft = MARGIN_PX + (usableWidth * (col / (columns - 1 || 1)));
-        const baseTop = MARGIN_PX + (usableHeight * (row / (rows - 1 || 1)));
+        // Use quadrant-based positioning for better distribution
+        if (Math.random() < 0.7) {
+          // 70% chance to place in specific sections
+          // Divide container into a 3x3 grid and place in one of the cells
+          const cellX = Math.floor(Math.random() * 3); // 0, 1, or 2
+          const cellY = Math.floor(Math.random() * 3); // 0, 1, or 2
+          
+          // Calculate base position within the cell
+          const cellWidth = (leftMax - leftMin) / 3;
+          const cellHeight = (topMax - topMin) / 3;
+          
+          // Calculate position within cell with randomness
+          left = leftMin + (cellX * cellWidth) + (Math.random() * cellWidth * 0.8);
+          top = topMin + (cellY * cellHeight) + (Math.random() * cellHeight * 0.8);
+        } else {
+          // 30% chance for circular distribution around center
+          const angle = Math.random() * Math.PI * 2;
+          
+          // Create a distance factor that increases with smaller images
+          const baseDistanceFactor = 0.3 + (distributionFactor * 0.6);
+          const randomBoost = Math.random() * 0.4;
+          const distanceFromCenter = Math.min(0.95, baseDistanceFactor + randomBoost);
+          
+          // Calculate the center point of the usable area
+          const centerX = leftMin + (leftMax - leftMin) * 0.5;
+          const centerY = topMin + (topMax - topMin) * 0.5;
+          
+          // Calculate spread distances
+          const spreadX = (leftMax - leftMin) * 0.5 * distanceFromCenter;
+          const spreadY = (topMax - topMin) * 0.5 * distanceFromCenter;
+          
+          // Calculate position with radial distribution
+          left = centerX + Math.cos(angle) * spreadX;
+          top = centerY + Math.sin(angle) * spreadY;
+        }
         
-        // Add controlled randomness
-        const randomX = (Math.random() * 15);
-        const randomY = (Math.random() * 15);
+        // Ensure images stay within bounds
+        left = Math.max(leftMin, Math.min(leftMax, left));
+        top = Math.max(topMin, Math.min(topMax, top));
         
-        // Calculate final position ensuring images stay within bounds
-        // Use consistent positioning that allows full movement range
-        const left = Math.max(
-          0, // No minimum margin for maximum movement range
-          Math.min(containerWidth - MARGIN_PX, baseLeft + randomX)
-        );
-        const top = Math.max(
-          0, // No minimum margin for maximum movement range
-          Math.min(containerHeight - MARGIN_PX, baseTop + randomY)
-        );
-        
-        // Add rotation
-        const rotation = (Math.random() * 40) - 20; // Random rotation between -20 and 20 degrees
+        // Add rotation with more variation
+        const rotation = (Math.random() * 50) - 25; // -25 to +25 degrees
         
         return {
           ...img,
           left,
           top,
           rotation,
-          zIndex: sortedBySize.length - i // Stack from back to front
+          // Z-index based on size: largest in back (1), smallest in front (N)
+          zIndex: i + 1
         };
       });
     }
@@ -1107,20 +1106,82 @@
     // Sort by area (descending) - largest images will be first
     const sortedBySize = [...sizedImages].sort((a, b) => b.area - a.area);
     
-    // Assign z-indexes based on size - largest gets lowest z-index (back)
-    const sizeRankedImages = sortedBySize.map((img, i) => ({
-      ...img,
-      // The largest image gets z-index 1, and increases as images get smaller
-      zIndex: i + 1
-    }));
-    
-    // Calculate usable area with margins
+    // Define the available area for desktop positioning
     const containerWidth = browser ? window.innerWidth : 1200;
     const containerHeight = browser ? window.innerHeight : 800;
-    const usableWidth = containerWidth - (MARGIN_PX * 2);
     
-    // Return the positioned images
-    return sizeRankedImages;
+    // Position the images in the lower right quadrant of the screen with much more spread
+    return sortedBySize.map((img, index) => {
+      // Use more of the screen space - use full height and wider horizontal space
+      const leftMin = containerWidth * 0.4; // Use more horizontal space
+      const leftMax = containerWidth * 0.98 - img.width; // Nearly full width
+      const topMin = containerHeight * 0.02; // Start from almost top of screen
+      const topMax = containerHeight * 0.98 - img.height; // Nearly full height
+      
+      // Create a true collage effect with proper layering but much more spread
+      // Calculate distribution factor based on image size rank (0-1 range)
+      const distributionFactor = index / (sortedBySize.length - 1 || 1);
+      
+      // Generate random angle for positioning with vertical bias
+      let angle;
+      
+      // Bias positioning toward top and bottom regions to increase vertical spread
+      if (Math.random() < 0.6) {
+        // 60% chance to bias toward top or bottom
+        if (Math.random() < 0.5) {
+          // Upper half - angles between 30° and 150° (π/6 to 5π/6)
+          angle = (Math.PI / 6) + (Math.random() * 2 * Math.PI / 3);
+        } else {
+          // Lower half - angles between 210° and 330° (7π/6 to 11π/6)
+          angle = (7 * Math.PI / 6) + (Math.random() * 2 * Math.PI / 3);
+        }
+      } else {
+        // 40% chance for completely random angle
+        angle = Math.random() * Math.PI * 2;
+      }
+      
+      // Dramatically increase the distance factor for more spread
+      // Make larger images still somewhat centered but much more spread out
+      const baseDistanceFactor = 0.4 + (distributionFactor * 0.6); // Range from 0.4-1.0
+      
+      // Add extra vertical spread (stretch the y-axis distribution)
+      const verticalStretchFactor = 1.5; // Increase vertical spread by 50%
+      
+      // Add some randomness to further prevent clustering
+      const randomSpreadBoost = Math.random() * 0.4; // Random boost between 0-0.4
+      const distanceFromCenter = Math.min(0.98, baseDistanceFactor + randomSpreadBoost); // Cap at 0.98
+      
+      // Calculate usable area dimensions
+      const usableWidth = leftMax - leftMin;
+      const usableHeight = topMax - topMin;
+      
+      // Calculate the center point (use central positioning)
+      const centerX = leftMin + (usableWidth * 0.5); // Center horizontally
+      const centerY = topMin + (usableHeight * 0.5); // Center vertically
+      
+      // Calculate spread distances based on available space
+      const spreadX = usableWidth * 0.5 * distanceFromCenter;
+      const spreadY = usableHeight * 0.5 * distanceFromCenter * verticalStretchFactor; // Extra vertical spread
+      
+      // Calculate position with much more spread from center
+      let left = centerX + Math.cos(angle) * spreadX;
+      let top = centerY + Math.sin(angle) * spreadY;
+      
+      // Ensure images stay within bounds
+      left = Math.max(leftMin, Math.min(leftMax, left));
+      top = Math.max(topMin, Math.min(topMax, top));
+      
+      // No rotation
+      const rotation = 0; // Zero degrees - perfectly straight
+      
+      return {
+        ...img,
+        left,
+        top,
+        rotation,
+        zIndex: index + 1
+      };
+    });
   }
 
   // Function to handle drag events
@@ -1135,8 +1196,8 @@
     
     // Calculate the new position based on mouse movement and initial grab offset
     // Adjust for the container's position
-    const newLeft = event.clientX - grabOffsetX - containerLeft;
-    const newTop = event.clientY - grabOffsetY - containerTop;
+    const desiredImageLeft = event.clientX - grabOffsetX - containerLeft;
+    const desiredImageTop = event.clientY - grabOffsetY - containerTop;
     
     // Apply uniform minimum margin to all images regardless of size
     const MIN_MARGIN = 0; // Allow images to go to edges
@@ -1159,14 +1220,14 @@
     const minTop = (isOwl || isSnake) ? -imageHeight * 0.1 : MIN_MARGIN; // Only allow 10% to go off-screen for snake & owl images
     
     // For the owl specifically, adjust the grab offset to be centered on visible content
-    let adjustedNewLeft = newLeft;
-    let adjustedNewTop = newTop;
+    let adjustedNewLeft = desiredImageLeft;
+    let adjustedNewTop = desiredImageTop;
     
     if (isOwl || isSnake) {
       // No adjustment needed for left/right as we fixed the dimensions
       // Just ensure the owl stays with the cursor
-      adjustedNewLeft = event.clientX - grabOffsetX - containerLeft;
-      adjustedNewTop = event.clientY - grabOffsetY - containerTop;
+      adjustedNewLeft = desiredImageLeft;
+      adjustedNewTop = desiredImageTop;
     }
     
     // Clamp the position to keep image fully within viewport
@@ -1197,7 +1258,7 @@
     
     // Make the image slightly larger when dragging for better visual feedback
     // For owl, use slightly larger scale for better grabbability
-    const scaleFactor = isOwl || isSnake ? 1.05 : 1.03;
+    const scaleFactor = 1; // Set to 1 to remove scaling effect
     imageElement.style.transform = `rotate(${imageData.rotation}deg) scale(${scaleFactor})`;
     
     // Update the image data in our array
@@ -1208,13 +1269,51 @@
     };
     
     // If it's the human cursor, update its position
+    // CRITICAL FIX: If the image is constrained by the window boundary,
+    // don't use event.clientX/Y, but calculate cursor position from the constrained image position
     const humanCursorIndex = fakeCursors.findIndex(c => c.id === "human-user");
     if (humanCursorIndex !== -1) {
-      fakeCursors[humanCursorIndex] = {
-        ...fakeCursors[humanCursorIndex],
-        x: event.clientX,
-        y: event.clientY + window.scrollY
-      };
+      // Check if the image position was constrained (hit a boundary)
+      const wasConstrained = left !== desiredImageLeft || top !== desiredImageTop;
+      
+      if (wasConstrained) {
+        // Image hit boundary - adjust cursor position to match image's constrained position
+        // This keeps the cursor exactly at the same spot on the image when boundaries are hit
+        const adjustedCursorX = left + grabOffsetX + containerLeft;
+        const adjustedCursorY = top + grabOffsetY + containerTop;
+        
+        // Override the mouse position with our constrained position
+        fakeCursors[humanCursorIndex] = {
+          ...fakeCursors[humanCursorIndex],
+          x: adjustedCursorX,
+          y: adjustedCursorY + window.scrollY
+        };
+        
+        // IMPORTANT: Reposition the physical cursor to match the image constraint
+        // This critical step makes the cursor and image move as a single unit
+        if (typeof document.dispatchEvent === 'function') {
+          const cursorPos = fakeCursors[humanCursorIndex];
+          
+          // Force the browser cursor to the constrained position
+          if (cursorPos && typeof MouseEvent === 'function') {
+            try {
+              document.body.style.cursor = 'none'; // Hide cursor temporarily during teleport
+              setTimeout(() => {
+                document.body.style.cursor = ''; // Restore cursor
+              }, 50);
+            } catch (e) {
+              console.log("Could not adjust cursor style", e);
+            }
+          }
+        }
+      } else {
+        // No constraint, cursor position matches the event
+        fakeCursors[humanCursorIndex] = {
+          ...fakeCursors[humanCursorIndex],
+          x: event.clientX,
+          y: event.clientY + window.scrollY
+        };
+      }
       
       // Notify parent component of cursor change
       onFakeCursorsUpdate(fakeCursors);
@@ -1290,8 +1389,9 @@
     const containerTop = containerRect.top;
     
     // Calculate the new position based on touch movement and initial grab offset
-    const newLeft = touch.clientX - grabOffsetX - containerLeft;
-    const newTop = touch.clientY - grabOffsetY - containerTop;
+    // Correctly adjust for the container's offset
+    const desiredImageLeft = touch.clientX - grabOffsetX - containerLeft;
+    const desiredImageTop = touch.clientY - grabOffsetY - containerTop;
     
     // Apply uniform minimum margin to all images regardless of size
     const MIN_MARGIN = 0; // Allow images to go to edges
@@ -1313,14 +1413,14 @@
     const isSnake = imageData.alt === 'Snake' || (typeof imageData.alt === 'string' && imageData.alt.includes('snake'));
     const minTop = (isOwl || isSnake) ? -imageHeight * 0.1 : MIN_MARGIN; // Only allow 10% to go off-screen for snake & owl images
     
-    // For the owl specifically, adjust to center on visible content
-    let adjustedNewLeft = newLeft;
-    let adjustedNewTop = newTop;
+    // For the owl specifically, adjust to center on visible content - Retain adjustments
+    let adjustedNewLeft = desiredImageLeft;
+    let adjustedNewTop = desiredImageTop;
     
     if (isOwl || isSnake) {
       // No adjustment needed as we fixed the dimensions
-      adjustedNewLeft = touch.clientX - grabOffsetX - containerLeft;
-      adjustedNewTop = touch.clientY - grabOffsetY - containerTop;
+      adjustedNewLeft = desiredImageLeft;
+      adjustedNewTop = desiredImageTop;
     }
     
     // Clamp the position to keep image fully within viewport
@@ -1351,7 +1451,7 @@
     
     // Make the image slightly larger when dragging for better visual feedback
     // For owl, use slightly larger scale for better grabbability
-    const scaleFactor = isOwl || isSnake ? 1.05 : 1.03;
+    const scaleFactor = 1; // Set to 1 to remove scaling effect
     imageElement.style.transform = `rotate(${imageData.rotation}deg) scale(${scaleFactor})`;
     
     // Update the image data in our array
@@ -1364,11 +1464,29 @@
     // If it's the human cursor, update its position
     const humanCursorIndex = fakeCursors.findIndex(c => c.id === "human-user");
     if (humanCursorIndex !== -1) {
-      fakeCursors[humanCursorIndex] = {
-        ...fakeCursors[humanCursorIndex],
-        x: touch.clientX,
-        y: touch.clientY + window.scrollY
-      };
+      // Check if the image position was constrained (hit a boundary)
+      const wasConstrained = left !== desiredImageLeft || top !== desiredImageTop;
+      
+      if (wasConstrained) {
+        // Image hit boundary - adjust cursor position to match image's constrained position
+        // This keeps the cursor exactly at the same spot on the image when boundaries are hit
+        const adjustedCursorX = left + grabOffsetX + containerLeft;
+        const adjustedCursorY = top + grabOffsetY + containerTop;
+        
+        // Override the touch position with our constrained position
+        fakeCursors[humanCursorIndex] = {
+          ...fakeCursors[humanCursorIndex],
+          x: adjustedCursorX,
+          y: adjustedCursorY + window.scrollY
+        };
+      } else {
+        // No constraint, cursor position matches the touch
+        fakeCursors[humanCursorIndex] = {
+          ...fakeCursors[humanCursorIndex],
+          x: touch.clientX,
+          y: touch.clientY + window.scrollY
+        };
+      }
       
       // Notify parent component of cursor change
       onFakeCursorsUpdate(fakeCursors);
@@ -1377,21 +1495,523 @@
 
   // Update cursor position calculation to account for scroll
   function updateCursorPositions() {
-    // For each cursor that's dragging an image, update its position
+    // For each cursor, update its position based on its state
     fakeCursors = fakeCursors.map(cursor => {
-      if (cursor.isDragging && cursor.targetImage !== null) {
-        const imageElement = document.querySelector(`.collage-image-button:nth-child(${cursor.targetImage + 1})`);
-        if (imageElement) {
-          const rect = imageElement.getBoundingClientRect();
-          // Update cursor position with the center of the image
-          cursor.x = rect.left + rect.width / 2;
-          cursor.y = rect.top + rect.height / 2 + window.scrollY; // Add scroll offset
+      // Skip static cursors completely
+      if (cursor.isStatic) {
+        return cursor;
+      }
+      
+      // If cursor is in a resting period, decrement it and skip movement
+      if (cursor.restingPeriod > 0) {
+        cursor.restingPeriod -= 16; // Assuming 16ms per frame (60fps)
+        return cursor;
+      }
+      
+      // Save previous position for velocity calculation
+      const prevX = cursor.x;
+      const prevY = cursor.y;
+      
+      // Increment time factor for curved movement (0.01-0.05 radians per frame)
+      cursor.timeFactor += 0.01 + (Math.random() * 0.04);
+      
+      // Update curve offsets occasionally to change the curve pattern
+      if (Math.random() < 0.01) {
+        cursor.curveOffsetX = (Math.random() * 100) - 50;
+        cursor.curveOffsetY = (Math.random() * 100) - 50;
+      }
+      
+      // STEP 1: HANDLE STATE TRANSITIONS
+      // Note: We'll only check for state changes, but won't apply position changes here
+      
+      // If not dragging, randomly decide to start dragging - lower probability (2% chance)
+      if (!cursor.isDragging && !cursor.isMovingToTarget && Math.random() < 0.02) {
+        // If cursor was previously targeting an image but state changed,
+        // ensure we clean up any existing target
+        if (cursor.targetImage !== null) {
+          // Clean up any previous target that wasn't properly released
+          console.log(`Cursor ${cursor.name} was targeting image ${cursor.targetImage} but state doesn't match - cleaning up`);
+          if (imageLocks[cursor.targetImage] === cursor.id) {
+            // CRITICAL FIX: Make sure we stop dragging BEFORE deleting the lock
+            stopDragging(cursor.targetImage);
+            delete imageLocks[cursor.targetImage];
+          }
+          cursor.targetImage = null;
+        }
+
+        // CRITICAL FIX: Check if the cursor is over an image before selecting it
+        // Instead of randomly choosing any image, find one that the cursor is positioned over
+        const cursorX = cursor.x;
+        const cursorY = cursor.y;
+        
+        // Find all image elements
+        const imageElements = document.querySelectorAll('.collage-image-button');
+        const imagesUnderCursor: {element: Element, index: number, distance: number}[] = [];
+        
+        // Check each image to see if cursor is over it
+        imageElements.forEach((el, index) => {
+          if (!imageLocks[index]) { // Skip images that are already locked/being dragged
+            const rect = el.getBoundingClientRect();
+            
+            // IMPROVED: Add a small buffer zone around the image (5px) to make hit detection more reliable
+            // This helps with edge cases where cursor is nearly on the image but not quite
+            const bufferSize = 5;
+            if (
+              cursorX >= rect.left - bufferSize && 
+              cursorX <= rect.right + bufferSize && 
+              cursorY >= rect.top - bufferSize && 
+              cursorY <= rect.bottom + bufferSize
+            ) {
+              // Found an image the cursor is over (or very near)
+              const distance = Math.min(
+                Math.abs(cursorX - rect.left),
+                Math.abs(cursorX - rect.right),
+                Math.abs(cursorY - rect.top),
+                Math.abs(cursorY - rect.bottom)
+              );
+              
+              // Store the element, index, and distance for sorting
+              imagesUnderCursor.push({ 
+                element: el, 
+                index, 
+                distance: distance < bufferSize ? distance : 0 // Prioritize actual overlaps
+              });
+            }
+          }
+        });
+        
+        // Sort by distance (0 = direct hit, higher = nearby)
+        imagesUnderCursor.sort((a, b) => a.distance - b.distance);
+        
+        // If cursor is over any images, select the one with the best hit
+        if (imagesUnderCursor.length > 0) {
+          // Take the first (closest) match
+          const selected = imagesUnderCursor[0];
+          
+          // Proceed with selection
+          proceedWithImageSelection(selected.element, cursor, selected.index);
+          
+          // Update activity timestamp
+          cursor.lastActiveTime = Date.now();
+          
+          console.log(`Cursor ${cursor.name} grabbing image ${selected.index} that it's positioned over`);
+        } else {
+          // Cursor isn't over any image, so do nothing for now
+          return cursor;
         }
       }
+      // If moving to target and reached it, start dragging
+      else if (cursor.isMovingToTarget && 
+               Math.abs(cursor.x - cursor.targetX) < 10 && 
+               Math.abs(cursor.y - cursor.targetY) < 10) {
+        
+        // Preserve the targetImage before state changes
+        const targetImageIndex = cursor.targetImage;
+        
+        if (targetImageIndex !== null) {
+          // Make sure we still own the lock on this image
+          if (imageLocks[targetImageIndex] !== cursor.id) {
+            // Someone else grabbed the image while we were moving to it
+            cursor.isMovingToTarget = false;
+            cursor.targetImage = null;
+            return cursor;
+          }
+          
+          // First register in the drag store BEFORE changing cursor state
+          // This ensures the image is marked as being dragged before the state changes
+          startDragging(targetImageIndex);
+          
+          // Now we've reached the image, start dragging it - update state
+          cursor.isMovingToTarget = false;
+          cursor.isDragging = true;
+          
+          // Ensure the imageLocks still points to us
+          imageLocks[targetImageIndex] = cursor.id;
+          
+          // Update activity timestamp
+          cursor.lastActiveTime = Date.now();
+          
+          console.log(`Cursor ${cursor.name} started ACTIVE dragging of image ${targetImageIndex}`);
+          
+          // Choose random destination with margins
+          const horizontalMargin = 100; // 100px from sides
+          const verticalMargin = 100; // 100px from top/bottom
+          cursor.destinationX = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
+          cursor.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
+          
+          console.log(`Cursor ${cursor.name} started dragging image ${targetImageIndex}`);
+        } else {
+          // Something is wrong, the cursor was moving to target but targetImage is null
+          console.log(`Cursor ${cursor.name} was moving to target but targetImage is null - resetting state`);
+          cursor.isMovingToTarget = false;
+          cursor.isDragging = false;
+        }
+        
+        return cursor;
+      }
+      // If dragging, very rarely decide to stop
+      else if (cursor.isDragging && Math.random() < 0.003) {
+        // Release the image immediately
+        const releasedImageIndex = cursor.targetImage;
+        if (releasedImageIndex !== null) {
+          // TRIPLE-CHECK release protocol:
+          // 1. First update the drag store to remove highlight
+          stopDragging(releasedImageIndex);
+          
+          // 2. Remove the image lock in the locks dictionary
+          if (imageLocks[releasedImageIndex] === cursor.id) {
+            delete imageLocks[releasedImageIndex];
+          }
+          
+          // 3. Clear cursor state properties
+          cursor.isDragging = false;
+          cursor.targetImage = null;
+          
+          // 4. CRITICAL FIX: Verify the highlight is actually gone
+          let isStillHighlighted = false;
+          draggingStore.subscribe(state => {
+            isStillHighlighted = !!state.activeDrags[releasedImageIndex];
+          })();
+          
+          if (isStillHighlighted) {
+            console.log(`[CRITICAL] Image ${releasedImageIndex} highlight persisted after cursor release - forcing cleanup`);
+            stopDragging(releasedImageIndex);
+          }
+          
+          // Update activity timestamp
+          cursor.lastActiveTime = Date.now();
+          
+          // Set a resting period (8-12 seconds) after dropping the image
+          cursor.restingPeriod = 8000 + Math.random() * 4000;
+          
+          console.log(`Cursor ${cursor.name} dropped the image and will rest for ${Math.round(cursor.restingPeriod/1000)} seconds`);
+        }
+        
+        cursor.isMovingToTarget = false;
+        
+        // Choose a new wandering destination with margins
+        const horizontalMargin = 100; // 100px from sides
+        const verticalMargin = 100; // 100px from top/bottom
+        cursor.destinationX = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
+        cursor.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
+        
+        // Return immediately to apply the cursor state change
+        return cursor;
+      }
+      
+      // STEP 2: HANDLE MOVEMENT BASED ON STATE
+      // Use slower speeds for all movement - CONSISTENT for all cases
+      const MOVEMENT_SPEED = 5.0; // Consistent speed for all cursor movement
+      
+      // CASE 1: Moving to target image
+      if (cursor.isMovingToTarget && !cursor.isDragging) {
+        // Calculate direction to target
+        const dx = cursor.targetX - cursor.x;
+        const dy = cursor.targetY - cursor.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // If close to target, start dragging
+        if (distance < 5) { // Reduced from 10 for quicker transition to dragging
+          // First set up the dragging destination
+          const horizontalMargin = 100;
+          const verticalMargin = 100;
+          cursor.destinationX = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
+          cursor.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
+          
+          // Make sure the image lock is consistent
+          if (cursor.targetImage !== null) {
+            // Update the image lock
+            imageLocks[cursor.targetImage] = cursor.id;
+            
+            // FIRST mark in the drag store that we're actively dragging
+            // This must happen before changing cursor.isDragging
+            startDragging(cursor.targetImage);
+            
+            console.log(`Cursor ${cursor.name} STARTED DRAGGING image ${cursor.targetImage}`);
+          }
+          
+          // THEN change state to dragging (order matters for highlighting)
+          cursor.isMovingToTarget = false;
+          cursor.isDragging = true;
+          
+          return cursor;
+        }
+        
+        // Move toward target at CONSISTENT speed
+        const dirX = dx / distance;
+        const dirY = dy / distance;
+        cursor.x += dirX * MOVEMENT_SPEED;
+        cursor.y += dirY * MOVEMENT_SPEED;
+      }
+      // CASE 2: Dragging an image
+      else if (cursor.isDragging && cursor.targetImage !== null) {
+        // Double-verify the cursor still owns this image lock
+        if (imageLocks[cursor.targetImage] !== cursor.id) {
+          console.log(`Cursor ${cursor.name} lost control of image ${cursor.targetImage} - stopping drag`);
+          cursor.isDragging = false;
+          cursor.targetImage = null;
+          return cursor;
+        }
+        
+        // Get the image element
+        const imageElement = document.querySelector(`.collage-image-button:nth-child(${cursor.targetImage + 1})`);
+        
+        // IMPROVEMENT: Try an alternative selector if the first one fails
+        let imageFound = !!imageElement;
+        let alternativeImageElement = null;
+        
+        if (!imageElement) {
+          // Try by z-index
+          const targetZIndex = collageImages[cursor.targetImage]?.zIndex;
+          if (targetZIndex) {
+            alternativeImageElement = document.querySelector(`.collage-image-button[style*="z-index: ${targetZIndex}"]`);
+            if (alternativeImageElement) {
+              imageFound = true;
+            }
+          }
+          
+          // If still not found, try by array index
+          if (!alternativeImageElement) {
+            const allImageButtons = document.querySelectorAll('.collage-image-button');
+            const imageArray = Array.from(allImageButtons);
+            if (cursor.targetImage < imageArray.length) {
+              alternativeImageElement = imageArray[cursor.targetImage];
+              if (alternativeImageElement) {
+                imageFound = true;
+              }
+            }
+          }
+        }
+        
+        // Use the original or alternative element
+        const activeElement = imageElement || alternativeImageElement;
+        
+        // Image element not found, release the image
+        if (!imageFound || !activeElement) {
+          // Image element not found, release the image
+          if (cursor.targetImage !== null) {
+            delete imageLocks[cursor.targetImage];
+            stopDragging(cursor.targetImage);
+            cursor.targetImage = null;
+            cursor.isDragging = false;
+          }
+          return cursor;
+        }
+        
+        // Calculate direction to destination  
+        const dx = cursor.destinationX - cursor.x;
+        const dy = cursor.destinationY - cursor.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // If close to destination, either drop the image or set a new destination
+        if (distance < 10) {
+          // 70% chance to drop the image
+          if (Math.random() < 0.7) {
+            // Release the image immediately
+            const releasedImageIndex = cursor.targetImage;
+            if (releasedImageIndex !== null) {
+              // Very simple release: just clear everything
+              // CRITICAL FIX: First remove from drag store before clearing the lock
+              stopDragging(releasedImageIndex);
+              delete imageLocks[releasedImageIndex];
+              
+              // CRITICAL FIX: Double-check the highlight is actually gone
+              let isStillHighlighted = false;
+              draggingStore.subscribe(state => {
+                isStillHighlighted = !!state.activeDrags[releasedImageIndex];
+              })();
+              
+              if (isStillHighlighted) {
+                console.log(`[CRITICAL] Image ${releasedImageIndex} highlight persisted after cursor release - forcing cleanup`);
+                stopDragging(releasedImageIndex);
+              }
+              
+              cursor.targetImage = null;
+              cursor.isDragging = false;
+              
+              // Set a resting period (8-12 seconds) after dropping the image
+              cursor.restingPeriod = 8000 + Math.random() * 4000;
+              
+              // Update activity timestamp
+              cursor.lastActiveTime = Date.now();
+              
+              console.log(`Cursor ${cursor.name} dropped the image and will rest for ${Math.round(cursor.restingPeriod/1000)} seconds`);
+            }
+            
+            cursor.isMovingToTarget = false;
+            
+            // Choose a new wandering destination with margins
+            const horizontalMargin = 100; // 100px from sides
+            const verticalMargin = 100; // 100px from top/bottom
+            cursor.destinationX = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
+            cursor.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
+            
+            // Return immediately to apply the cursor state change
+            return cursor;
+          } else {
+            // Just set a new destination to continue dragging
+            const horizontalMargin = 100;
+            const verticalMargin = 100;
+            cursor.destinationX = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
+            cursor.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
+            
+            // Simplified curve setup
+            const curveStrength = 30 + Math.random() * 70; 
+            const startX = cursor.x;
+            const startY = cursor.y;
+            const endX = cursor.destinationX;
+            const endY = cursor.destinationY;
+            
+            // Just use midpoint with offset for control point
+            cursor.controlX = (startX + endX) / 2 + (Math.random() - 0.5) * curveStrength;
+            cursor.controlY = (startY + endY) / 2 + (Math.random() - 0.5) * curveStrength;
+            
+            // Reset curve progress
+            cursor.curveProgress = 0;
+            
+            // Update activity timestamp
+            cursor.lastActiveTime = Date.now();
+            
+            return cursor;
+          }
+        }
+        
+        // Get current image center position
+        const imgRect = activeElement.getBoundingClientRect();
+        const imageCenterX = imgRect.left + imgRect.width / 2;
+        const imageCenterY = imgRect.top + imgRect.height / 2;
+        
+        // Calculate direction to destination
+        const dirX = dx / distance;
+        const dirY = dy / distance;
+        
+        // FIXING CURSOR-IMAGE SYNC ISSUE:
+        // 1. First move the cursor
+        // 2. THEN update the image based on the cursor's new position
+        
+        // Move the cursor toward the destination - at consistent speed
+        cursor.x += dirX * MOVEMENT_SPEED;
+        cursor.y += dirY * MOVEMENT_SPEED;
+        
+        // CRITICAL FIX: Update the image position based on cursor movement
+        // Get the current image data
+        const imageData = collageImages[cursor.targetImage];
+        if (!imageData) return cursor;
+        
+        // Set grab offset if not already set - this records where on the image the cursor grabbed
+        if (!cursor.grabOffsetX || !cursor.grabOffsetY) {
+          // Calculate the offset from the cursor to the top-left corner of the image
+          // This makes sure we grab the image exactly where the cursor is positioned
+          cursor.grabOffsetX = cursor.x - imageData.left;
+          cursor.grabOffsetY = cursor.y - imageData.top;
+          
+          // Ensure grab offset is within image bounds
+          cursor.grabOffsetX = Math.max(0, Math.min(imgRect.width, cursor.grabOffsetX));
+          cursor.grabOffsetY = Math.max(0, Math.min(imgRect.height, cursor.grabOffsetY));
+          
+          console.log(`Cursor ${cursor.name} grabbed image at offset: ${cursor.grabOffsetX.toFixed(1)}, ${cursor.grabOffsetY.toFixed(1)}`);
+        }
+        
+        // IMPROVED SYNC: Calculate new position based on cursor's exact current position
+        const newLeft = cursor.x - cursor.grabOffsetX;
+        const newTop = cursor.y - cursor.grabOffsetY;
+        
+        // Get container for constraints
+        const container = document.querySelector('.desktop-collage') || document.querySelector('.mobile-collage');
+        const containerRect = container ? container.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+        
+        // Apply constraints to keep within bounds
+        const constrainedLeft = Math.max(
+          0,
+          Math.min(containerRect.width - imgRect.width, newLeft)
+        );
+        const constrainedTop = Math.max(
+          0,
+          Math.min(containerRect.height - imgRect.height, newTop)
+        );
+        
+        // IMPROVED SYNC: If the image position was constrained, update the cursor position too
+        // This ensures the cursor and image remain perfectly in sync at boundaries
+        if (constrainedLeft !== newLeft) {
+          cursor.x = constrainedLeft + cursor.grabOffsetX;
+        }
+        if (constrainedTop !== newTop) {
+          cursor.y = constrainedTop + cursor.grabOffsetY;
+        }
+        
+        // Update the collageImages array directly
+        collageImages[cursor.targetImage] = {
+          ...collageImages[cursor.targetImage],
+          left: constrainedLeft,
+          top: constrainedTop
+        };
+        
+        // Update the element's position directly
+        if (activeElement instanceof HTMLElement) {
+          activeElement.style.left = `${constrainedLeft}px`;
+          activeElement.style.top = `${constrainedTop}px`;
+        }
+        
+        return cursor;
+      }
+      // CASE 3: Wandering (not dragging, not moving to target)
+      else {
+        // If we don't have a destination or are close to it, set a new one
+        if (!cursor.destinationX || 
+            Math.abs(cursor.x - cursor.destinationX) < 10 && 
+            Math.abs(cursor.y - cursor.destinationY) < 10) {
+          
+          // Make sure the cursor isn't still linked to an image
+          if (cursor.targetImage !== null) {
+            // If the cursor has a targetImage but is wandering,
+            // we need to clean up the lock and drag state
+            if (imageLocks[cursor.targetImage] === cursor.id) {
+              delete imageLocks[cursor.targetImage];
+              stopDragging(cursor.targetImage);
+              console.log(`Cursor ${cursor.name} released lock on image ${cursor.targetImage} while wandering`);
+            }
+            cursor.targetImage = null;
+            cursor.isDragging = false;
+            cursor.isMovingToTarget = false;
+          }
+          
+          // Choose random destination with margins
+          const horizontalMargin = 100; // 100px from sides
+          const verticalMargin = 100; // 100px from top/bottom
+          cursor.destinationX = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
+          cursor.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
+        }
+        
+        // Move towards destination with curved path
+        const dx = cursor.destinationX - cursor.x;
+        const dy = cursor.destinationY - cursor.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance > 5) {
+          // Add sine wave variation based on time
+          const curveX = Math.sin(cursor.timeFactor) * cursor.curveOffsetX * 0.05;
+          const curveY = Math.cos(cursor.timeFactor * 0.7) * cursor.curveOffsetY * 0.05;
+          
+          cursor.x += (dx / distance) * MOVEMENT_SPEED + curveX;
+          cursor.y += (dy / distance) * MOVEMENT_SPEED + curveY;
+        }
+      }
+      
+      // Calculate velocity for debugging
+      const velocity = Math.sqrt(Math.pow(cursor.x - prevX, 2) + Math.pow(cursor.y - prevY, 2));
+      
+      // Log significant velocity changes (but not state transition jumps)
+      if (cursor.lastVelocity && 
+          Math.abs(velocity - cursor.lastVelocity) > 0.1 &&
+          !(cursor.isMovingToTarget && cursor.lastVelocity < 0.1)) { // Ignore initial grab
+        console.log(`Cursor ${cursor.name} velocity: ${velocity.toFixed(2)} (state: ${cursor.isDragging ? 'dragging' : cursor.isMovingToTarget ? 'moving-to-image' : 'wandering'})`);
+      }
+      
+      cursor.lastVelocity = velocity;
       return cursor;
     });
     
-    // Notify parent of cursor updates
+    // Update parent component with new cursor states
     onFakeCursorsUpdate(fakeCursors);
   }
   
@@ -1455,7 +2075,11 @@
 
     // Add resize and touch event handlers
     window.addEventListener('resize', handleResize);
-    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    
+    // IMPORTANT: Do NOT use the handleTouchMove function here - it causes dual processing
+    // Let the touchstart handler on each image handle the touch events directly
+    // window.addEventListener('touchmove', handleTouchMove, { passive: false });
+    
     window.addEventListener('touchend', endDrag);
     
     // Handle touch end events for cleaning up after touch dragging
@@ -1571,15 +2195,15 @@
                   owlElement.style.top = `${newTop}px`;
                   
                   // Update our data structure as well
-                  collageImages = collageImages.map((img, i) => {
+    collageImages = collageImages.map((img, i) => {
                     if (i === owlIndex) {
-                      return {
-                        ...img,
+        return {
+          ...img,
                         top: newTop
-                      };
-                    }
-                    return img;
-                  });
+        };
+      }
+      return img;
+    });
                   
                   console.log(`Explicitly positioned owl in desktop view at top: ${newTop}px`);
                 }
@@ -1817,6 +2441,11 @@
     event.preventDefault();
     event.stopPropagation();
     
+    // Get the image data
+    const imageData = collageImages[index];
+    
+    // REMOVE special image drag prevention - allow all images to be dragged
+    
     // Check if this image is already being dragged by a cursor
     if (imageLocks[index]) {
       // Image is locked, can't drag it
@@ -1844,8 +2473,7 @@
       }
     }
     
-    // Get the image data to check if it's the owl
-    const imageData = collageImages[index];
+    // Check if it's the owl or snake 
     const isOwl = imageData && (imageData.alt === 'Owl' || (typeof imageData.alt === 'string' && imageData.alt.includes('owl')));
     const isSnake = imageData && (imageData.alt === 'Snake' || (typeof imageData.alt === 'string' && imageData.alt.includes('snake')));
     
@@ -1881,7 +2509,6 @@
   // Add browser detection at the top of the script
   const browser = typeof window !== 'undefined';
   
-  // Ensure all window references are guarded
   // Create the main collage images with random positions
   let initialCollageImages = baseImages.map((img, index) => {
     // Set width/height based on original dimensions but scale down
@@ -1893,11 +2520,38 @@
     const containerWidth = browser ? window.innerWidth : 1200; // Fallback for SSR
     const containerHeight = browser ? window.innerHeight : 800; // Fallback for SSR
     
-    // Random position within allowable range considering margins
-    const left = MARGIN_PX + Math.random() * (containerWidth - width - MARGIN_PX * 2);
-    const top = MARGIN_PX + Math.random() * (containerHeight - height - MARGIN_PX * 2);
+    // Calculate the area for z-index sorting later
+    const area = width * height;
     
-    // Initialize with varying z-index to create depth
+    // Define the available area for positioning - use more of the screen
+    const leftMin = containerWidth * 0.4; // Use more horizontal space (was 0.55)
+    const leftMax = containerWidth * 0.98 - width; // Nearly full width
+    const topMin = containerHeight * 0.2; // Start higher (was 0.35)
+    const topMax = containerHeight * 0.98 - height; // Nearly full height
+    
+    // Use grid-based positioning for better spread
+    // Divide the available space into a grid and position each image in a cell
+    const gridSize = Math.ceil(Math.sqrt(baseImages.length * 1.5)); // More cells than images
+    
+    // Determine which grid cell to use (with some randomness)
+    const cellX = Math.floor(Math.random() * gridSize);
+    const cellY = Math.floor(Math.random() * gridSize);
+    
+    // Calculate cell dimensions
+    const cellWidth = (leftMax - leftMin) / gridSize;
+    const cellHeight = (topMax - topMin) / gridSize;
+    
+    // Calculate base position within the cell (with randomness)
+    const cellLeft = leftMin + (cellX * cellWidth);
+    const cellTop = topMin + (cellY * cellHeight);
+    
+    // Add randomness within the cell (80% of cell size)
+    const left = cellLeft + (Math.random() * cellWidth * 0.8);
+    const top = cellTop + (Math.random() * cellHeight * 0.8);
+    
+    // No rotation
+    const rotation = 0;
+    
     return {
       src: img.src,
       alt: img.alt,
@@ -1905,11 +2559,21 @@
       height,
       left,
       top,
-      zIndex: Math.floor(Math.random() * 10) + 1,
-      rotation: getRandomRotation(-4, 4),
-      scale: 1
+      zIndex: 1, // Temporary - will be reassigned after sorting
+      rotation,
+      scale: 1,
+      area // Store area for sorting
     };
   });
+  
+  // Sort collage images by area (largest first) for proper z-index layering
+  initialCollageImages = initialCollageImages.sort((a, b) => b.area - a.area);
+  
+  // Now reassign z-indexes based on sorted order (largest = back, smallest = front)
+  initialCollageImages = initialCollageImages.map((img, index) => ({
+    ...img,
+    zIndex: index + 1 // Largest has zIndex 1 (back), smallest has highest zIndex (front)
+  }));
   
   // Initialize collage images with our generated positions
   collageImages = initialCollageImages;
@@ -1919,70 +2583,9 @@
     return min + Math.random() * (max - min);
   }
   
-  function getRandomRotation(min: number, max: number): number {
-    return min + Math.random() * (max - min);
-  }
-  
-  // Adjust starting position calculation based on viewport size
-  function generatePosition() {
-    if (isMobile) {
-      // For mobile: distribute more evenly across the container
-      return {
-        right: rightMin + Math.random() * (rightMax - rightMin),
-        bottom: bottomMin + Math.random() * (bottomMax - bottomMin),
-      };
-    } else {
-      // For desktop: apply strong bias toward right and bottom (low values)
-      // Use much lower values to push images heavily to right and bottom
-      return {
-        right: rightMin + (Math.random() * Math.random() * (rightMax - rightMin)), // Double random for extreme right bias
-        bottom: bottomMin + (Math.random() * Math.random() * (bottomMax - bottomMin)), // Double random for extreme bottom bias
-      };
-    }
-  }
-
-  // Handle touch end events to stop dragging
-  function handleTouchEnd(event: TouchEvent) {
-    if (draggedImageIndex === null) return;
-    
-    // Find the image element and remove the dragging class
-    const imageElement = document.querySelector(`.collage-image-button:nth-child(${draggedImageIndex + 1})`);
-    if (imageElement) {
-      imageElement.classList.remove('dragging');
-    }
-    
-    // Release the image lock
-    delete imageLocks[draggedImageIndex];
-    
-    // Reset drag state
-    collageImages = collageImages.map((img, i) => {
-      if (i === draggedImageIndex) {
-        return {
-          ...img,
-          scale: 1 // Reset scale to normal
-        };
-      }
-      return img;
-    });
-    
-    // For local cursors that might be watching this image
-    fakeCursors.forEach(cursor => {
-      if (cursor.targetImage === draggedImageIndex) {
-        // Update cursor position one last time with scroll offset
-        if (imageElement) {
-          const rect = imageElement.getBoundingClientRect();
-          cursor.x = rect.left + rect.width / 2;
-          cursor.y = rect.top + rect.height / 2 + window.scrollY; // Add scroll offset
-        }
-      }
-    });
-    
-    // Update parent with cursor changes
-    onFakeCursorsUpdate(fakeCursors);
-    
-    // Clean up dragging state
-    draggedImageIndex = null;
-    document.body.classList.remove('dragging');
+  function getRandomRotation(min: number = -4, max: number = 4): number {
+    // Always return 0 for no rotation
+    return 0;
   }
 
   // Add preloadImages function near the other helper functions
@@ -2070,7 +2673,7 @@
     if (imageElement) {
       imageElement.style.left = `${clampedLeft}px`;
       imageElement.style.top = `${clampedTop}px`;
-      imageElement.style.transform = `rotate(${imageData.rotation}deg) scale(1.03)`;
+      imageElement.style.transform = `rotate(${imageData.rotation}deg) scale(1)`;
     }
 
     // Update the image data
@@ -2080,6 +2683,566 @@
       top: clampedTop
     };
   }
+
+  // Function to create images for mobile
+  function createImagesForMobile(images: CollageImage[], containerWidth: number, containerHeight: number) {
+    const copyImages = [...images];
+    // Sort images by area (largest to smallest)
+    copyImages.sort((a, b) => {
+      const areaA = a.width * a.height;
+      const areaB = b.width * b.height;
+      return areaB - areaA;
+    });
+
+    // Assign z-indexes, with largest images having lowest z-index
+    let nextZIndex = 1;
+    copyImages.forEach(image => {
+      image.zIndex = nextZIndex++;
+    });
+
+    const viewportMargin = 40;
+    const rightMin = viewportMargin;
+    const rightMax = containerWidth - viewportMargin;
+    // Increase vertical spread by expanding top and bottom limits
+    const bottomMin = viewportMargin;
+    const bottomMax = containerHeight - viewportMargin;
+
+    copyImages.forEach((image, index) => {
+      // Scale image for mobile
+      const MAX_WIDTH = containerWidth * 0.65;
+      const MAX_HEIGHT = containerHeight * 0.5;
+      const aspectRatio = image.width / image.height;
+
+      let newWidth, newHeight;
+      if (image.width > MAX_WIDTH || image.height > MAX_HEIGHT) {
+        if (aspectRatio > 1) {
+          // Landscape
+          newWidth = MAX_WIDTH;
+          newHeight = newWidth / aspectRatio;
+        } else {
+          // Portrait
+          newHeight = MAX_HEIGHT;
+          newWidth = newHeight * aspectRatio;
+        }
+      } else {
+        newWidth = image.width;
+        newHeight = image.height;
+      }
+
+      image.width = newWidth;
+      image.height = newHeight;
+
+      // Constrain image position to be within visible area
+      // Use more of the vertical space for distribution
+      image.left = Math.floor(
+        rightMin + (rightMax - rightMin - image.width) * Math.random()
+      );
+      // Enhanced vertical distribution with more bias toward edges
+      // Increase variance between images vertically
+      const verticalPosition = Math.random();
+      let topPosition;
+      
+      if (verticalPosition < 0.4) {
+        // Top 40% - position closer to top
+        topPosition = bottomMin + (bottomMax * 0.4 - bottomMin) * Math.random();
+      } else if (verticalPosition > 0.6) {
+        // Bottom 40% - position closer to bottom
+        topPosition = bottomMax * 0.6 + (bottomMax * 0.4) * Math.random();
+      } else {
+        // Middle 20% - more centered
+        topPosition = bottomMax * 0.4 + (bottomMax * 0.2) * Math.random();
+      }
+      
+      image.top = Math.floor(topPosition);
+
+      // Add slight rotation
+      image.rotation = Math.floor(Math.random() * 10 - 5);
+      
+      // Add slight scale variation for interest
+      image.scale = 0.9 + Math.random() * 0.2;
+    });
+
+    return copyImages;
+  }
+
+  function getInitialCollageImagePositions() {
+    if (!document) return;
+    
+    // Create a set of static positions for large screens
+    const container = document.querySelector('.collage-image-container');
+    if (!container) return [];
+
+    const containerWidth = container.getBoundingClientRect().width;
+    const containerHeight = container.getBoundingClientRect().height;
+
+    // Get the viewport width and height
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    // Create a copy of images so we don't modify originals from props
+    const copyImages = [...imageDimensions];
+
+    const viewportMargin = 40;
+    const rightMin = viewportMargin;
+    const rightMax = containerWidth - viewportMargin;
+    // Increase vertical spread by expanding top and bottom limits
+    const bottomMin = viewportMargin;
+    const bottomMax = containerHeight - viewportMargin;
+
+    copyImages.forEach((image, index) => {
+      // Scale image for desktop
+      const MAX_WIDTH = containerWidth * 0.5;
+      const MAX_HEIGHT = containerHeight * 0.5;
+      const aspectRatio = image.width / image.height;
+
+      let newWidth, newHeight;
+      if (image.width > MAX_WIDTH || image.height > MAX_HEIGHT) {
+        if (aspectRatio > 1) {
+          // Landscape
+          newWidth = MAX_WIDTH;
+          newHeight = newWidth / aspectRatio;
+        } else {
+          // Portrait
+          newHeight = MAX_HEIGHT;
+          newWidth = newHeight * aspectRatio;
+        }
+      } else {
+        newWidth = image.width;
+        newHeight = image.height;
+      }
+
+      image.width = newWidth;
+      image.height = newHeight;
+
+      // Constrain image position to be within visible area
+      // Use a better distribution technique for more interesting layout
+      image.left = Math.floor(
+        rightMin + (rightMax - rightMin - image.width) * Math.random()
+      );
+      
+      // Enhanced vertical distribution with more spread
+      // Divide the screen into 5 vertical zones and distribute more evenly
+      const zone = Math.floor(Math.random() * 5); // 0-4
+      const zoneHeight = (bottomMax - bottomMin) / 5;
+      const zoneStart = bottomMin + (zone * zoneHeight);
+      
+      // Add variance within the zone (0.7-1.0 of zone height)
+      const zoneOffset = zoneHeight * (0.7 + Math.random() * 0.3);
+      
+      image.top = Math.floor(zoneStart + zoneOffset);
+
+      // No rotation
+      image.rotation = 0;
+      
+      // Add slight scale variation
+      image.scale = 0.8 + Math.random() * 0.4;
+    });
+
+    return copyImages;
+  }
+
+  // Add this to the script section at the top, outside any functions
+  // Hard-coded identification constants for special images
+  const KNIGHT_IDENTIFIERS = ['knight', 'armor', 'warrior', 'helmet'];
+  const WOMAN_IDENTIFIERS = ['woman', 'lady', 'female', 'girl'];
+  
+  // Helper function to identify special images more robustly
+  function identifySpecialImage(img: CollageImage): 'knight' | 'woman' | null {
+    // Check alt text
+    if (img.alt) {
+      const altLower = img.alt.toLowerCase();
+      if (KNIGHT_IDENTIFIERS.some(id => altLower.includes(id))) return 'knight';
+      if (WOMAN_IDENTIFIERS.some(id => altLower.includes(id))) return 'woman';
+    }
+    
+    // Check src path
+    if (img.src) {
+      const srcLower = img.src.toLowerCase();
+      if (KNIGHT_IDENTIFIERS.some(id => srcLower.includes(id))) return 'knight';
+      if (WOMAN_IDENTIFIERS.some(id => srcLower.includes(id))) return 'woman';
+    }
+    
+    return null;
+  }
+
+  function createResizedImagesOnFirstLoad(images: CollageImage[]): CollageImage[] {
+    if (!document) return [];
+    
+    // Create a set of static positions for large screens
+    const container = document.querySelector('.collage-image-container');
+    if (!container) return [];
+
+    const containerWidth = container.getBoundingClientRect().width;
+    const containerHeight = container.getBoundingClientRect().height;
+
+    // Create a copy of images so we don't modify originals
+    const copyImages = [...images];
+    
+    // Precompute areas for sorting
+    copyImages.forEach(image => {
+      image.area = image.width * image.height;
+    });
+    
+    // Find the knight and woman images for special treatment
+    const womanIndex = copyImages.findIndex(img => 
+      (img.alt?.toLowerCase().includes('woman') || 
+       img.alt?.toLowerCase().includes('lady') ||
+       img.src?.toLowerCase().includes('woman') ||
+       img.src?.toLowerCase().includes('lady'))
+    );
+    
+    const knightIndex = copyImages.findIndex(img => 
+      (img.alt?.toLowerCase().includes('knight') || 
+       img.alt?.toLowerCase().includes('armor') ||
+       img.src?.toLowerCase().includes('knight') ||
+       img.src?.toLowerCase().includes('armor'))
+    );
+    
+    // FORCE position and z-index for woman
+    if (womanIndex >= 0) {
+      const womanImage = copyImages[womanIndex];
+      
+      // Ensure the woman image is a reasonable size
+      const maxWomanWidth = containerWidth * 0.25;
+      const aspectRatio = womanImage.width / womanImage.height;
+      
+      // Resize if needed
+      if (womanImage.width > maxWomanWidth) {
+        womanImage.width = maxWomanWidth;
+        womanImage.height = maxWomanWidth / aspectRatio;
+      }
+      
+      // Place in top-left, far from knight
+      womanImage.left = containerWidth * 0.03;
+      womanImage.top = containerHeight * 0.03;
+      womanImage.zIndex = 2000; // Super high z-index
+      womanImage.rotation = 0;
+      
+      // Mark as processed
+      womanImage.processed = true;
+    }
+    
+    // FORCE position and z-index for knight
+    if (knightIndex >= 0) {
+      const knightImage = copyImages[knightIndex];
+      
+      // Ensure the knight image is a reasonable size
+      const maxKnightWidth = containerWidth * 0.25;
+      const aspectRatio = knightImage.width / knightImage.height;
+      
+      // Resize if needed
+      if (knightImage.width > maxKnightWidth) {
+        knightImage.width = maxKnightWidth;
+        knightImage.height = maxKnightWidth / aspectRatio;
+      }
+      
+      // Place in bottom-right, far from woman
+      knightImage.left = containerWidth - knightImage.width - containerWidth * 0.03;
+      knightImage.top = containerHeight - knightImage.height - containerHeight * 0.03;
+      knightImage.zIndex = 1999; // Very high but below woman
+      knightImage.rotation = 0;
+      
+      // Mark as processed
+      knightImage.processed = true;
+    }
+    
+    // Sort images by area (largest to smallest)
+    copyImages.sort((a, b) => {
+      return b.area! - a.area!;
+    });
+    
+    // Define usable area with margins
+    const margin = 40;
+    
+    // Define areas to place images in (left, center, right)
+    const areaWidth = (containerWidth - margin * 2) / 3;
+    const areas = [
+      { x: margin, y: margin, width: areaWidth, height: containerHeight - margin * 2 },
+      { x: margin + areaWidth, y: margin, width: areaWidth, height: containerHeight - margin * 2 },
+      { x: margin + areaWidth * 2, y: margin, width: areaWidth, height: containerHeight - margin * 2 }
+    ];
+    
+    // Define maximum dimensions
+    const MAX_WIDTH = containerWidth * 0.4;
+    const MAX_HEIGHT = containerHeight * 0.4;
+    
+    // Break images down by size group
+    const totalImages = copyImages.length;
+    const largeImageCount = Math.ceil(totalImages * 0.3); // Top 30% are large
+    const mediumImageCount = Math.ceil(totalImages * 0.3); // Next 30% are medium
+    
+    // Keep track of placed images for overlap tracking
+    interface PlacedImage {
+      id: string | number;
+      left: number;
+      top: number;
+      right: number;
+      bottom: number;
+      zIndex: number;
+      size: 'large' | 'medium' | 'small';
+      hasOverlap: boolean;
+      isOverlapping?: boolean;
+      isSpecialImage?: boolean;
+      specialImageType?: string;
+      maxOverlaps?: number; // Maximum number of images that can overlap with this one
+    }
+    
+    const placedImages: PlacedImage[] = [];
+    // Track how many overlaps each base image has
+    const placementTracker: Record<string | number, number> = {};
+    
+    // Process all images, processed or not
+    const finalImages = copyImages.map((image, index) => {
+      // If it's already processed (woman or knight), just return it without changes
+      if (image.processed) {
+        return image;
+      }
+      
+      // For non-special images, perform regular positioning logic
+      // All your existing logic for non-special images stays here
+      
+      // Determine image size category
+      let sizeCategory: 'large' | 'medium' | 'small';
+      if (index < largeImageCount) {
+        sizeCategory = 'large';
+      } else if (index < largeImageCount + mediumImageCount) {
+        sizeCategory = 'medium';
+      } else {
+        sizeCategory = 'small';
+      }
+      
+      // Choose which area to place this image in (distribute evenly)
+      const area = areas[index % areas.length];
+      
+      // Scale image appropriately
+      const aspectRatio = image.width / image.height;
+      
+      let newWidth, newHeight;
+      if (aspectRatio > 1) {
+        // Landscape
+        newWidth = Math.min(MAX_WIDTH, image.width);
+        newHeight = newWidth / aspectRatio;
+      } else {
+        // Portrait
+        newHeight = Math.min(MAX_HEIGHT, image.height);
+        newWidth = newHeight * aspectRatio;
+      }
+      
+      // Just continue with your existing positioning logic for regular images
+      // Include image width/height setting, positioning, and z-index
+      
+      // Return the processed image
+      return image;
+    });
+    
+    // Return the processed array
+    return finalImages;
+  }
+
+  // Add a reactive statement in the script to enforce z-index whenever collageImages changes
+  $: {
+    // Ensure special images always have top z-index after any changes
+    if (collageImages) {
+      collageImages.forEach(img => {
+        if (img.isSpecialImage) {
+          if (img.specialImageType === 'woman') {
+            img.zIndex = 1000;
+          } else if (img.specialImageType === 'knight') {
+            img.zIndex = 999;
+          }
+        }
+      });
+    }
+  }
+
+  // Helper function to process image selection for cursor dragging
+  function proceedWithImageSelection(
+    imageElement: Element, 
+    cursor: { 
+      targetImage: number | null; 
+      id: string; 
+      name: string; 
+      isMovingToTarget: boolean; 
+      isDragging: boolean; 
+      targetX: number; 
+      targetY: number;
+      x: number;
+      y: number;
+      grabOffsetX?: number;
+      grabOffsetY?: number;
+      destinationX?: number;
+      destinationY?: number;
+    }, 
+    randomImageIndex: number
+  ) {
+    // First, ensure we release any existing image this cursor might be targeting
+    // (This is a safety check in case our previous state cleanup missed anything)
+    if (cursor.targetImage !== null && cursor.targetImage !== randomImageIndex) {
+      // Double check we're not already targeting this same image
+      if (imageLocks[cursor.targetImage] === cursor.id) {
+        delete imageLocks[cursor.targetImage];
+        stopDragging(cursor.targetImage);
+        console.log(`Cursor ${cursor.name} releasing previous target ${cursor.targetImage} before grabbing ${randomImageIndex}`);
+      }
+    }
+    
+    // CRITICAL FIX: Skip the "moving to target" phase entirely
+    // Get the image data FIRST
+    const imageData = collageImages[randomImageIndex];
+    if (!imageData) return;  // Safety check
+    
+    // Get the element rect for precise grab offset calculation
+    const rect = imageElement.getBoundingClientRect();
+    
+    // Calculate grab offset - CRUCIAL for proper image alignment
+    // This is where the cursor is grabbing the image relative to the image's top-left corner
+    cursor.grabOffsetX = cursor.x - rect.left;
+    cursor.grabOffsetY = cursor.y - rect.top;
+    
+    // Ensure grab offset is within image bounds
+    cursor.grabOffsetX = Math.max(0, Math.min(rect.width, cursor.grabOffsetX));
+    cursor.grabOffsetY = Math.max(0, Math.min(rect.height, cursor.grabOffsetY));
+    
+    // Log this for debugging
+    cursor.grabOffsetX = cursor.x - imageData.left;
+    cursor.grabOffsetY = cursor.y - imageData.top;
+    
+    // Log this for debugging
+    console.log(`Cursor ${cursor.name} grabbing image ${randomImageIndex} at offset: ${cursor.grabOffsetX.toFixed(1)}, ${cursor.grabOffsetY.toFixed(1)}`);
+    
+    // Skip the isMovingToTarget phase - go DIRECTLY to dragging
+    cursor.isMovingToTarget = false;
+    cursor.isDragging = true;
+    cursor.targetImage = randomImageIndex;
+    
+    // Lock this image immediately
+    imageLocks[randomImageIndex] = cursor.id;
+    
+    // Register in drag store
+    startDragging(randomImageIndex);
+    
+    // Set a destination to move to
+    const horizontalMargin = 100;
+    const verticalMargin = 100;
+    cursor.destinationX = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
+    cursor.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
+  }
+
+  // ... existing code ...
+  
+  // Modify the onMount function to use createFakeCursor directly 
+  onMount(() => {
+    if (browser) {
+      // Start cursor simulation interval
+      simulationInterval = setInterval(() => {
+        updateCursorPositions();
+      }, 16); // 60 FPS
+
+      // IMPROVEMENT: Implement more varied bot behaviors on page load
+      // We will:
+      // 1. Maybe start with no bots (70% chance)
+      // 2. Maybe start with 1 bot that's just wandering (20% chance)
+      // 3. Maybe start with 1 bot that's dragging an image (10% chance)
+      
+      const startBehavior = Math.random();
+      
+      if (startBehavior < 0.7) {
+        // 70% chance: Start with no bots, they'll appear naturally over time
+        console.log("Starting with no bots - they will appear naturally");
+        fakeCursors = []; // Ensure no initial bots
+        
+        // Schedule first bot to appear after some time
+        setTimeout(() => {
+          const newCursor = createFakeCursor(false, true);
+          fakeCursors = [newCursor];
+          onFakeCursorsUpdate(fakeCursors);
+        }, 5000 + Math.random() * 15000); // First bot appears after 5-20 seconds
+        
+      } else if (startBehavior < 0.9) {
+        // 20% chance: Start with 1 bot that's just wandering
+        console.log("Starting with 1 wandering bot");
+        const wanderingBot = createFakeCursor(false, true);
+        
+        // Give it a random position and destination
+        const horizontalMargin = 100;
+        const verticalMargin = 100;
+        wanderingBot.x = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
+        wanderingBot.y = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
+        wanderingBot.destinationX = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
+        wanderingBot.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
+        
+        fakeCursors = [wanderingBot];
+        onFakeCursorsUpdate(fakeCursors);
+        
+      } else {
+        // 10% chance: Start with 1 bot already dragging an image
+        console.log("Starting with 1 bot dragging an image");
+        const draggingBot = createFakeCursor(false, true) as any; // Use 'as any' to bypass TypeScript constraints
+        fakeCursors = [draggingBot];
+        
+        // Defer image selection to ensure images are ready
+        setTimeout(() => {
+          const availableImages = collageImages
+            .map((img, index) => ({ index, img }))
+            .filter(item => !imageLocks[item.index]);
+          
+          if (availableImages.length > 0) {
+            // Select a random image
+            const targetImageIndex = availableImages[Math.floor(Math.random() * availableImages.length)].index;
+            
+            // Get the image data
+            const imageData = collageImages[targetImageIndex];
+            if (!imageData) return;
+            
+            // Get the image element
+            const imageElement = document.querySelector(`.collage-image-button:nth-child(${targetImageIndex + 1})`);
+            
+            if (imageElement) {
+              // Position the cursor at an exact point on the image
+              const imgRect = imageElement.getBoundingClientRect();
+              
+              // Calculate a point within the image (20-80% of dimensions)
+              const offsetX = imgRect.width * (0.2 + Math.random() * 0.6);
+              const offsetY = imgRect.height * (0.2 + Math.random() * 0.6);
+              
+              // Position cursor at that point on the image
+              draggingBot.x = imgRect.left + offsetX;
+              draggingBot.y = imgRect.top + offsetY;
+              
+              // Set the grab offset to match cursor position
+              draggingBot.grabOffsetX = offsetX;
+              draggingBot.grabOffsetY = offsetY;
+              
+              // Start dragging the image - ensure proper typing
+              imageLocks[targetImageIndex] = draggingBot.id;
+              draggingBot.targetImage = targetImageIndex; // Now TypeScript won't complain
+              draggingBot.isDragging = true;
+              draggingBot.isMovingToTarget = false;
+              
+              // Set a random destination to move to
+              const horizontalMargin = 100;
+              const verticalMargin = 100;
+              draggingBot.destinationX = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
+              draggingBot.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
+              
+              // Notify the drag store
+              startDragging(targetImageIndex);
+              
+              // Update cursors after modification
+              fakeCursors = [...fakeCursors];
+              onFakeCursorsUpdate(fakeCursors);
+            }
+          }
+        }, 200); // Small delay to ensure images are loaded
+      }
+    }
+    
+    return () => {
+      if (simulationInterval) {
+        clearInterval(simulationInterval);
+      }
+    };
+  });
 </script>
 
 <!-- Desktop collage (hidden on mobile) -->
@@ -2093,6 +3256,8 @@
             // Mark that user has interacted with collage
             hasInteractedWithCollage = true;
             
+            // Remove prevention of dragging knight/woman
+            
             startDrag(e, i);
             bringToFront(i);
           }}
@@ -2101,7 +3266,9 @@
             left: {img.left}px; 
             top: {img.top}px; 
             transform: rotate({img.rotation}deg);
-            z-index: {img.zIndex};
+            z-index: {(img.alt?.toLowerCase().includes('woman') || img.alt?.toLowerCase().includes('lady')) ? 2000 : 
+                     (img.alt?.toLowerCase().includes('knight') || img.alt?.toLowerCase().includes('armor')) ? 1999 : 
+                     img.zIndex};
             padding: 0;
             border: none;
             background: none;
@@ -2147,6 +3314,8 @@
             // Mark that user has interacted with collage
             hasInteractedWithCollage = true;
             
+            // Remove prevention of dragging knight/woman
+            
             startDrag(e, i);
             bringToFront(i);
           }}
@@ -2154,25 +3323,33 @@
             // Mark that user has interacted with collage
             hasInteractedWithCollage = true;
             
-            // Convert touch event to mouse-like event for startDrag
-            const touch = e.touches[0];
-            const mouseEvent = {
-              clientX: touch.clientX,
-              clientY: touch.clientY,
-              preventDefault: function() { e.preventDefault(); },
-              stopPropagation: function() { e.stopPropagation(); }
-            };
+            // Prevent default behavior to prevent scrolling
+            e.preventDefault();
             
-            // @ts-ignore - treating touch as mouse event for reuse
-            startDrag(mouseEvent, i);
-            bringToFront(i);
+            // Remove prevention of dragging knight/woman
+            
+            // Handle touch start event directly
+            handleTouchStart(e, i);
+            
+            // Add touch move event listener directly to the element
+            // This ensures touch events are captured correctly
+            document.addEventListener('touchmove', handleTouchMove, { passive: false });
+            document.addEventListener('touchend', (endEvent) => {
+              // Clean up the event listeners when touch ends
+              document.removeEventListener('touchmove', handleTouchMove);
+              
+              // Call endDrag to clean up the dragging state
+              endDrag();
+            }, { once: true });
           }}
           style="
             position: absolute;
             left: {img.left}px; 
             top: {img.top}px; 
             transform: rotate({img.rotation}deg) scale({img.scale || 1});
-            z-index: {img.zIndex};
+            z-index: {(img.alt?.toLowerCase().includes('woman') || img.alt?.toLowerCase().includes('lady')) ? 2000 : 
+                     (img.alt?.toLowerCase().includes('knight') || img.alt?.toLowerCase().includes('armor')) ? 1999 : 
+                     img.zIndex};
             padding: 0;
             border: none;
             background: none;
@@ -2306,8 +3483,8 @@
   .collage-image-button.dragging {
     box-shadow: 0 0 0 4px var(--cursor-color, #4ECDC4), 0 0 0 6px rgba(255,255,255,0.5);
     z-index: 1000 !important; /* Ensure dragged image is always on top */
-    transform: scale(1.05); /* Slightly enlarge the dragged image */
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    /* transform: scale(1.05); */ /* Removed enlargement of dragged image */
+    transition: box-shadow 0.2s ease;
   }
   
   /* Ensure mobile .dragging class works */
