@@ -123,7 +123,8 @@
     };
     
     // For preexisting cursors, sometimes have them already dragging an image
-    if (isPreexisting && Math.random() < 0.3) {
+    // But with a lower probability than before (10% instead of 30%)
+    if (isPreexisting && Math.random() < 0.1) {
       // Determine if we should start by dragging an image
       // We'll set the proper targets after the cursor is created
       initialState = {
@@ -173,8 +174,13 @@
       initialGrabY: 0,
       // Activity tracking
       lastActiveTime: Date.now(),
-      isStatic: isStatic, // Whether this cursor should remain stationary
-      restingPeriod: isPreexisting ? Math.random() * 4000 : 0, // Some preexisting cursors may be resting
+      isStatic: isStatic || (!isPreexisting && Math.random() < 0.8), // Make new cursors mostly static
+      // Set a longer initial resting period (20-30 seconds) for most cursors
+      restingPeriod: isPreexisting ? 
+        Math.random() * 4000 : // Short rest for preexisting cursors
+        Math.random() < 0.8 ? 
+          20000 + Math.random() * 10000 : // 20-30 seconds for most new cursors
+          0, // No rest for some new cursors
       isPreexisting: isPreexisting, // Used to identify cursors that were "already there"
       lifespan: 30000 + Math.random() * 60000 // Cursor will stay for 30-90 seconds by default
     };
@@ -243,13 +249,13 @@
     if (!hasCursorInitialized) {
       // If we haven't set the initialization delay yet, set it now
       if (cursorInitializationDelay === 0) {
-        // Set a variable delay (15-50 seconds) before any cursor activity
-        cursorInitializationDelay = 15000 + Math.random() * 35000;
+        // Set a variable delay (20-60 seconds) before any cursor activity
+        cursorInitializationDelay = 20000 + Math.random() * 40000;
         console.log(`Will delay cursor appearance by ${Math.round(cursorInitializationDelay/1000)} seconds`);
         
         // Initialize the page visit timer for the guaranteed cursor appearance
         pageVisitStartTime = Date.now();
-        // Set timer to ensure a cursor appears within 1 minute
+        // Set timer to ensure a cursor appears within 1 minute (unchanged)
         guaranteedCursorTimer = 60000; // 1 minute
         
         return;
@@ -446,8 +452,8 @@
       // STEP 1: HANDLE STATE TRANSITIONS
       // Note: We'll only check for state changes, but won't apply position changes here
       
-      // If not dragging, randomly decide to start dragging - lower probability (2% chance instead of 5%)
-      if (!cursor.isDragging && !cursor.isMovingToTarget && Math.random() < 0.02) {
+      // If not dragging, randomly decide to start dragging - lower probability (1% chance instead of 2%)
+      if (!cursor.isDragging && !cursor.isMovingToTarget && Math.random() < 0.01) {
         // If cursor was previously targeting an image but state changed,
         // ensure we clean up any existing target
         if (cursor.targetImage !== null) {
@@ -571,8 +577,8 @@
         
         return cursor;
       }
-      // If dragging, very rarely decide to stop
-      else if (cursor.isDragging && Math.random() < 0.003) {
+      // If dragging, very rarely decide to stop - reduced probability for longer drags
+      else if (cursor.isDragging && Math.random() < 0.002) {
         // Release the image immediately
         const releasedImageIndex = cursor.targetImage;
         if (releasedImageIndex !== null) {
@@ -941,22 +947,32 @@
   function initializeCursorSystem(forceInitialCursor = false) {
     console.log("Initializing cursor system with sparse natural behavior");
     
-    // Decide if we should have any cursors at start (increased to 30% chance normally)
+    // Decide if we should have any cursors at start (reduced to 15% chance normally)
     // If forceInitialCursor is true, we always create one
-    const shouldHaveCursorsAtStart = forceInitialCursor || Math.random() < 0.3; // 30% chance of initial cursors
+    const shouldHaveCursorsAtStart = forceInitialCursor || Math.random() < 0.15; // 15% chance of initial cursors
     
     if (shouldHaveCursorsAtStart) {
-      // Determine how many cursors to start with - 30% chance of 2 cursors at start
-      const initialCursorCount = Math.random() < 0.3 ? 2 : 1;
+      // Determine how many cursors to start with - 20% chance of 2 cursors at start (down from 30%)
+      const initialCursorCount = Math.random() < 0.2 ? 2 : 1;
       console.log(`Creating ${initialCursorCount} initial visitor${initialCursorCount > 1 ? 's' : ''}`);
       
       // Create the initial cursor(s)
       for (let i = 0; i < initialCursorCount; i++) {
-        // Create a preexisting cursor (appears to already be using the site)
-        const newCursor = createFakeCursor(false, true);
+        // 80% chance to create a static cursor that just sits there
+        const shouldBeStatic = Math.random() < 0.8;
         
-        // Set up the cursor if it's supposed to be interacting with images
-        const configuredCursor = setupPreexistingCursor(newCursor);
+        // Create a preexisting cursor (appears to already be using the site)
+        const newCursor = createFakeCursor(shouldBeStatic, true);
+        
+        // Only set up the cursor for dragging if it's not static
+        const configuredCursor = shouldBeStatic ? 
+          newCursor : // Static cursors don't need drag setup
+          setupPreexistingCursor(newCursor); // Only set up non-static cursors
+        
+        // For static cursors, add a long resting period (20-30 seconds)
+        if (shouldBeStatic) {
+          configuredCursor.restingPeriod = 20000 + Math.random() * 10000;
+        }
         
         // Add to cursor array
         fakeCursors = [...fakeCursors, configuredCursor];
@@ -1524,8 +1540,8 @@
       // STEP 1: HANDLE STATE TRANSITIONS
       // Note: We'll only check for state changes, but won't apply position changes here
       
-      // If not dragging, randomly decide to start dragging - lower probability (2% chance)
-      if (!cursor.isDragging && !cursor.isMovingToTarget && Math.random() < 0.02) {
+      // If not dragging, randomly decide to start dragging - lower probability (1% chance instead of 2%)
+      if (!cursor.isDragging && !cursor.isMovingToTarget && Math.random() < 0.01) {
         // If cursor was previously targeting an image but state changed,
         // ensure we clean up any existing target
         if (cursor.targetImage !== null) {
@@ -1649,8 +1665,8 @@
         
         return cursor;
       }
-      // If dragging, very rarely decide to stop
-      else if (cursor.isDragging && Math.random() < 0.003) {
+      // If dragging, very rarely decide to stop - reduced probability for longer drags
+      else if (cursor.isDragging && Math.random() < 0.002) {
         // Release the image immediately
         const releasedImageIndex = cursor.targetImage;
         if (releasedImageIndex !== null) {
@@ -2121,7 +2137,7 @@
         // Then generate positions
         collageImages = generateRandomPositions();
         
-        // Start introducing images one by one
+        // Start introducing images one by one with staggered timing
         setTimeout(() => {
           imagesReady = true;
           
@@ -2195,15 +2211,15 @@
                   owlElement.style.top = `${newTop}px`;
                   
                   // Update our data structure as well
-    collageImages = collageImages.map((img, i) => {
+                  collageImages = collageImages.map((img, i) => {
                     if (i === owlIndex) {
-        return {
-          ...img,
+                      return {
+                        ...img,
                         top: newTop
-        };
-      }
-      return img;
-    });
+                      };
+                    }
+                    return img;
+                  });
                   
                   console.log(`Explicitly positioned owl in desktop view at top: ${newTop}px`);
                 }
@@ -3128,122 +3144,7 @@
     cursor.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
   }
 
-  // ... existing code ...
-  
-  // Modify the onMount function to use createFakeCursor directly 
-  onMount(() => {
-    if (browser) {
-      // Start cursor simulation interval
-      simulationInterval = setInterval(() => {
-        updateCursorPositions();
-      }, 16); // 60 FPS
-
-      // IMPROVEMENT: Implement more varied bot behaviors on page load
-      // We will:
-      // 1. Maybe start with no bots (70% chance)
-      // 2. Maybe start with 1 bot that's just wandering (20% chance)
-      // 3. Maybe start with 1 bot that's dragging an image (10% chance)
-      
-      const startBehavior = Math.random();
-      
-      if (startBehavior < 0.7) {
-        // 70% chance: Start with no bots, they'll appear naturally over time
-        console.log("Starting with no bots - they will appear naturally");
-        fakeCursors = []; // Ensure no initial bots
-        
-        // Schedule first bot to appear after some time
-        setTimeout(() => {
-          const newCursor = createFakeCursor(false, true);
-          fakeCursors = [newCursor];
-          onFakeCursorsUpdate(fakeCursors);
-        }, 5000 + Math.random() * 15000); // First bot appears after 5-20 seconds
-        
-      } else if (startBehavior < 0.9) {
-        // 20% chance: Start with 1 bot that's just wandering
-        console.log("Starting with 1 wandering bot");
-        const wanderingBot = createFakeCursor(false, true);
-        
-        // Give it a random position and destination
-        const horizontalMargin = 100;
-        const verticalMargin = 100;
-        wanderingBot.x = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
-        wanderingBot.y = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
-        wanderingBot.destinationX = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
-        wanderingBot.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
-        
-        fakeCursors = [wanderingBot];
-        onFakeCursorsUpdate(fakeCursors);
-        
-      } else {
-        // 10% chance: Start with 1 bot already dragging an image
-        console.log("Starting with 1 bot dragging an image");
-        const draggingBot = createFakeCursor(false, true) as any; // Use 'as any' to bypass TypeScript constraints
-        fakeCursors = [draggingBot];
-        
-        // Defer image selection to ensure images are ready
-        setTimeout(() => {
-          const availableImages = collageImages
-            .map((img, index) => ({ index, img }))
-            .filter(item => !imageLocks[item.index]);
-          
-          if (availableImages.length > 0) {
-            // Select a random image
-            const targetImageIndex = availableImages[Math.floor(Math.random() * availableImages.length)].index;
-            
-            // Get the image data
-            const imageData = collageImages[targetImageIndex];
-            if (!imageData) return;
-            
-            // Get the image element
-            const imageElement = document.querySelector(`.collage-image-button:nth-child(${targetImageIndex + 1})`);
-            
-            if (imageElement) {
-              // Position the cursor at an exact point on the image
-              const imgRect = imageElement.getBoundingClientRect();
-              
-              // Calculate a point within the image (20-80% of dimensions)
-              const offsetX = imgRect.width * (0.2 + Math.random() * 0.6);
-              const offsetY = imgRect.height * (0.2 + Math.random() * 0.6);
-              
-              // Position cursor at that point on the image
-              draggingBot.x = imgRect.left + offsetX;
-              draggingBot.y = imgRect.top + offsetY;
-              
-              // Set the grab offset to match cursor position
-              draggingBot.grabOffsetX = offsetX;
-              draggingBot.grabOffsetY = offsetY;
-              
-              // Start dragging the image - ensure proper typing
-              imageLocks[targetImageIndex] = draggingBot.id;
-              draggingBot.targetImage = targetImageIndex; // Now TypeScript won't complain
-              draggingBot.isDragging = true;
-              draggingBot.isMovingToTarget = false;
-              
-              // Set a random destination to move to
-              const horizontalMargin = 100;
-              const verticalMargin = 100;
-              draggingBot.destinationX = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
-              draggingBot.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
-              
-              // Notify the drag store
-              startDragging(targetImageIndex);
-              
-              // Update cursors after modification
-              fakeCursors = [...fakeCursors];
-              onFakeCursorsUpdate(fakeCursors);
-            }
-          }
-        }, 200); // Small delay to ensure images are loaded
-      }
-    }
-    
-    return () => {
-      if (simulationInterval) {
-        clearInterval(simulationInterval);
-      }
-    };
-  });
-</script>
+  </script>
 
 <!-- Desktop collage (hidden on mobile) -->
 <div class="desktop-collage">
