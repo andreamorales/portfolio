@@ -2067,6 +2067,16 @@
       }, 250); // Wait 250ms after resize ends before updating
     };
     
+    // Add a scroll handler to ensure cursors don't move when page scrolls
+    const handleScroll = () => {
+      // When page scrolls, we need to update any active cursor to maintain its position
+      // relative to the document, not the viewport
+      fakeCursors = fakeCursors.map(cursor => ({
+        ...cursor
+      }));
+      onFakeCursorsUpdate(fakeCursors);
+    };
+    
     // Handle touch dragging by converting to mouse events
     const handleTouchMove = (event: TouchEvent) => {
       if (draggedImageIndex === null) return;
@@ -2091,6 +2101,7 @@
 
     // Add resize and touch event handlers
     window.addEventListener('resize', handleResize);
+    window.addEventListener('scroll', handleScroll);
     
     // IMPORTANT: Do NOT use the handleTouchMove function here - it causes dual processing
     // Let the touchstart handler on each image handle the touch events directly
@@ -2239,6 +2250,7 @@
     // Cleanup event listeners and timer on component unmount
     return () => {
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleTouchEnd);
       clearTimeout(resizeTimer);

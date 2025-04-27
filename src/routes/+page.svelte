@@ -1156,14 +1156,14 @@
 <Toast message={toastMessage} bind:visible={showToast} />
 
 <div class="landing-page">
-  <!-- Add fake cursors overlay that adjusts for scroll position -->
+  <!-- Add fake cursors overlay that uses fixed positioning -->
   <div class="fake-cursors-overlay">
     {#each fakeCursors as cursor}
       <div 
         class="fake-cursor"
         style="
           left: {cursor.x}px;
-          top: {cursor.y - window.scrollY}px; /* Adjust for scroll position */
+          top: {cursor.y}px; /* Use absolute position without scroll adjustment */
           --cursor-color: {cursor.color};
         "
       >
