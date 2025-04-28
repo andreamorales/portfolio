@@ -1042,38 +1042,39 @@
     // Special handling for mobile: ensure at least one cursor is always dragging something
     if (isMobile) {
       const draggingCursors = fakeCursors.filter(c => c.isDragging && c.id !== "human-user");
-      const visibleImagesCount = visibleImages.length;
       
-      // If we have images but no dragging cursors, force the first cursor to drag
-      if (draggingCursors.length === 0 && visibleImagesCount > 0 && fakeCursors.length > 0) {
-        const availableIndexes = visibleImages.filter(index => !imageLocks[index]);
+      // If no cursors are dragging but we have available images, create a new mobile cursor
+      if (draggingCursors.length === 0 && visibleImages.length > 0) {
+        const now = Date.now();
+        const timeSinceLastCursor = now - lastCursorCreationTime;
         
-        if (availableIndexes.length > 0) {
-          // Find first non-human cursor
-          const botCursorIndex = fakeCursors.findIndex(c => c.id !== "human-user");
-          
-          if (botCursorIndex !== -1) {
-            const targetImageIndex = availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
-            const imageElement = document.querySelector(`.collage-image-button:nth-child(${targetImageIndex + 1})`);
-            
-            if (imageElement) {
-              console.log(`Forcing mobile cursor ${fakeCursors[botCursorIndex].name} to drag image ${targetImageIndex}`);
+        // Create a new cursor if it's been at least 10 seconds
+        if (timeSinceLastCursor > 10000) {
+          console.log("No dragging cursors on mobile - creating a new one");
+          createMobileCursor();
+        }
+      }
+      
+      // CRITICAL FIX FOR MOBILE: Ensure cursors are always visible on mobile
+      // when they're dragging, by moving them to the foreground
+      fakeCursors.forEach(cursor => {
+        if (cursor.isDragging && cursor.targetImage !== null) {
+          const imageElement = document.querySelector(`.mobile-collage .collage-image-button:nth-child(${cursor.targetImage + 1})`);
+          if (imageElement instanceof HTMLElement) {
+            // Ensure the dragged image has a high z-index
+            const currentZIndex = parseInt(imageElement.style.zIndex || '0', 10);
+            if (currentZIndex < 1000) {
+              imageElement.style.zIndex = '1000';
               
-              // Force it to start dragging
-              const cursor = fakeCursors[botCursorIndex];
-              cursor.isStatic = false;
-              cursor.isMovingToTarget = false;
-              
-              // Use the helper function to set up the cursor correctly
-              proceedWithImageSelection(imageElement, cursor, targetImageIndex);
-              fakeCursors[botCursorIndex] = cursor;
-              
-              // Update parent with changes
-              onFakeCursorsUpdate(fakeCursors);
+              // Also update in our data model
+              collageImages[cursor.targetImage] = {
+                ...collageImages[cursor.targetImage],
+                zIndex: 1000
+              };
             }
           }
         }
-      }
+      });
     }
     
     // For each cursor, update its position based on its state
@@ -1509,33 +1510,8 @@
         if (timeSinceLastCursor > 10000) {
           console.log("Mobile needs more active cursors - creating a new one");
           
-          // Create a cursor that will definitely drag an image
-          const newCursor = createFakeCursor(false); // Not static
-          newCursor.isMovingToTarget = true;
-          
-          // Get available images
-          const availableIndexes = visibleImages.filter(index => !imageLocks[index]);
-          
-          if (availableIndexes.length > 0) {
-            // Choose a random image
-            const targetIndex = availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
-            
-            // Get the image element
-            const imageElement = document.querySelector(`.mobile-collage .collage-image-button:nth-child(${targetIndex + 1})`);
-            if (imageElement) {
-              // Set up cursor to skip "moving to target" phase and go straight to dragging
-              proceedWithImageSelection(imageElement, newCursor, targetIndex);
-              
-              // Add the cursor
-              fakeCursors = [...fakeCursors, newCursor];
-              lastCursorCreationTime = Date.now();
-              
-              console.log(`New mobile cursor ${newCursor.name} created and dragging image ${targetIndex}`);
-              
-              // Notify parent component of cursor change
-              onFakeCursorsUpdate(fakeCursors);
-            }
-          }
+          // Use our specialized mobile cursor function instead of the general one
+          createMobileCursor();
         }
       }
     }
@@ -2854,58 +2830,208 @@
       hasCursorInitialized = true;
       cursorInitializationDelay = 0;
       
-      // Force a cursor to appear quickly on mobile and make it DRAG images
+      // CRITICAL FIX FOR MOBILE: Wait for images to be fully loaded and visible
+      // before attempting to create cursors and move images
       setTimeout(() => {
-        console.log("Forcibly creating first mobile cursor");
+        // Verify images are visible first
+        const mobileImages = document.querySelectorAll('.mobile-collage .collage-image-button');
+        console.log(`Mobile collage has ${mobileImages.length} images visible`);
         
-        // Create a non-static cursor that will target and drag an image
-        const newCursor = createFakeCursor(false); // Not static
-        newCursor.isMovingToTarget = true;
-        
-        // Get available images
-        const visibleImageIndexes = [...visibleImages];
-        
-        // Only proceed if we have visible images to target
-        if (visibleImageIndexes.length > 0) {
-          const availableIndexes = visibleImageIndexes.filter(index => !imageLocks[index]);
-          
-          if (availableIndexes.length > 0) {
-            // Choose a random image
-            const targetIndex = availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
-            
-            // Get the image element
-            const imageElement = document.querySelector(`.collage-image-button:nth-child(${targetIndex + 1})`);
-            if (imageElement) {
-              // Set up cursor to skip "moving to target" phase and go straight to dragging
-              proceedWithImageSelection(imageElement, newCursor, targetIndex);
-              
-              // Add the cursor
-              fakeCursors = [...fakeCursors, newCursor];
-              lastCursorCreationTime = Date.now();
-              
-              console.log(`Mobile cursor ${newCursor.name} created and dragging image ${targetIndex}`);
-              
-              // Notify parent component of cursor change
-              onFakeCursorsUpdate(fakeCursors);
-            } else {
-              console.log("Mobile cursor created but could not find image element to drag");
-            }
-          } else {
-            console.log("Mobile cursor created but no available images to drag");
-          }
+        if (mobileImages.length > 0) {
+          createMobileCursor();
         } else {
-          console.log("Mobile cursor created but no visible images yet");
+          // Wait a bit longer and try again
+          setTimeout(() => {
+            const retryImages = document.querySelectorAll('.mobile-collage .collage-image-button');
+            console.log(`Retry: Mobile collage has ${retryImages.length} images visible`);
+            if (retryImages.length > 0) {
+              createMobileCursor();
+            } else {
+              console.log("WARNING: Could not find mobile images after retry");
+            }
+          }, 3000);
         }
-      }, 5000); // Give images time to load first
+      }, 4000); // Wait a bit longer for images to load
     } else {
       // On desktop, use the regular initialization process
       console.log("Desktop detected - using standard cursor initialization");
     }
   });
+  
+  // Add a dedicated function for creating mobile cursors
+  function createMobileCursor() {
+    console.log("Creating specialized mobile cursor");
+    
+    // FIXED: Limit to one cursor on mobile
+    if (fakeCursors.filter(c => c.id !== "human-user").length > 0) {
+      console.log("Already have mobile cursors - not creating more");
+      return false;
+    }
+    
+    // Create a non-static cursor for mobile
+    const newCursor = createFakeCursor(false); // Not static
+    newCursor.isStatic = false;
+    
+    // Get visible images
+    const visibleImageIndexes = [...visibleImages];
+    
+    // Get images that aren't locked
+    const availableIndexes = visibleImageIndexes.filter(index => !imageLocks[index]);
+    
+    if (availableIndexes.length === 0) {
+      console.log("No available images for mobile cursor - aborting");
+      return false;
+    }
+    
+    // Choose a random available image
+    const targetIndex = availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
+    
+    // Find the image element in the mobile container
+    const imageElement = document.querySelector(`.mobile-collage .collage-image-button:nth-child(${targetIndex + 1})`);
+    if (!imageElement) {
+      console.log(`Cannot find mobile image element ${targetIndex} - aborting`);
+      return false;
+    }
+    
+    // Get image position
+    const rect = imageElement.getBoundingClientRect();
+    
+    // Position cursor at image
+    newCursor.x = rect.left + rect.width / 2;
+    newCursor.y = rect.top + rect.height / 2 + window.scrollY;
+    
+    // Set up cursor for dragging
+    newCursor.isDragging = true;
+    newCursor.isMovingToTarget = false;
+    newCursor.targetImage = targetIndex;
+    newCursor.grabOffsetX = rect.width / 2;
+    newCursor.grabOffsetY = rect.height / 2;
+    
+    // Lock this image
+    imageLocks[targetIndex] = newCursor.id;
+    
+    // Register in drag store
+    startDragging(targetIndex);
+    
+    // Set destination
+    const container = document.querySelector('.mobile-collage');
+    const containerRect = container ? container.getBoundingClientRect() : { width: window.innerWidth, height: window.innerHeight };
+    
+    const margin = 30;
+    const safeWidth = containerRect.width - margin * 2 - rect.width;
+    const safeHeight = containerRect.height - margin * 2 - rect.height;
+    
+    // FIXED: Get current position and ensure destination is far enough
+    const currentLeft = collageImages[targetIndex].left;
+    const currentTop = collageImages[targetIndex].top;
+    
+    // Generate destination at least 100px away from current position
+    let destX, destY;
+    let distance = 0;
+    do {
+      destX = margin + Math.random() * Math.max(safeWidth, 50);
+      destY = margin + Math.random() * Math.max(safeHeight, 50);
+      const dx = destX - currentLeft;
+      const dy = destY - currentTop;
+      distance = Math.sqrt(dx*dx + dy*dy);
+    } while (distance < 100);
+    
+    newCursor.destinationX = destX;
+    newCursor.destinationY = destY;
+    
+    console.log(`Mobile cursor ${newCursor.name} will drag image ${targetIndex} to ${destX.toFixed(0)},${destY.toFixed(0)}`);
+    
+    // FIXED: Move the image a little bit to kick-start the movement
+    if (imageElement instanceof HTMLElement) {
+      const dx = destX - currentLeft;
+      const dy = destY - currentTop;
+      const dirX = dx / distance;
+      const dirY = dy / distance;
+      
+      // Move 5px in the direction of the destination
+      const newLeft = currentLeft + dirX * 5;
+      const newTop = currentTop + dirY * 5;
+      
+      // Update DOM element
+      imageElement.style.left = `${newLeft}px`;
+      imageElement.style.top = `${newTop}px`;
+      
+      // Update data model
+      collageImages[targetIndex] = {
+        ...collageImages[targetIndex],
+        left: newLeft,
+        top: newTop
+      };
+      
+      console.log(`Initial movement: Image ${targetIndex} moved to ${newLeft.toFixed(1)}, ${newTop.toFixed(1)}`);
+    }
+    
+    // Add the cursor
+    fakeCursors = [...fakeCursors, newCursor];
+    lastCursorCreationTime = Date.now();
+    
+    // Notify parent
+    onFakeCursorsUpdate(fakeCursors);
+    
+    return true;
+  }
+
+  // Fix for the targetImage type assignment
+  onMount(() => {
+    if (!browser) return; // Skip if not in browser environment
+    
+    // Check if we're on mobile
+    const isMobile = window.innerWidth <= 768;
+    
+    // On mobile, initialize the cursor system immediately
+    if (isMobile) {
+      console.log("Mobile detected - initializing cursor system immediately");
+      hasCursorInitialized = true;
+      cursorInitializationDelay = 0;
+      
+      // CRITICAL FIX FOR MOBILE: Wait for images to be fully loaded and visible
+      // before attempting to create cursors and move images
+      setTimeout(() => {
+        // Verify images are visible first
+        const mobileImages = document.querySelectorAll('.mobile-collage .collage-image-button');
+        console.log(`Mobile collage has ${mobileImages.length} images visible`);
+        
+        if (mobileImages.length > 0) {
+          createMobileCursor();
+        } else {
+          // Wait a bit longer and try again
+          setTimeout(() => {
+            const retryImages = document.querySelectorAll('.mobile-collage .collage-image-button');
+            console.log(`Retry: Mobile collage has ${retryImages.length} images visible`);
+            if (retryImages.length > 0) {
+              createMobileCursor();
+            } else {
+              console.log("WARNING: Could not find mobile images after retry");
+            }
+          }, 3000);
+        }
+      }, 4000); // Wait a bit longer for images to load
+    } else {
+      // On desktop, use the regular initialization process
+      console.log("Desktop detected - using standard cursor initialization");
+    }
+  });
+
+  // Update the check for creating new cursors on mobile to use our specialized function
+
+  // Override onMount to initialize mobile cursors properly
+  onMount(() => {
+    // Initialize cursor system after a delay to ensure images have loaded
+    if (browser) {
+      setTimeout(() => {
+        // Create some initial mobile cursors for mobile view
+        createMobileCursor();
+      }, 2000);
+    }
+  });
 </script>
 
-<!-- Desktop collage (hidden on mobile) -->
-<div class="desktop-collage">
+<div class="desktop-collage" bind:this={collageContainer}>
   {#if collageImages.length > 0 && imagesReady}
     {#each collageImages as img, i}
       {#if visibleImages.includes(i)}
@@ -3150,5 +3276,4 @@
       overflow: hidden;
     }
   }
-  
 </style> 
