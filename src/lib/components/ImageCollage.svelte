@@ -3,6 +3,10 @@
   import { fade } from 'svelte/transition';
   import draggingStore, { startDragging, stopDragging } from '../stores/draggingStore.js';
   
+  // IMPORTANT: The fake cursors now use absolute positioning (position:absolute) in the parent component.
+  // This means cursor positions should be document-relative and SHOULD add window.scrollY
+  // to their positions to maintain proper document positioning.
+  
   // Import images from props instead of directly
   export let imageDimensions: any[] = [];
   export let largeScreenImages: any[] = [];
@@ -101,6 +105,9 @@
   const MARGIN_PX = 20; // Reduced from 50px to 20px for all edges
   const BOTTOM_MARGIN_PX = 20; // Reduced from 50px to 20px
   
+  // Define constants for cursor system
+  const MAX_CURSORS = 5; // Maximum number of bot cursors allowed at once
+  
   // Function to create a new fake cursor
   function createFakeCursor(isStatic = false, isPreexisting = false) {
     const id = Math.random().toString(36).substr(2, 9);
@@ -136,6 +143,12 @@
     
     const containerWidth = browser ? window.innerWidth : 1200;
     const containerHeight = browser ? window.innerHeight : 800;
+    
+    // Adjust lifespans based on cursor type
+    // Static cursors live 30-60 seconds, moving cursors live 60-120 seconds
+    const cursorLifespan = isStatic ? 
+                         (30000 + Math.random() * 30000) : // 30-60 seconds for static cursors
+                         (60000 + Math.random() * 60000);  // 60-120 seconds for moving cursors
     
     return {
       id,
@@ -182,63 +195,54 @@
           20000 + Math.random() * 10000 : // 20-30 seconds for most new cursors
           0, // No rest for some new cursors
       isPreexisting: isPreexisting, // Used to identify cursors that were "already there"
-      lifespan: 30000 + Math.random() * 60000 // Cursor will stay for 30-90 seconds by default
+      lifespan: cursorLifespan // Updated cursor lifespan
     };
   }
   
   // Initialize preexisting cursors with proper image targets
   function setupPreexistingCursor(cursor: any) {
-    if (!cursor.isMovingToTarget) return cursor;
-    
-    // Only for cursors that are supposed to be moving to a target
-    const visibleImageIndexes = [...visibleImages]; 
-    if (visibleImageIndexes.length === 0) {
-      // No images visible yet, can't set up dragging
-      cursor.isMovingToTarget = false;
-      return cursor;
-    }
-    
-    // Filter out images that are already being dragged
+    // Get all visible images that are not currently locked
+    const visibleImageIndexes = [...visibleImages];
     const availableIndexes = visibleImageIndexes.filter(index => !imageLocks[index]);
+    
     if (availableIndexes.length === 0) {
-      // No available images, revert to wandering
+      console.log(`No available images for cursor ${cursor.name} to target - making static`);
+      // No images available, make cursor static
       cursor.isMovingToTarget = false;
+      cursor.isStatic = true;
       return cursor;
     }
     
-    // Pick a random available image
-    const randomIndex = Math.floor(Math.random() * availableIndexes.length);
-    const randomImageIndex = availableIndexes[randomIndex];
+    // Choose a random image from the available ones
+    const randomImageIndex = availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
     
-    // Get the DOM element for the selected image
+    // Get the image element
     const imageElement = document.querySelector(`.collage-image-button:nth-child(${randomImageIndex + 1})`);
     if (!imageElement) {
-      // Can't find image element, revert to wandering
+      console.log(`Cannot find image element ${randomImageIndex} - making cursor static`);
+      // Image element not found, make cursor static
       cursor.isMovingToTarget = false;
+      cursor.isStatic = true;
       return cursor;
     }
     
-    // Get image position and prepare to move cursor there
+    // Get image position (viewport coordinates)
     const rect = imageElement.getBoundingClientRect();
-    // Target the center of the image
-    const targetX = rect.left + rect.width / 2;
-    const targetY = rect.top + rect.height / 2;
     
-    // Set up transition to image
+    // Set target to image center (adding scroll offset for absolute positioning)
     cursor.targetImage = randomImageIndex;
-    cursor.targetX = targetX;
-    cursor.targetY = targetY;
+    cursor.targetX = rect.left + rect.width / 2;
+    cursor.targetY = rect.top + rect.height / 2 + window.scrollY;
     
-    // For preexisting cursors, position them partway to their target
-    // This makes it look like they're already in the process of grabbing
-    const progress = 0.3 + Math.random() * 0.5; // Position 30-80% of the way there
-    const dirX = targetX - cursor.x;
-    const dirY = targetY - cursor.y;
-    cursor.x += dirX * progress;
-    cursor.y += dirY * progress;
-    
-    // Lock this image
+    // Lock this image for the cursor
     imageLocks[randomImageIndex] = cursor.id;
+    
+    // Mark that cursor is moving to target
+    cursor.isMovingToTarget = true;
+    cursor.isDragging = false;
+    cursor.isStatic = false;
+    
+    console.log(`Cursor ${cursor.name} targeting image ${randomImageIndex}`);
     
     return cursor;
   }
@@ -249,14 +253,21 @@
     if (!hasCursorInitialized) {
       // If we haven't set the initialization delay yet, set it now
       if (cursorInitializationDelay === 0) {
-        // Set a variable delay (20-60 seconds) before any cursor activity
-        cursorInitializationDelay = 20000 + Math.random() * 40000;
+        // Check if we're on mobile
+        const isMobile = window.innerWidth <= 768;
+        
+        // Set a variable delay before any cursor activity
+        // On mobile, use a shorter delay (15-30 seconds) to make interaction more visible
+        cursorInitializationDelay = isMobile ? 
+          15000 + Math.random() * 15000 : // 15-30 seconds on mobile
+          20000 + Math.random() * 40000;  // 20-60 seconds on desktop
+        
         console.log(`Will delay cursor appearance by ${Math.round(cursorInitializationDelay/1000)} seconds`);
         
         // Initialize the page visit timer for the guaranteed cursor appearance
         pageVisitStartTime = Date.now();
-        // Set timer to ensure a cursor appears within 1 minute (unchanged)
-        guaranteedCursorTimer = 60000; // 1 minute
+        // Set timer to ensure a cursor appears quickly on mobile
+        guaranteedCursorTimer = isMobile ? 30000 : 60000; // 30 sec on mobile, 1 min on desktop
         
         return;
       }
@@ -285,701 +296,105 @@
       return; // Wait until initialization is complete
     }
     
-    // Update the guaranteed cursor timer if there are no cursors present
-    if (fakeCursors.length === 0) {
-      // If no cursors exist, start or continue the countdown
-      if (guaranteedCursorTimer <= 0 || isNaN(guaranteedCursorTimer)) {
-        // Reset the timer to ensure a cursor appears within 1 minute
-        guaranteedCursorTimer = 60000; // 1 minute
-      } else {
-        // Continue counting down
-        guaranteedCursorTimer -= 16;
-        
-        // If timer expires, create a new cursor
-        if (guaranteedCursorTimer <= 0) {
-          // Create a single cursor to show activity
-          const newCursor = createFakeCursor(false, false);
-          fakeCursors = [...fakeCursors, newCursor];
-          onFakeCursorsUpdate(fakeCursors);
-          console.log(`Created guaranteed activity cursor after quiet period`);
-          
-          // Reset the timer
-          guaranteedCursorTimer = 60000 + Math.random() * 120000; // 1-3 minutes until next guaranteed activity
-        }
+    // Check if we're on mobile - adjust cursor activity for better visibility
+    const isMobile = window.innerWidth <= 768;
+    
+    // On mobile, make cursor activity more frequent than desktop but still reasonable
+    if (isMobile) {
+      // For mobile, make cursor appearances more frequent but not overwhelming
+      const now = Date.now();
+      const timeSinceLastCursor = now - lastCursorCreationTime;
+      
+      // Attempt to create new cursors every 30-90 seconds on mobile
+      const mobileMinimumInterval = 30 * 1000; // 30 seconds
+      const mobileRandomInterval = 60 * 1000; // Up to 1 additional minute
+      
+      if (timeSinceLastCursor < mobileMinimumInterval + (Math.random() * mobileRandomInterval)) {
+        // Not enough time has passed on mobile, skip this update
+        return;
       }
-    } else {
-      // If cursors exist, reset the guaranteed timer
-      // This prevents adding too many cursors
-      guaranteedCursorTimer = 60000 + Math.random() * 120000; // 1-3 minutes
     }
     
-    // Decrease cursor lifespan
-    fakeCursors = fakeCursors.map(cursor => {
-      if (cursor.lifespan !== undefined) {
-        cursor.lifespan -= 16;
+    // Update the guaranteed cursor timer if there are no cursors present
+    if (fakeCursors.length === 0) {
+      guaranteedCursorTimer -= 16; // Count down the timer
+      
+      if (guaranteedCursorTimer <= 0) {
+        // Force a cursor to appear
+        guaranteedCursorTimer = 60000; // Reset timer
+        console.log('Forcing cursor to appear');
+        
+        // Create a cursor using our new function
+        attemptToCreateNewCursor();
+        return;
       }
-      return cursor;
-    });
+    }
     
-    // BRUTE FORCE: Always clear the drag store at the beginning
-    // This ensures no highlights will persist
-    let activeInStore: Record<string, boolean> = {};
-    draggingStore.subscribe(state => {
-      activeInStore = {...state.activeDrags};
-    })();
+    // Check if we need to create a new cursor
+    if (fakeCursors.length < MAX_CURSORS) {
+      const now = Date.now();
+      const timeSinceLastCursor = now - lastCursorCreationTime;
+      const minTimeBetweenCursors = isMobile ? 3 * 60 * 1000 : 60 * 1000; // 3 min on mobile, 1 min on desktop
+      const randomDelayFactor = isMobile ? 5 * 60 * 1000 : 2 * 60 * 1000; // Up to additional 5 min on mobile, 2 min on desktop
+      
+      // Create cursor with appropriate timing
+      if (timeSinceLastCursor > minTimeBetweenCursors + (Math.random() * randomDelayFactor)) {
+        // Create a new cursor using our new function
+        attemptToCreateNewCursor();
+      }
+    }
     
-    // Clear any lingering highlights
-    Object.keys(activeInStore).forEach(indexStr => {
-      const imageIndex = parseInt(indexStr, 10);
-      stopDragging(imageIndex);
-    });
-    
-    // Force sync between cursor state and locks
-    fakeCursors.forEach(cursor => {
-      // Skip updating when cursor is in the process of moving to target 
-      // This prevents removing locks during the transition
-      if (cursor.isMovingToTarget) return;
-      
-      // If cursor is not dragging but has a targetImage, clean it up
-      if (!cursor.isDragging && cursor.targetImage !== null) {
-        // Clean up any inconsistent state
-        delete imageLocks[cursor.targetImage];
-        stopDragging(cursor.targetImage);
-        cursor.targetImage = null;
-      }
-      
-      // If cursor is dragging, make sure the locks are correct
-      if (cursor.isDragging && cursor.targetImage !== null) {
-        // Make sure this cursor owns the lock on this image
-        if (imageLocks[cursor.targetImage] !== cursor.id) {
-          // This cursor doesn't own the lock - it's invalid state
-          console.log(`Cursor ${cursor.name} thinks it's dragging image ${cursor.targetImage} but doesn't own the lock`);
-          cursor.isDragging = false;
-          cursor.targetImage = null;
-          stopDragging(cursor.targetImage);
-        }
-      }
-    });
-    
-    // Only allow cursors to stay for their lifespan (except static first cursor)
-    fakeCursors = fakeCursors.filter(cursor => {
-      // Only remove if there's a defined lifespan and it's expired
-      if (cursor.lifespan !== undefined && cursor.lifespan <= 0) {
-        // If the cursor was dragging an image, release it
-        if (cursor.isDragging && cursor.targetImage !== null) {
-          const imageIndex = cursor.targetImage;
-          stopDragging(imageIndex);
-          delete imageLocks[imageIndex];
-        }
-        console.log(`Cursor ${cursor.name} leaving the site after its visit`);
-        return false;
-      }
-      return true;
-    });
-    
-    // Check for inactive cursors and remove them (additional check)
-    fakeCursors = fakeCursors.filter(cursor => {
-      const inactivityTime = Date.now() - cursor.lastActiveTime;
-      // If cursor is not in a resting period and has been inactive for more than 2 minutes (120000ms), remove it
-      if (cursor.restingPeriod <= 0 && inactivityTime > 120000 && !cursor.isStatic) {
-        console.log(`Removing inactive cursor ${cursor.name} after ${Math.floor(inactivityTime/1000)} seconds of inactivity`);
-        
-        // If the cursor was dragging an image, release it
-        if (cursor.isDragging && cursor.targetImage !== null) {
-          const imageIndex = cursor.targetImage;
-          stopDragging(imageIndex);
-          delete imageLocks[imageIndex];
-        }
-        return false;
-      }
-      return true;
-    });
-    
-    // MODIFIED: Only check the store for cursors that are NOT moving to target
-    // This prevents the store from removing locks during the transition
-    draggingStore.subscribe((state: {activeDrags: Record<string, boolean>}) => {
-      // Only check for non-transitioning cursors
-      const activeCursors = fakeCursors.filter(c => !c.isMovingToTarget);
-      
-      // Check each active drag to ensure it has an active cursor
-      Object.keys(state.activeDrags).forEach(indexStr => {
-        const imageIndex = parseInt(indexStr, 10);
-        // Check if any active (non-transitioning) cursor is currently dragging this image
-        const isCursorDragging = activeCursors.some(c => 
-          c.isDragging === true && 
-          c.targetImage === imageIndex
-        );
-        
-        // If no cursor is dragging this image, AND no cursor is transitioning to it,
-        // remove it from active drags
-        const isAnyoneTransitioning = fakeCursors.some(c => 
-          c.isMovingToTarget && c.targetImage === imageIndex
-        );
-        
-        if (!isCursorDragging && !isAnyoneTransitioning) {
-          console.log(`Simulation cleanup: Image ${imageIndex} in drag store but no cursor is dragging it`);
-          stopDragging(imageIndex);
-        }
-      });
-    })();
-    
-    // Move existing cursors with improved physics
-    fakeCursors = fakeCursors.map(cursor => {
-      // Skip static cursors completely
-      if (cursor.isStatic) {
-        return cursor;
-      }
-      
-      // If cursor is in a resting period, decrement it and skip movement
-      if (cursor.restingPeriod > 0) {
-        cursor.restingPeriod -= 16; // Assuming 16ms per frame (60fps)
-        return cursor;
-      }
-      
-      // Save previous position for velocity calculation
-      const prevX = cursor.x;
-      const prevY = cursor.y;
-      
-      // Increment time factor for curved movement (0.01-0.05 radians per frame)
-      cursor.timeFactor += 0.01 + (Math.random() * 0.04);
-      
-      // Update curve offsets occasionally to change the curve pattern
-      if (Math.random() < 0.01) {
-        cursor.curveOffsetX = (Math.random() * 100) - 50;
-        cursor.curveOffsetY = (Math.random() * 100) - 50;
-      }
-      
-      // STEP 1: HANDLE STATE TRANSITIONS
-      // Note: We'll only check for state changes, but won't apply position changes here
-      
-      // If not dragging, randomly decide to start dragging - lower probability (1% chance instead of 2%)
-      if (!cursor.isDragging && !cursor.isMovingToTarget && Math.random() < 0.01) {
-        // If cursor was previously targeting an image but state changed,
-        // ensure we clean up any existing target
-        if (cursor.targetImage !== null) {
-          // Clean up any previous target that wasn't properly released
-          console.log(`Cursor ${cursor.name} was targeting image ${cursor.targetImage} but state doesn't match - cleaning up`);
-          if (imageLocks[cursor.targetImage] === cursor.id) {
-            // CRITICAL FIX: Make sure we stop dragging BEFORE deleting the lock
-            stopDragging(cursor.targetImage);
-            delete imageLocks[cursor.targetImage];
-          }
-          cursor.targetImage = null;
-        }
-
-        // CRITICAL FIX: Check if the cursor is over an image before selecting it
-        // Instead of randomly choosing any image, find one that the cursor is positioned over
-        const cursorX = cursor.x;
-        const cursorY = cursor.y;
-        
-        // Find all image elements
-        const imageElements = document.querySelectorAll('.collage-image-button');
-        const imagesUnderCursor: {element: Element, index: number, distance: number}[] = [];
-        
-        // Check each image to see if cursor is over it
-        imageElements.forEach((el, index) => {
-          if (!imageLocks[index]) { // Skip images that are already locked/being dragged
-            const rect = el.getBoundingClientRect();
-            
-            // IMPROVED: Add a small buffer zone around the image (5px) to make hit detection more reliable
-            // This helps with edge cases where cursor is nearly on the image but not quite
-            const bufferSize = 5;
-            if (
-              cursorX >= rect.left - bufferSize && 
-              cursorX <= rect.right + bufferSize && 
-              cursorY >= rect.top - bufferSize && 
-              cursorY <= rect.bottom + bufferSize
-            ) {
-              // Found an image the cursor is over (or very near)
-              const distance = Math.min(
-                Math.abs(cursorX - rect.left),
-                Math.abs(cursorX - rect.right),
-                Math.abs(cursorY - rect.top),
-                Math.abs(cursorY - rect.bottom)
-              );
-              
-              // Store the element, index, and distance for sorting
-              imagesUnderCursor.push({ 
-                element: el, 
-                index, 
-                distance: distance < bufferSize ? distance : 0 // Prioritize actual overlaps
-              });
-            }
-          }
-        });
-        
-        // Sort by distance (0 = direct hit, higher = nearby)
-        imagesUnderCursor.sort((a, b) => a.distance - b.distance);
-        
-        // If cursor is over any images, select the one with the best hit
-        if (imagesUnderCursor.length > 0) {
-          // Take the first (closest) match
-          const selected = imagesUnderCursor[0];
-          
-          // Proceed with selection
-          proceedWithImageSelection(selected.element, cursor, selected.index);
-          
-          // Update activity timestamp
-          cursor.lastActiveTime = Date.now();
-          
-          console.log(`Cursor ${cursor.name} grabbing image ${selected.index} that it's positioned over`);
-        } else {
-          // Cursor isn't over any image, so do nothing for now
-          return cursor;
-        }
-      }
-      // If moving to target and reached it, start dragging
-      else if (cursor.isMovingToTarget && 
-               Math.abs(cursor.x - cursor.targetX) < 10 && 
-               Math.abs(cursor.y - cursor.targetY) < 10) {
-        
-        // Preserve the targetImage before state changes
-        const targetImageIndex = cursor.targetImage;
-        
-        if (targetImageIndex !== null) {
-          // Make sure we still own the lock on this image
-          if (imageLocks[targetImageIndex] !== cursor.id) {
-            // Someone else grabbed the image while we were moving to it
-            cursor.isMovingToTarget = false;
-            cursor.targetImage = null;
-            return cursor;
-          }
-          
-          // First register in the drag store BEFORE changing cursor state
-          // This ensures the image is marked as being dragged before the state changes
-          startDragging(targetImageIndex);
-          
-          // Now we've reached the image, start dragging it - update state
-          cursor.isMovingToTarget = false;
-          cursor.isDragging = true;
-          
-          // Ensure the imageLocks still points to us
-          imageLocks[targetImageIndex] = cursor.id;
-          
-          // Update activity timestamp
-          cursor.lastActiveTime = Date.now();
-          
-          console.log(`Cursor ${cursor.name} started ACTIVE dragging of image ${targetImageIndex}`);
-          
-          // Choose random destination with margins
-          const horizontalMargin = 100; // 100px from sides
-          const verticalMargin = 100; // 100px from top/bottom
-          cursor.destinationX = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
-          cursor.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
-          
-          console.log(`Cursor ${cursor.name} started dragging image ${targetImageIndex}`);
-        } else {
-          // Something is wrong, the cursor was moving to target but targetImage is null
-          console.log(`Cursor ${cursor.name} was moving to target but targetImage is null - resetting state`);
-          cursor.isMovingToTarget = false;
-          cursor.isDragging = false;
-        }
-        
-        return cursor;
-      }
-      // If dragging, very rarely decide to stop - reduced probability for longer drags
-      else if (cursor.isDragging && Math.random() < 0.002) {
-        // Release the image immediately
-        const releasedImageIndex = cursor.targetImage;
-        if (releasedImageIndex !== null) {
-          // TRIPLE-CHECK release protocol:
-          // 1. First update the drag store to remove highlight
-          stopDragging(releasedImageIndex);
-          
-          // 2. Remove the image lock in the locks dictionary
-          if (imageLocks[releasedImageIndex] === cursor.id) {
-            delete imageLocks[releasedImageIndex];
-          }
-          
-          // 3. Clear cursor state properties
-          cursor.isDragging = false;
-          cursor.targetImage = null;
-          
-          // 4. CRITICAL FIX: Verify the highlight is actually gone
-          let isStillHighlighted = false;
-          draggingStore.subscribe(state => {
-            isStillHighlighted = !!state.activeDrags[releasedImageIndex];
-          })();
-          
-          if (isStillHighlighted) {
-            console.log(`[CRITICAL] Image ${releasedImageIndex} highlight persisted after cursor release - forcing cleanup`);
-            stopDragging(releasedImageIndex);
-          }
-          
-          // Update activity timestamp
-          cursor.lastActiveTime = Date.now();
-          
-          // Set a resting period (8-12 seconds) after dropping the image
-          cursor.restingPeriod = 8000 + Math.random() * 4000;
-          
-          console.log(`Cursor ${cursor.name} dropped the image and will rest for ${Math.round(cursor.restingPeriod/1000)} seconds`);
-        }
-        
-        cursor.isMovingToTarget = false;
-        
-        // Choose a new wandering destination with margins
-        const horizontalMargin = 100; // 100px from sides
-        const verticalMargin = 100; // 100px from top/bottom
-        cursor.destinationX = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
-        cursor.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
-        
-        // Return immediately to apply the cursor state change
-        return cursor;
-      }
-      
-      // STEP 2: HANDLE MOVEMENT BASED ON STATE
-      // Use slower speeds for all movement - CONSISTENT for all cases
-      const MOVEMENT_SPEED = 5.0; // Consistent speed for all cursor movement
-      
-      // CASE 1: Moving to target image
-      if (cursor.isMovingToTarget && !cursor.isDragging) {
-        // Calculate direction to target
-        const dx = cursor.targetX - cursor.x;
-        const dy = cursor.targetY - cursor.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        // If close to target, start dragging
-        if (distance < 5) { // Reduced from 10 for quicker transition to dragging
-          // First set up the dragging destination
-          const horizontalMargin = 100;
-          const verticalMargin = 100;
-          cursor.destinationX = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
-          cursor.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
-          
-          // Make sure the image lock is consistent
-          if (cursor.targetImage !== null) {
-            // Update the image lock
-            imageLocks[cursor.targetImage] = cursor.id;
-            
-            // FIRST mark in the drag store that we're actively dragging
-            // This must happen before changing cursor.isDragging
-            startDragging(cursor.targetImage);
-            
-            console.log(`Cursor ${cursor.name} STARTED DRAGGING image ${cursor.targetImage}`);
-          }
-          
-          // THEN change state to dragging (order matters for highlighting)
-          cursor.isMovingToTarget = false;
-          cursor.isDragging = true;
-          
-          return cursor;
-        }
-        
-        // Move toward target at CONSISTENT speed
-        const dirX = dx / distance;
-        const dirY = dy / distance;
-        cursor.x += dirX * MOVEMENT_SPEED;
-        cursor.y += dirY * MOVEMENT_SPEED;
-      }
-      // CASE 2: Dragging an image
-      else if (cursor.isDragging && cursor.targetImage !== null) {
-        // Double-verify the cursor still owns this image lock
-        if (imageLocks[cursor.targetImage] !== cursor.id) {
-          console.log(`Cursor ${cursor.name} lost control of image ${cursor.targetImage} - stopping drag`);
-          cursor.isDragging = false;
-          cursor.targetImage = null;
-          return cursor;
-        }
-        
-        // Get the image element
-        const imageElement = document.querySelector(`.collage-image-button:nth-child(${cursor.targetImage + 1})`);
-        
-        // IMPROVEMENT: Try an alternative selector if the first one fails
-        let imageFound = !!imageElement;
-        let alternativeImageElement = null;
-        
-        if (!imageElement) {
-          // Try by z-index
-          const targetZIndex = collageImages[cursor.targetImage]?.zIndex;
-          if (targetZIndex) {
-            alternativeImageElement = document.querySelector(`.collage-image-button[style*="z-index: ${targetZIndex}"]`);
-            if (alternativeImageElement) {
-              imageFound = true;
-            }
-          }
-          
-          // If still not found, try by array index
-          if (!alternativeImageElement) {
-            const allImageButtons = document.querySelectorAll('.collage-image-button');
-            const imageArray = Array.from(allImageButtons);
-            if (cursor.targetImage < imageArray.length) {
-              alternativeImageElement = imageArray[cursor.targetImage];
-              if (alternativeImageElement) {
-                imageFound = true;
-              }
-            }
-          }
-        }
-        
-        // Use the original or alternative element
-        const activeElement = imageElement || alternativeImageElement;
-        
-        // Image element not found, release the image
-        if (!imageFound || !activeElement) {
-          // Image element not found, release the image
-          if (cursor.targetImage !== null) {
-            delete imageLocks[cursor.targetImage];
-            stopDragging(cursor.targetImage);
-            cursor.targetImage = null;
-            cursor.isDragging = false;
-          }
-          return cursor;
-        }
-        
-        // Calculate direction to destination  
-        const dx = cursor.destinationX - cursor.x;
-        const dy = cursor.destinationY - cursor.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        // If close to destination, either drop the image or set a new destination
-        if (distance < 10) {
-          // 70% chance to drop the image
-          if (Math.random() < 0.7) {
-            // Release the image immediately
-            const releasedImageIndex = cursor.targetImage;
-            if (releasedImageIndex !== null) {
-              // Very simple release: just clear everything
-              // CRITICAL FIX: First remove from drag store before clearing the lock
-              stopDragging(releasedImageIndex);
-              delete imageLocks[releasedImageIndex];
-              
-              // CRITICAL FIX: Double-check the highlight is actually gone
-              let isStillHighlighted = false;
-              draggingStore.subscribe(state => {
-                isStillHighlighted = !!state.activeDrags[releasedImageIndex];
-              })();
-              
-              if (isStillHighlighted) {
-                console.log(`[CRITICAL] Image ${releasedImageIndex} highlight persisted after cursor release - forcing cleanup`);
-                stopDragging(releasedImageIndex);
-              }
-              
-              cursor.targetImage = null;
-              cursor.isDragging = false;
-              
-              // Set a resting period (8-12 seconds) after dropping the image
-              cursor.restingPeriod = 8000 + Math.random() * 4000;
-              
-              // Update activity timestamp
-              cursor.lastActiveTime = Date.now();
-              
-              console.log(`Cursor ${cursor.name} dropped the image and will rest for ${Math.round(cursor.restingPeriod/1000)} seconds`);
-            }
-            
-            cursor.isMovingToTarget = false;
-            
-            // Choose a new wandering destination with margins
-            const horizontalMargin = 100; // 100px from sides
-            const verticalMargin = 100; // 100px from top/bottom
-            cursor.destinationX = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
-            cursor.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
-            
-            // Return immediately to apply the cursor state change
-            return cursor;
-          } else {
-            // Just set a new destination to continue dragging
-            const horizontalMargin = 100;
-            const verticalMargin = 100;
-            cursor.destinationX = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
-            cursor.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
-            
-            // Simplified curve setup
-            const curveStrength = 30 + Math.random() * 70; 
-            const startX = cursor.x;
-            const startY = cursor.y;
-            const endX = cursor.destinationX;
-            const endY = cursor.destinationY;
-            
-            // Just use midpoint with offset for control point
-            cursor.controlX = (startX + endX) / 2 + (Math.random() - 0.5) * curveStrength;
-            cursor.controlY = (startY + endY) / 2 + (Math.random() - 0.5) * curveStrength;
-            
-            // Reset curve progress
-            cursor.curveProgress = 0;
-            
-            // Update activity timestamp
-            cursor.lastActiveTime = Date.now();
-            
-            return cursor;
-          }
-        }
-        
-        // Get current image center position
-        const imgRect = activeElement.getBoundingClientRect();
-        const imageCenterX = imgRect.left + imgRect.width / 2;
-        const imageCenterY = imgRect.top + imgRect.height / 2;
-        
-        // Calculate direction to destination
-        const dirX = dx / distance;
-        const dirY = dy / distance;
-        
-        // FIXING CURSOR-IMAGE SYNC ISSUE:
-        // 1. First move the cursor
-        // 2. THEN update the image based on the cursor's new position
-        
-        // Move the cursor toward the destination - at consistent speed
-        cursor.x += dirX * MOVEMENT_SPEED;
-        cursor.y += dirY * MOVEMENT_SPEED;
-        
-        // CRITICAL FIX: Update the image position based on cursor movement
-        // Get the current image data
-        const imageData = collageImages[cursor.targetImage];
-        if (!imageData) return cursor;
-        
-        // Set grab offset if not already set - this records where on the image the cursor grabbed
-        if (!cursor.grabOffsetX || !cursor.grabOffsetY) {
-          // Calculate the offset from the cursor to the top-left corner of the image
-          // This makes sure we grab the image exactly where the cursor is positioned
-          cursor.grabOffsetX = cursor.x - imageData.left;
-          cursor.grabOffsetY = cursor.y - imageData.top;
-          
-          // Ensure grab offset is within image bounds
-          cursor.grabOffsetX = Math.max(0, Math.min(imgRect.width, cursor.grabOffsetX));
-          cursor.grabOffsetY = Math.max(0, Math.min(imgRect.height, cursor.grabOffsetY));
-          
-          console.log(`Cursor ${cursor.name} grabbed image at offset: ${cursor.grabOffsetX.toFixed(1)}, ${cursor.grabOffsetY.toFixed(1)}`);
-        }
-        
-        // IMPROVED SYNC: Calculate new position based on cursor's exact current position
-        const newLeft = cursor.x - cursor.grabOffsetX;
-        const newTop = cursor.y - cursor.grabOffsetY;
-        
-        // Get container for constraints
-        const container = document.querySelector('.desktop-collage') || document.querySelector('.mobile-collage');
-        const containerRect = container ? container.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
-        
-        // Apply constraints to keep within bounds
-        const constrainedLeft = Math.max(
-          0,
-          Math.min(containerRect.width - imgRect.width, newLeft)
-        );
-        const constrainedTop = Math.max(
-          0,
-          Math.min(containerRect.height - imgRect.height, newTop)
-        );
-        
-        // IMPROVED SYNC: If the image position was constrained, update the cursor position too
-        // This ensures the cursor and image remain perfectly in sync at boundaries
-        if (constrainedLeft !== newLeft) {
-          cursor.x = constrainedLeft + cursor.grabOffsetX;
-        }
-        if (constrainedTop !== newTop) {
-          cursor.y = constrainedTop + cursor.grabOffsetY;
-        }
-        
-        // Update the collageImages array directly
-        collageImages[cursor.targetImage] = {
-          ...collageImages[cursor.targetImage],
-          left: constrainedLeft,
-          top: constrainedTop
-        };
-        
-        // Update the element's position directly
-        if (activeElement instanceof HTMLElement) {
-          activeElement.style.left = `${constrainedLeft}px`;
-          activeElement.style.top = `${constrainedTop}px`;
-        }
-        
-        return cursor;
-      }
-      // CASE 3: Wandering (not dragging, not moving to target)
-      else {
-        // If we don't have a destination or are close to it, set a new one
-        if (!cursor.destinationX || 
-            Math.abs(cursor.x - cursor.destinationX) < 10 && 
-            Math.abs(cursor.y - cursor.destinationY) < 10) {
-          
-          // Make sure the cursor isn't still linked to an image
-          if (cursor.targetImage !== null) {
-            // If the cursor has a targetImage but is wandering,
-            // we need to clean up the lock and drag state
-            if (imageLocks[cursor.targetImage] === cursor.id) {
-              delete imageLocks[cursor.targetImage];
-              stopDragging(cursor.targetImage);
-              console.log(`Cursor ${cursor.name} released lock on image ${cursor.targetImage} while wandering`);
-            }
-            cursor.targetImage = null;
-            cursor.isDragging = false;
-            cursor.isMovingToTarget = false;
-          }
-          
-          // Choose random destination with margins
-          const horizontalMargin = 100; // 100px from sides
-          const verticalMargin = 100; // 100px from top/bottom
-          cursor.destinationX = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
-          cursor.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
-        }
-        
-        // Move towards destination with curved path
-        const dx = cursor.destinationX - cursor.x;
-        const dy = cursor.destinationY - cursor.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance > 5) {
-          // Add sine wave variation based on time
-          const curveX = Math.sin(cursor.timeFactor) * cursor.curveOffsetX * 0.05;
-          const curveY = Math.cos(cursor.timeFactor * 0.7) * cursor.curveOffsetY * 0.05;
-          
-          cursor.x += (dx / distance) * MOVEMENT_SPEED + curveX;
-          cursor.y += (dy / distance) * MOVEMENT_SPEED + curveY;
-        }
-      }
-      
-      // Calculate velocity for debugging
-      const velocity = Math.sqrt(Math.pow(cursor.x - prevX, 2) + Math.pow(cursor.y - prevY, 2));
-      
-      // Log significant velocity changes (but not state transition jumps)
-      if (cursor.lastVelocity && 
-          Math.abs(velocity - cursor.lastVelocity) > 0.1 &&
-          !(cursor.isMovingToTarget && cursor.lastVelocity < 0.1)) { // Ignore initial grab
-        console.log(`Cursor ${cursor.name} velocity: ${velocity.toFixed(2)} (state: ${cursor.isDragging ? 'dragging' : cursor.isMovingToTarget ? 'moving-to-image' : 'wandering'})`);
-      }
-      
-      cursor.lastVelocity = velocity;
-      return cursor;
-    });
-    
-    // Update parent component with new cursor states
-    onFakeCursorsUpdate(fakeCursors);
+    // Update cursor positions
+    updateCursorPositions();
   }
 
   // Function to initialize the cursor system with variety
-  function initializeCursorSystem(forceInitialCursor = false) {
-    console.log("Initializing cursor system with sparse natural behavior");
+  function initializeCursorSystem(forceCursor = false) {
+    console.log("Initializing cursor system");
     
-    // Decide if we should have any cursors at start (reduced to 15% chance normally)
-    // If forceInitialCursor is true, we always create one
-    const shouldHaveCursorsAtStart = forceInitialCursor || Math.random() < 0.15; // 15% chance of initial cursors
+    // Check if we're on mobile
+    const isMobile = window.innerWidth <= 768;
+    
+    // If on mobile, we'll create cursors but keep them hidden until they interact
+    // with an image (handled in updateCursorPositions)
+    
+    // Should we have cursors at app start?
+    const shouldHaveCursorsAtStart = forceCursor || Math.random() < 0.7; // 70% chance
     
     if (shouldHaveCursorsAtStart) {
-      // Determine how many cursors to start with - 20% chance of 2 cursors at start (down from 30%)
-      const initialCursorCount = Math.random() < 0.2 ? 2 : 1;
+      // Determine how many cursors to start with - 50% chance of 2 cursors at start (increased from 20%)
+      const initialCursorCount = isMobile ? 1 : (Math.random() < 0.5 ? 2 : 1);
       console.log(`Creating ${initialCursorCount} initial visitor${initialCursorCount > 1 ? 's' : ''}`);
       
       // Create the initial cursor(s)
       for (let i = 0; i < initialCursorCount; i++) {
-        // 80% chance to create a static cursor that just sits there
-        const shouldBeStatic = Math.random() < 0.8;
+        // Reduced chance to create a static cursor on desktop from 80% to 50%
+        const shouldBeStatic = isMobile || Math.random() < 0.5;
         
         // Create a preexisting cursor (appears to already be using the site)
         const newCursor = createFakeCursor(shouldBeStatic, true);
+        
+        // If we're on mobile, move the cursor off-screen until it drags something
+        if (isMobile) {
+          newCursor.x = -9999;
+          newCursor.y = -9999;
+        }
         
         // Only set up the cursor for dragging if it's not static
         const configuredCursor = shouldBeStatic ? 
           newCursor : // Static cursors don't need drag setup
           setupPreexistingCursor(newCursor); // Only set up non-static cursors
         
-        // For static cursors, add a long resting period (20-30 seconds)
+        // For static cursors, add a shorter resting period (5-15 seconds)
         if (shouldBeStatic) {
-          configuredCursor.restingPeriod = 20000 + Math.random() * 10000;
+          configuredCursor.restingPeriod = 5000 + Math.random() * 10000;
         }
         
         // Add to cursor array
         fakeCursors = [...fakeCursors, configuredCursor];
         
-        // Set a slightly longer lifespan for these cursors (30-120 seconds)
-        // This ensures the site isn't constantly populated
-        configuredCursor.lifespan = 30000 + Math.random() * 90000;
+        // Set a slightly shorter lifespan for initial cursors (20-60 seconds)
+        configuredCursor.lifespan = 20000 + Math.random() * 40000;
       }
       
       // Update the parent with new cursor state
@@ -990,12 +405,6 @@
       
       // Set the last creation time to now to ensure we wait before creating additional cursors
       lastCursorCreationTime = Date.now();
-    } else {
-      // No cursors at start - still mark as initialized
-      console.log("No cursors at start - site starts empty");
-      
-      // Set a short delay for potential first cursor to appear
-      lastCursorCreationTime = Date.now() - (2.5 * 60 * 1000); // 2.5 minutes ago
     }
   }
 
@@ -1511,8 +920,84 @@
 
   // Update cursor position calculation to account for scroll
   function updateCursorPositions() {
+    // On mobile devices, only show cursors that are actively dragging
+    const isMobile = window.innerWidth <= 768;
+    
+    // First, check for cursors that have exceeded their lifespan and should be removed
+    const now = Date.now();
+    const expiredCursors = fakeCursors.filter(cursor => {
+      if (cursor.id === "human-user") return false; // Never expire the human cursor
+      // Check if cursor has exceeded its lifespan (default 30-90 seconds)
+      return (now - cursor.lastActiveTime) > cursor.lifespan;
+    });
+    
+    // Remove any expired cursors
+    if (expiredCursors.length > 0) {
+      // Log which cursors are being removed
+      expiredCursors.forEach(cursor => {
+        console.log(`Removing expired cursor ${cursor.name} (lifetime: ${Math.round((now - cursor.lastActiveTime)/1000)}s)`);
+        
+        // Release any image the cursor might be holding
+        if (cursor.targetImage !== null && imageLocks[cursor.targetImage] === cursor.id) {
+          stopDragging(cursor.targetImage);
+          delete imageLocks[cursor.targetImage];
+        }
+      });
+      
+      // Filter out the expired cursors
+      fakeCursors = fakeCursors.filter(cursor => {
+        if (cursor.id === "human-user") return true; // Always keep human cursor
+        return (now - cursor.lastActiveTime) <= cursor.lifespan;
+      });
+      
+      // Notify parent component of cursor change
+      onFakeCursorsUpdate(fakeCursors);
+    }
+    
+    // Ensure we enforce MAX_CURSORS by removing oldest cursors if we exceed the limit
+    if (fakeCursors.length > MAX_CURSORS) {
+      console.log(`Too many cursors (${fakeCursors.length}), removing oldest to maintain limit of ${MAX_CURSORS}`);
+      
+      // Sort cursors by creation time (lastActiveTime) to find oldest
+      const cursorsToKeep = [...fakeCursors]
+        .filter(c => c.id !== "human-user") // Exclude human cursor from sorting
+        .sort((a, b) => b.lastActiveTime - a.lastActiveTime) // Sort newest to oldest
+        .slice(0, MAX_CURSORS - 1); // Keep newest cursors up to MAX_CURSORS-1
+      
+      // Add human cursor back if it exists
+      const humanCursor = fakeCursors.find(c => c.id === "human-user");
+      if (humanCursor) {
+        cursorsToKeep.push(humanCursor);
+      }
+      
+      // Update fakeCursors with the cursors we're keeping
+      fakeCursors = cursorsToKeep;
+      
+      // Notify parent component of cursor change
+      onFakeCursorsUpdate(fakeCursors);
+    }
+    
+    // IMPORTANT: Since cursors now use position:absolute in the parent component,
+    // all positions should be document-relative (i.e., clientX/Y coordinates + scrollY).
+    // Always add window.scrollY to cursor positions for proper document positioning.
+    
     // For each cursor, update its position based on its state
     fakeCursors = fakeCursors.map(cursor => {
+      // Update the lastActiveTime for moving cursors to keep track of when they're active
+      if (!cursor.isStatic && (cursor.isDragging || cursor.isMovingToTarget)) {
+        cursor.lastActiveTime = now;
+      }
+      
+      // On mobile, hide cursors that aren't dragging images
+      if (isMobile && !cursor.isDragging) {
+        // Move cursor off-screen when not dragging on mobile
+        return {
+          ...cursor,
+          x: -9999,
+          y: -9999
+        };
+      }
+      
       // Skip static cursors completely
       if (cursor.isStatic) {
         return cursor;
@@ -1537,187 +1022,12 @@
         cursor.curveOffsetY = (Math.random() * 100) - 50;
       }
       
-      // STEP 1: HANDLE STATE TRANSITIONS
-      // Note: We'll only check for state changes, but won't apply position changes here
-      
-      // If not dragging, randomly decide to start dragging - lower probability (1% chance instead of 2%)
-      if (!cursor.isDragging && !cursor.isMovingToTarget && Math.random() < 0.01) {
-        // If cursor was previously targeting an image but state changed,
-        // ensure we clean up any existing target
-        if (cursor.targetImage !== null) {
-          // Clean up any previous target that wasn't properly released
-          console.log(`Cursor ${cursor.name} was targeting image ${cursor.targetImage} but state doesn't match - cleaning up`);
-          if (imageLocks[cursor.targetImage] === cursor.id) {
-            // CRITICAL FIX: Make sure we stop dragging BEFORE deleting the lock
-            stopDragging(cursor.targetImage);
-            delete imageLocks[cursor.targetImage];
-          }
-          cursor.targetImage = null;
-        }
-
-        // CRITICAL FIX: Check if the cursor is over an image before selecting it
-        // Instead of randomly choosing any image, find one that the cursor is positioned over
-        const cursorX = cursor.x;
-        const cursorY = cursor.y;
-        
-        // Find all image elements
-        const imageElements = document.querySelectorAll('.collage-image-button');
-        const imagesUnderCursor: {element: Element, index: number, distance: number}[] = [];
-        
-        // Check each image to see if cursor is over it
-        imageElements.forEach((el, index) => {
-          if (!imageLocks[index]) { // Skip images that are already locked/being dragged
-            const rect = el.getBoundingClientRect();
-            
-            // IMPROVED: Add a small buffer zone around the image (5px) to make hit detection more reliable
-            // This helps with edge cases where cursor is nearly on the image but not quite
-            const bufferSize = 5;
-            if (
-              cursorX >= rect.left - bufferSize && 
-              cursorX <= rect.right + bufferSize && 
-              cursorY >= rect.top - bufferSize && 
-              cursorY <= rect.bottom + bufferSize
-            ) {
-              // Found an image the cursor is over (or very near)
-              const distance = Math.min(
-                Math.abs(cursorX - rect.left),
-                Math.abs(cursorX - rect.right),
-                Math.abs(cursorY - rect.top),
-                Math.abs(cursorY - rect.bottom)
-              );
-              
-              // Store the element, index, and distance for sorting
-              imagesUnderCursor.push({ 
-                element: el, 
-                index, 
-                distance: distance < bufferSize ? distance : 0 // Prioritize actual overlaps
-              });
-            }
-          }
-        });
-        
-        // Sort by distance (0 = direct hit, higher = nearby)
-        imagesUnderCursor.sort((a, b) => a.distance - b.distance);
-        
-        // If cursor is over any images, select the one with the best hit
-        if (imagesUnderCursor.length > 0) {
-          // Take the first (closest) match
-          const selected = imagesUnderCursor[0];
-          
-          // Proceed with selection
-          proceedWithImageSelection(selected.element, cursor, selected.index);
-          
-          // Update activity timestamp
-          cursor.lastActiveTime = Date.now();
-          
-          console.log(`Cursor ${cursor.name} grabbing image ${selected.index} that it's positioned over`);
-        } else {
-          // Cursor isn't over any image, so do nothing for now
-          return cursor;
-        }
-      }
-      // If moving to target and reached it, start dragging
-      else if (cursor.isMovingToTarget && 
-               Math.abs(cursor.x - cursor.targetX) < 10 && 
-               Math.abs(cursor.y - cursor.targetY) < 10) {
-        
-        // Preserve the targetImage before state changes
-        const targetImageIndex = cursor.targetImage;
-        
-        if (targetImageIndex !== null) {
-          // Make sure we still own the lock on this image
-          if (imageLocks[targetImageIndex] !== cursor.id) {
-            // Someone else grabbed the image while we were moving to it
-            cursor.isMovingToTarget = false;
-            cursor.targetImage = null;
-            return cursor;
-          }
-          
-          // First register in the drag store BEFORE changing cursor state
-          // This ensures the image is marked as being dragged before the state changes
-          startDragging(targetImageIndex);
-          
-          // Now we've reached the image, start dragging it - update state
-          cursor.isMovingToTarget = false;
-          cursor.isDragging = true;
-          
-          // Ensure the imageLocks still points to us
-          imageLocks[targetImageIndex] = cursor.id;
-          
-          // Update activity timestamp
-          cursor.lastActiveTime = Date.now();
-          
-          console.log(`Cursor ${cursor.name} started ACTIVE dragging of image ${targetImageIndex}`);
-          
-          // Choose random destination with margins
-          const horizontalMargin = 100; // 100px from sides
-          const verticalMargin = 100; // 100px from top/bottom
-          cursor.destinationX = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
-          cursor.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
-          
-          console.log(`Cursor ${cursor.name} started dragging image ${targetImageIndex}`);
-        } else {
-          // Something is wrong, the cursor was moving to target but targetImage is null
-          console.log(`Cursor ${cursor.name} was moving to target but targetImage is null - resetting state`);
-          cursor.isMovingToTarget = false;
-          cursor.isDragging = false;
-        }
-        
-        return cursor;
-      }
-      // If dragging, very rarely decide to stop - reduced probability for longer drags
-      else if (cursor.isDragging && Math.random() < 0.002) {
-        // Release the image immediately
-        const releasedImageIndex = cursor.targetImage;
-        if (releasedImageIndex !== null) {
-          // TRIPLE-CHECK release protocol:
-          // 1. First update the drag store to remove highlight
-          stopDragging(releasedImageIndex);
-          
-          // 2. Remove the image lock in the locks dictionary
-          if (imageLocks[releasedImageIndex] === cursor.id) {
-            delete imageLocks[releasedImageIndex];
-          }
-          
-          // 3. Clear cursor state properties
-          cursor.isDragging = false;
-          cursor.targetImage = null;
-          
-          // 4. CRITICAL FIX: Verify the highlight is actually gone
-          let isStillHighlighted = false;
-          draggingStore.subscribe(state => {
-            isStillHighlighted = !!state.activeDrags[releasedImageIndex];
-          })();
-          
-          if (isStillHighlighted) {
-            console.log(`[CRITICAL] Image ${releasedImageIndex} highlight persisted after cursor release - forcing cleanup`);
-            stopDragging(releasedImageIndex);
-          }
-          
-          // Update activity timestamp
-          cursor.lastActiveTime = Date.now();
-          
-          // Set a resting period (8-12 seconds) after dropping the image
-          cursor.restingPeriod = 8000 + Math.random() * 4000;
-          
-          console.log(`Cursor ${cursor.name} dropped the image and will rest for ${Math.round(cursor.restingPeriod/1000)} seconds`);
-        }
-        
-        cursor.isMovingToTarget = false;
-        
-        // Choose a new wandering destination with margins
-        const horizontalMargin = 100; // 100px from sides
-        const verticalMargin = 100; // 100px from top/bottom
-        cursor.destinationX = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
-        cursor.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
-        
-        // Return immediately to apply the cursor state change
-        return cursor;
-      }
+      // STEP:1 HANDLE STATE TRANSITIONS - omitted for brevity
       
       // STEP 2: HANDLE MOVEMENT BASED ON STATE
-      // Use slower speeds for all movement - CONSISTENT for all cases
-      const MOVEMENT_SPEED = 5.0; // Consistent speed for all cursor movement
+      // Use appropriate speeds based on device type
+      const mobileDevice = window.innerWidth <= 768;
+      const MOVEMENT_SPEED = mobileDevice ? 8.0 : 5.0; // Faster speed on mobile for better visibility
       
       // CASE 1: Moving to target image
       if (cursor.isMovingToTarget && !cursor.isDragging) {
@@ -1764,9 +1074,21 @@
         // Double-verify the cursor still owns this image lock
         if (imageLocks[cursor.targetImage] !== cursor.id) {
           console.log(`Cursor ${cursor.name} lost control of image ${cursor.targetImage} - stopping drag`);
-          cursor.isDragging = false;
-          cursor.targetImage = null;
-          return cursor;
+          
+          // Make cursor go back to static or moving to a new image rather than wandering
+          if (Math.random() < 0.5) {
+            // Go static
+            cursor.isDragging = false;
+            cursor.targetImage = null;
+            cursor.isStatic = true;
+            return cursor;
+          } else {
+            // Find a new target image
+            cursor.isDragging = false;
+            cursor.targetImage = null;
+            cursor.isMovingToTarget = true;
+            return setupPreexistingCursor(cursor);
+          }
         }
         
         // Get the image element
@@ -1809,8 +1131,8 @@
             delete imageLocks[cursor.targetImage];
             stopDragging(cursor.targetImage);
             cursor.targetImage = null;
-            cursor.isDragging = false;
           }
+          cursor.isDragging = false;
           return cursor;
         }
         
@@ -1856,11 +1178,13 @@
             
             cursor.isMovingToTarget = false;
             
-            // Choose a new wandering destination with margins
-            const horizontalMargin = 100; // 100px from sides
-            const verticalMargin = 100; // 100px from top/bottom
-            cursor.destinationX = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
-            cursor.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
+            // Choose a new static state with high probability, otherwise target a new image
+            if (Math.random() < 0.7) {
+              cursor.isStatic = true;
+            } else {
+              cursor.isMovingToTarget = true;
+              return setupPreexistingCursor(cursor);
+            }
             
             // Return immediately to apply the cursor state change
             return cursor;
@@ -1893,9 +1217,11 @@
         }
         
         // Get current image center position
+        // NOTE: getBoundingClientRect() returns viewport-relative coordinates, so we need to
+        // add window.scrollY for absolute positioning of cursors
         const imgRect = activeElement.getBoundingClientRect();
         const imageCenterX = imgRect.left + imgRect.width / 2;
-        const imageCenterY = imgRect.top + imgRect.height / 2;
+        const imageCenterY = imgRect.top + imgRect.height / 2 + window.scrollY;
         
         // Calculate direction to destination
         const dirX = dx / distance;
@@ -1970,46 +1296,27 @@
         
         return cursor;
       }
-      // CASE 3: Wandering (not dragging, not moving to target)
+      // CASE 3: Not moving to target or dragging - should never happen now, but handle gracefully
+      // by making the cursor move toward an image or become static
       else {
-        // If we don't have a destination or are close to it, set a new one
-        if (!cursor.destinationX || 
-            Math.abs(cursor.x - cursor.destinationX) < 10 && 
-            Math.abs(cursor.y - cursor.destinationY) < 10) {
-          
-          // Make sure the cursor isn't still linked to an image
-          if (cursor.targetImage !== null) {
-            // If the cursor has a targetImage but is wandering,
-            // we need to clean up the lock and drag state
-            if (imageLocks[cursor.targetImage] === cursor.id) {
-              delete imageLocks[cursor.targetImage];
-              stopDragging(cursor.targetImage);
-              console.log(`Cursor ${cursor.name} released lock on image ${cursor.targetImage} while wandering`);
-            }
-            cursor.targetImage = null;
-            cursor.isDragging = false;
-            cursor.isMovingToTarget = false;
-          }
-          
-          // Choose random destination with margins
-          const horizontalMargin = 100; // 100px from sides
-          const verticalMargin = 100; // 100px from top/bottom
-          cursor.destinationX = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
-          cursor.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
-        }
+        console.log(`Cursor ${cursor.name} is in invalid state - fixing`);
         
-        // Move towards destination with curved path
-        const dx = cursor.destinationX - cursor.x;
-        const dy = cursor.destinationY - cursor.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance > 5) {
-          // Add sine wave variation based on time
-          const curveX = Math.sin(cursor.timeFactor) * cursor.curveOffsetX * 0.05;
-          const curveY = Math.cos(cursor.timeFactor * 0.7) * cursor.curveOffsetY * 0.05;
+        // Reset to a valid state - either static or moving to target
+        if (Math.random() < 0.5) {
+          // Go static
+          cursor.isDragging = false;
+          cursor.targetImage = null;
+          cursor.isMovingToTarget = false;
+          cursor.isStatic = true;
           
-          cursor.x += (dx / distance) * MOVEMENT_SPEED + curveX;
-          cursor.y += (dy / distance) * MOVEMENT_SPEED + curveY;
+          return cursor;
+        } else {
+          // Find a new target image
+          cursor.isDragging = false;
+          cursor.targetImage = null;
+          cursor.isMovingToTarget = true;
+          
+          return setupPreexistingCursor(cursor);
         }
       }
       
@@ -2020,7 +1327,7 @@
       if (cursor.lastVelocity && 
           Math.abs(velocity - cursor.lastVelocity) > 0.1 &&
           !(cursor.isMovingToTarget && cursor.lastVelocity < 0.1)) { // Ignore initial grab
-        console.log(`Cursor ${cursor.name} velocity: ${velocity.toFixed(2)} (state: ${cursor.isDragging ? 'dragging' : cursor.isMovingToTarget ? 'moving-to-image' : 'wandering'})`);
+        console.log(`Cursor ${cursor.name} velocity: ${velocity.toFixed(2)} (state: ${cursor.isDragging ? 'dragging' : cursor.isMovingToTarget ? 'moving-to-image' : 'static'})`);
       }
       
       cursor.lastVelocity = velocity;
@@ -2029,6 +1336,20 @@
     
     // Update parent component with new cursor states
     onFakeCursorsUpdate(fakeCursors);
+    
+    // Check if we need to create a new cursor
+    if (fakeCursors.length < MAX_CURSORS) {
+      const now = Date.now();
+      const timeSinceLastCursor = now - lastCursorCreationTime;
+      const minTimeBetweenCursors = isMobile ? 3 * 60 * 1000 : 60 * 1000; // 3 min on mobile, 1 min on desktop
+      const randomDelayFactor = isMobile ? 5 * 60 * 1000 : 2 * 60 * 1000; // Up to additional 5 min on mobile, 2 min on desktop
+      
+      // Create cursor with appropriate timing
+      if (timeSinceLastCursor > minTimeBetweenCursors + (Math.random() * randomDelayFactor)) {
+        // Create a new cursor using our new function
+        attemptToCreateNewCursor();
+      }
+    }
   }
   
   // Add scroll event listener
@@ -2067,7 +1388,7 @@
       }, 250); // Wait 250ms after resize ends before updating
     };
     
-    // Add a scroll handler to ensure cursors don't move when page scrolls
+    // Add a scroll handler to ensure cursors maintain position relative to document when page scrolls
     const handleScroll = () => {
       // When page scrolls, we need to update any active cursor to maintain its position
       // relative to the document, not the viewport
@@ -2222,15 +1543,15 @@
                   owlElement.style.top = `${newTop}px`;
                   
                   // Update our data structure as well
-                  collageImages = collageImages.map((img, i) => {
+    collageImages = collageImages.map((img, i) => {
                     if (i === owlIndex) {
-                      return {
-                        ...img,
+        return {
+          ...img,
                         top: newTop
-                      };
-                    }
-                    return img;
-                  });
+        };
+      }
+      return img;
+    });
                   
                   console.log(`Explicitly positioned owl in desktop view at top: ${newTop}px`);
                 }
@@ -2327,7 +1648,8 @@
     // Get cursor and image positions
     const imgRect = imageElement.getBoundingClientRect();
     const cursorX = cursor.x;
-    const cursorY = cursor.y;
+    // For document-relative position, we need to remove scrollY to compare with getBoundingClientRect
+    const cursorY = cursor.y - window.scrollY;
     
     // Check if cursor is INSIDE the image bounds
     if (cursorX >= imgRect.left && 
@@ -3124,8 +2446,9 @@
     
     // Calculate grab offset - CRUCIAL for proper image alignment
     // This is where the cursor is grabbing the image relative to the image's top-left corner
+    // For client coordinates (from getBoundingClientRect), we need to subtract scrollY from cursor.y
     cursor.grabOffsetX = cursor.x - rect.left;
-    cursor.grabOffsetY = cursor.y - rect.top;
+    cursor.grabOffsetY = (cursor.y - window.scrollY) - rect.top;
     
     // Ensure grab offset is within image bounds
     cursor.grabOffsetX = Math.max(0, Math.min(rect.width, cursor.grabOffsetX));
@@ -3156,7 +2479,129 @@
     cursor.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
   }
 
-  </script>
+  // ... existing code ...
+  
+  // Function to ensure bots on mobile start by dragging
+  function decideCursorBehaviorStrategy() {
+    const isMobile = window.innerWidth <= 768;
+    
+    console.log(`Deciding cursor behavior - isMobile: ${isMobile}`);
+    
+    // Make desktop cursors more active by reducing static probability
+    return {
+      shouldTargetImage: true,      // Always target an image, on both mobile and desktop
+      shouldStartStatic: isMobile ? false : Math.random() < 0.4,  // Reduced from 70% to 40% chance on desktop
+      shouldStartDragging: isMobile ? true : Math.random() < 0.7, // Increased from 50% to 70% on desktop
+      movementSpeed: isMobile ? 8.0 : 5.0                        // Faster on mobile
+    };
+  }
+  
+  // Function to attempt to create a new cursor with appropriate behavior
+  function attemptToCreateNewCursor() {
+    // Skip creating cursors if none are becoming active
+    if (fakeCursors.length >= MAX_CURSORS) {
+      return false;
+    }
+    
+    // Create a new cursor
+    const cursorBehavior = decideCursorBehaviorStrategy();
+    const isMobile = window.innerWidth <= 768;
+    
+    console.log(`Attempting to create new cursor - mobile: ${isMobile}`);
+    
+    // Create cursor with appropriate behavior - static or targeting
+    const newCursor = createFakeCursor(cursorBehavior.shouldStartStatic);
+    
+    // If static, just add it
+    if (cursorBehavior.shouldStartStatic) {
+      console.log(`Created static cursor`);
+      fakeCursors = [...fakeCursors, newCursor];
+      lastCursorCreationTime = Date.now();
+      onFakeCursorsUpdate(fakeCursors);
+      
+      // Even static cursors should eventually become active
+      // Set a timer to make static cursors active after a delay
+      setTimeout(() => {
+        // Find this cursor in the array if it still exists
+        const cursorIndex = fakeCursors.findIndex(c => c.id === newCursor.id);
+        if (cursorIndex !== -1 && fakeCursors[cursorIndex].isStatic) {
+          console.log(`Static cursor ${newCursor.name} becoming active`);
+          // Change state to moving to target
+          fakeCursors[cursorIndex].isStatic = false;
+          fakeCursors[cursorIndex].isMovingToTarget = true;
+          fakeCursors[cursorIndex].lastActiveTime = Date.now(); // Reset lifespan timer
+          
+          // Setup to target an image
+          fakeCursors[cursorIndex] = setupPreexistingCursor(fakeCursors[cursorIndex]);
+          
+          // Update parent
+          onFakeCursorsUpdate(fakeCursors);
+        }
+      }, 15000 + Math.random() * 15000); // Activate after 15-30 seconds
+      
+      return true;
+    }
+    
+    // Not static, so make it target an image (for both mobile and desktop)
+    newCursor.isMovingToTarget = true;
+    
+    // Get available images
+    const visibleImageIndexes = [...visibleImages];
+    const availableIndexes = visibleImageIndexes.filter(index => !imageLocks[index]);
+    
+    console.log(`${availableIndexes.length} available images for cursor to target`);
+    
+    // If no images available, don't create the cursor
+    if (availableIndexes.length === 0) {
+      console.log("No images available for cursor to target - skipping cursor creation");
+      return false;
+    }
+    
+    // Immediately set up the cursor to target an image
+    const configuredCursor = setupPreexistingCursor(newCursor);
+    
+    // Add the cursor only if it successfully targeted an image
+    if (configuredCursor.targetImage !== null) {
+      fakeCursors = [...fakeCursors, configuredCursor];
+      console.log(`Created cursor targeting image ${configuredCursor.targetImage}`);
+    } else {
+      console.log("Failed to set up cursor with target image - skipping");
+      return false;
+    }
+    
+    // Update last creation time
+    lastCursorCreationTime = Date.now();
+    
+    // Notify parent component of cursor change
+    onFakeCursorsUpdate(fakeCursors);
+    
+    return true;
+  }
+  
+  // Initialize the cursor system at the start
+  onMount(() => {
+    if (!browser) return; // Skip if not in browser environment
+    
+    // Check if we're on mobile
+    const isMobile = window.innerWidth <= 768;
+    
+    // On mobile, initialize the cursor system immediately
+    if (isMobile) {
+      console.log("Mobile detected - initializing cursor system immediately");
+      hasCursorInitialized = true;
+      cursorInitializationDelay = 0;
+      
+      // Force a cursor to appear quickly on mobile
+      setTimeout(() => {
+        console.log("Forcibly creating first mobile cursor");
+        attemptToCreateNewCursor();
+      }, 5000); // Give images time to load first
+    } else {
+      // On desktop, use the regular initialization process
+      console.log("Desktop detected - using standard cursor initialization");
+    }
+  });
+</script>
 
 <!-- Desktop collage (hidden on mobile) -->
 <div class="desktop-collage">

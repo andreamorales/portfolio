@@ -1552,13 +1552,14 @@
   }
 
   .fake-cursors-overlay {
-    position: fixed;
+    position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
     pointer-events: none; /* This ensures fake cursors don't interact with elements */
     z-index: 1000;
+    /* Positioning is now absolute, so cursors will move with page scroll */
   }
 
   .fake-cursor {

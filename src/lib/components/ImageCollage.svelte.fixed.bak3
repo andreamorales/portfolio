@@ -3,11 +3,6 @@
   import { fade } from 'svelte/transition';
   import draggingStore, { startDragging, stopDragging } from '../stores/draggingStore.js';
   
-  // IMPORTANT: The fake cursors use fixed positioning (position:fixed) in the parent component.
-  // This means cursor positions should always be viewport-relative and NEVER add window.scrollY
-  // to their positions. Browser APIs like getBoundingClientRect() return viewport-relative
-  // coordinates which should be used directly.
-  
   // Import images from props instead of directly
   export let imageDimensions: any[] = [];
   export let largeScreenImages: any[] = [];
@@ -224,8 +219,6 @@
     }
     
     // Get image position and prepare to move cursor there
-    // NOTE: getBoundingClientRect() returns viewport-relative coordinates
-    // which is what we want for cursors with position:fixed (no need to add scrollY)
     const rect = imageElement.getBoundingClientRect();
     // Target the center of the image
     const targetX = rect.left + rect.width / 2;
@@ -1518,10 +1511,6 @@
 
   // Update cursor position calculation to account for scroll
   function updateCursorPositions() {
-    // IMPORTANT: Since cursors use position:fixed in the parent component,
-    // all positions should be viewport-relative (i.e., clientX/Y coordinates).
-    // Never add window.scrollY to cursor positions.
-    
     // For each cursor, update its position based on its state
     fakeCursors = fakeCursors.map(cursor => {
       // Skip static cursors completely

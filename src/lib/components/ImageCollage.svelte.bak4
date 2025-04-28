@@ -3,10 +3,9 @@
   import { fade } from 'svelte/transition';
   import draggingStore, { startDragging, stopDragging } from '../stores/draggingStore.js';
   
-  // IMPORTANT: The fake cursors use fixed positioning (position:fixed) in the parent component.
-  // This means cursor positions should always be viewport-relative and NEVER add window.scrollY
-  // to their positions. Browser APIs like getBoundingClientRect() return viewport-relative
-  // coordinates which should be used directly.
+  // IMPORTANT: The fake cursors now use absolute positioning (position:absolute) in the parent component.
+  // This means cursor positions should be document-relative and SHOULD add window.scrollY
+  // to their positions to maintain proper document positioning.
   
   // Import images from props instead of directly
   export let imageDimensions: any[] = [];
@@ -225,11 +224,11 @@
     
     // Get image position and prepare to move cursor there
     // NOTE: getBoundingClientRect() returns viewport-relative coordinates
-    // which is what we want for cursors with position:fixed (no need to add scrollY)
+    // which need to be adjusted with window.scrollY for absolute positioning
     const rect = imageElement.getBoundingClientRect();
     // Target the center of the image
     const targetX = rect.left + rect.width / 2;
-    const targetY = rect.top + rect.height / 2;
+    const targetY = rect.top + rect.height / 2 + window.scrollY;
     
     // Set up transition to image
     cursor.targetImage = randomImageIndex;
@@ -477,7 +476,8 @@
         // CRITICAL FIX: Check if the cursor is over an image before selecting it
         // Instead of randomly choosing any image, find one that the cursor is positioned over
         const cursorX = cursor.x;
-        const cursorY = cursor.y;
+        // For document-relative position, we need to remove scrollY to compare with getBoundingClientRect
+        const cursorY = cursor.y - window.scrollY;
         
         // Find all image elements
         const imageElements = document.querySelectorAll('.collage-image-button');
@@ -812,9 +812,11 @@
         }
         
         // Get current image center position
+        // NOTE: getBoundingClientRect() returns viewport-relative coordinates, so we need to
+        // add window.scrollY for absolute positioning of cursors
         const imgRect = activeElement.getBoundingClientRect();
         const imageCenterX = imgRect.left + imgRect.width / 2;
-        const imageCenterY = imgRect.top + imgRect.height / 2;
+        const imageCenterY = imgRect.top + imgRect.height / 2 + window.scrollY;
         
         // Calculate direction to destination
         const dirX = dx / distance;
@@ -1309,7 +1311,7 @@
         fakeCursors[humanCursorIndex] = {
           ...fakeCursors[humanCursorIndex],
           x: adjustedCursorX,
-          y: adjustedCursorY
+          y: adjustedCursorY + window.scrollY
         };
         
         // IMPORTANT: Reposition the physical cursor to match the image constraint
@@ -1334,7 +1336,7 @@
         fakeCursors[humanCursorIndex] = {
           ...fakeCursors[humanCursorIndex],
           x: event.clientX,
-          y: event.clientY
+          y: event.clientY + window.scrollY
         };
       }
       
@@ -1500,14 +1502,14 @@
         fakeCursors[humanCursorIndex] = {
           ...fakeCursors[humanCursorIndex],
           x: adjustedCursorX,
-          y: adjustedCursorY
+          y: adjustedCursorY + window.scrollY
         };
       } else {
         // No constraint, cursor position matches the touch
         fakeCursors[humanCursorIndex] = {
           ...fakeCursors[humanCursorIndex],
           x: touch.clientX,
-          y: touch.clientY
+          y: touch.clientY + window.scrollY
         };
       }
       
@@ -1518,9 +1520,9 @@
 
   // Update cursor position calculation to account for scroll
   function updateCursorPositions() {
-    // IMPORTANT: Since cursors use position:fixed in the parent component,
-    // all positions should be viewport-relative (i.e., clientX/Y coordinates).
-    // Never add window.scrollY to cursor positions.
+    // IMPORTANT: Since cursors now use position:absolute in the parent component,
+    // all positions should be document-relative (i.e., clientX/Y coordinates + scrollY).
+    // Always add window.scrollY to cursor positions for proper document positioning.
     
     // For each cursor, update its position based on its state
     fakeCursors = fakeCursors.map(cursor => {
@@ -1569,7 +1571,8 @@
         // CRITICAL FIX: Check if the cursor is over an image before selecting it
         // Instead of randomly choosing any image, find one that the cursor is positioned over
         const cursorX = cursor.x;
-        const cursorY = cursor.y;
+        // For document-relative position, we need to remove scrollY to compare with getBoundingClientRect
+        const cursorY = cursor.y - window.scrollY;
         
         // Find all image elements
         const imageElements = document.querySelectorAll('.collage-image-button');
@@ -1904,9 +1907,11 @@
         }
         
         // Get current image center position
+        // NOTE: getBoundingClientRect() returns viewport-relative coordinates, so we need to
+        // add window.scrollY for absolute positioning of cursors
         const imgRect = activeElement.getBoundingClientRect();
         const imageCenterX = imgRect.left + imgRect.width / 2;
-        const imageCenterY = imgRect.top + imgRect.height / 2;
+        const imageCenterY = imgRect.top + imgRect.height / 2 + window.scrollY;
         
         // Calculate direction to destination
         const dirX = dx / distance;
@@ -2078,6 +2083,16 @@
       }, 250); // Wait 250ms after resize ends before updating
     };
     
+    // Add a scroll handler to ensure cursors maintain position relative to document when page scrolls
+    const handleScroll = () => {
+      // When page scrolls, we need to update any active cursor to maintain its position
+      // relative to the document, not the viewport
+      fakeCursors = fakeCursors.map(cursor => ({
+        ...cursor
+      }));
+      onFakeCursorsUpdate(fakeCursors);
+    };
+    
     // Handle touch dragging by converting to mouse events
     const handleTouchMove = (event: TouchEvent) => {
       if (draggedImageIndex === null) return;
@@ -2102,6 +2117,7 @@
 
     // Add resize and touch event handlers
     window.addEventListener('resize', handleResize);
+    window.addEventListener('scroll', handleScroll);
     
     // IMPORTANT: Do NOT use the handleTouchMove function here - it causes dual processing
     // Let the touchstart handler on each image handle the touch events directly
@@ -2250,6 +2266,7 @@
     // Cleanup event listeners and timer on component unmount
     return () => {
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleTouchEnd);
       clearTimeout(resizeTimer);
@@ -2326,7 +2343,8 @@
     // Get cursor and image positions
     const imgRect = imageElement.getBoundingClientRect();
     const cursorX = cursor.x;
-    const cursorY = cursor.y;
+    // For document-relative position, we need to remove scrollY to compare with getBoundingClientRect
+    const cursorY = cursor.y - window.scrollY;
     
     // Check if cursor is INSIDE the image bounds
     if (cursorX >= imgRect.left && 
@@ -3123,8 +3141,9 @@
     
     // Calculate grab offset - CRUCIAL for proper image alignment
     // This is where the cursor is grabbing the image relative to the image's top-left corner
+    // For client coordinates (from getBoundingClientRect), we need to subtract scrollY from cursor.y
     cursor.grabOffsetX = cursor.x - rect.left;
-    cursor.grabOffsetY = cursor.y - rect.top;
+    cursor.grabOffsetY = (cursor.y - window.scrollY) - rect.top;
     
     // Ensure grab offset is within image bounds
     cursor.grabOffsetX = Math.max(0, Math.min(rect.width, cursor.grabOffsetX));
