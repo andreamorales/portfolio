@@ -421,11 +421,12 @@
     }
   ];
 
-  // Generate positions for images with better randomization
+  // Function to generate random positions but ensure desktop images are on right side
   function generateRandomPositions() {
     // Calculate a scale factor based on viewport width
     const viewportWidth = window.innerWidth;
     let scaleFactor = 1;
+    const isMobile = viewportWidth <= 768;
     
     // Determine which images to use based on screen size
     let imagesToUse = [...imageDimensions];
@@ -435,6 +436,7 @@
       imagesToUse = [...imageDimensions, ...largeScreenImages];
       scaleFactor = viewportWidth / 1920; // Scale up proportionally for large screens
     } else if (viewportWidth < 768) {
+      // Mobile layout logic (unchanged)
       scaleFactor = Math.max(0.4, viewportWidth / 1024); // Adjust scale for mobile
       
       // For mobile, create a layout that fills the playground space
@@ -559,15 +561,14 @@
       zIndex: i + 1
     }));
     
-    // Now shuffle positions (but not z-index ordering)
-    // We create position groups to maintain some consistency
-    // Larger images will tend to be positioned more towards the edges
-    // Smaller images will tend to be positioned more centrally
-    
+    // FIXED POSITIONING FOR DESKTOP: Force images to stay on right side
     // Define the area bounds with proper margin constraints
     const viewportMargin = 3;  // Same margin value used in drag handlers
+    
+    // FIXED: Use right side positioning only - restrict positioning to right 45% of screen
+    const rightSideStart = 55; // Starting at 55% from left edge (right side only)
     const rightMin = viewportMargin;   // minimum distance from right edge
-    const rightMax = 50;  // maximum distance from right edge (reduced to leave space on left)
+    const rightMax = 40;  // maximum distance from right edge (Ensure images stay in the right 40% zone)
     const bottomMin = viewportMargin;  // minimum distance from bottom edge (controls top margin)
     const bottomMax = 80; // maximum distance from bottom edge
     
@@ -598,6 +599,7 @@
       // 2. Size-based offsets to separate images by their dimensions
       // 3. Unique offsets for each image to prevent perfect stacking
       
+      // FIXED: Ensure the spiral center is on the right side
       // Custom angle with different patterns per image for more unique positions
       const spiralIndex = index;
       const baseAngle = spiralIndex * 0.75; // Basic spiral pattern
@@ -610,9 +612,10 @@
       const sizeBasedOffset = (imgData.width / 100) * 0.5; // Larger images get more space
       const radius = 5 + (spiralIndex * 2.8) + sizeBasedOffset;
       
-      // Center point with slight offsets based on image attributes
-      const centerRight = rightMin + (areaWidth / 2) + (index % 2 ? 2 : -2); // Slight left-right alternation
-      const centerBottom = bottomMin + (areaHeight / 2) + (index % 3 === 0 ? 3 : -3); // Varied vertical positioning
+      // FIXED: Center point of spiral is firmly on right side of the screen
+      // Move center point to the right side of the screen
+      const centerRight = rightMin + (areaWidth / 2);
+      const centerBottom = bottomMin + (areaHeight / 2);
       
       // Calculate base position with spiral pattern
       const spiralRight = centerRight + radius * Math.cos(angle);
@@ -667,11 +670,11 @@
       
       // Force the owl to a specific position rather than relying on calculations
       if (isOwl) {
-        // Position owl in the middle-right area, FULLY visible with MORE distance from top
+        // FIXED: Position owl firmly on the right side of the screen
         return {
           ...imgData,
-          right: 30, // Position from right edge (percentage)
-          bottom: 60, // INCREASED distance from bottom (percentage) to ensure it's lower on the page
+          right: 20, // Position from right edge (percentage) - closer to right edge
+          bottom: 60, // Distance from bottom (percentage)
           rotation: Math.random() * 8 - 4, // Slight random rotation between -4 and 4 degrees
           aspectRatio: imgData.aspectRatio
         };
@@ -679,20 +682,21 @@
       
       // Special positioning for the snake
       if (isSnake) {
-        // Position snake on the right side, ensuring it's fully visible
+        // FIXED: Position snake more firmly on the right side
         return {
           ...imgData,
-          right: 65, // Position from right edge (percentage)
+          right: 30, // Position closer to right edge (percentage)
           bottom: 40, // Position in the middle vertically
           rotation: Math.random() * 8 - 4, // Slight random rotation
           aspectRatio: imgData.aspectRatio
         };
       }
       
-      // For all other images, use the normal positioning logic
+      // FIXED: Force all images to stay on the right side by restricting the 'right' value
+      // Keep right values higher (which places images more to the right)
       return {
         ...imgData,
-        right: Math.max(rightMin, Math.min(rightMax, right + extraOffsetRight)),
+        right: Math.max(rightMin + 5, Math.min(rightMax - 5, right + extraOffsetRight)),
         bottom: Math.max(bottomMin + imageHeightPercent, Math.min(bottomMax, bottom + extraOffsetBottom)),
         rotation,
         aspectRatio: imgData.aspectRatio
@@ -1156,23 +1160,6 @@
 <Toast message={toastMessage} bind:visible={showToast} />
 
 <div class="landing-page">
-  <!-- Add fake cursors overlay that uses fixed positioning -->
-  <div class="fake-cursors-overlay">
-    {#each fakeCursors as cursor}
-      <div 
-        class="fake-cursor"
-        style="
-          left: {cursor.x}px;
-          top: {cursor.y}px; /* Use absolute position without scroll adjustment */
-          --cursor-color: {cursor.color};
-        "
-      >
-        <div class="fake-cursor-dot"></div>
-        <div class="fake-cursor-name">{cursor.name}</div>
-      </div>
-    {/each}
-  </div>
-
   <main class="container flex-column-left">
     <div class="header flex-column-left gap-large">
       <div class="title-container">
@@ -1549,56 +1536,5 @@
     .colibri-container {
       transform: translate(17.5%, -3.1%) scale(0.5);
     }
-  }
-
-  .fake-cursors-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none; /* This ensures fake cursors don't interact with elements */
-    z-index: 1000;
-    /* Positioning is now absolute, so cursors will move with page scroll */
-  }
-
-  .fake-cursor {
-    position: absolute;
-    transform: translate(-50%, -50%);
-    transition: left 0.1s linear, top 0.1s linear;
-    pointer-events: none; /* Double ensure no interaction */
-  }
-
-  .fake-cursor-dot {
-    width: 8px;
-    height: 8px;
-    background-color: var(--cursor-color);
-    border-radius: 50%;
-    position: relative;
-  }
-
-  .fake-cursor-dot::after {
-    content: '';
-    position: absolute;
-    top: -4px;
-    left: -4px;
-    right: -4px;
-    bottom: -4px;
-    border: 2px solid var(--cursor-color);
-    border-radius: 50%;
-    opacity: 0.5;
-  }
-
-  .fake-cursor-name {
-    position: absolute;
-    top: -20px;
-    left: 10px;
-    background-color: var(--cursor-color);
-    color: white;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-family: var(--font-recursive);
-    white-space: nowrap;
   }
 </style>
