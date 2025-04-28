@@ -144,11 +144,11 @@
     const containerWidth = browser ? window.innerWidth : 1200;
     const containerHeight = browser ? window.innerHeight : 800;
     
-    // Adjust lifespans based on cursor type
-    // Static cursors live 30-60 seconds, moving cursors live 60-120 seconds
+    // Adjust lifespans based on cursor type - SHORTER LIFESPANS FOR DESKTOP
+    // Static cursors live 20-40 seconds, moving cursors live 30-60 seconds
     const cursorLifespan = isStatic ? 
-                         (30000 + Math.random() * 30000) : // 30-60 seconds for static cursors
-                         (60000 + Math.random() * 60000);  // 60-120 seconds for moving cursors
+                         (20000 + Math.random() * 20000) : // 20-40 seconds for static cursors (was 30-60)
+                         (30000 + Math.random() * 30000);  // 30-60 seconds for moving cursors (was 60-120)
     
     return {
       id,
@@ -188,11 +188,11 @@
       // Activity tracking
       lastActiveTime: Date.now(),
       isStatic: isStatic || (!isPreexisting && Math.random() < 0.8), // Make new cursors mostly static
-      // Set a longer initial resting period (20-30 seconds) for most cursors
+      // Set a shorter initial resting period (10-20 seconds) for most cursors
       restingPeriod: isPreexisting ? 
         Math.random() * 4000 : // Short rest for preexisting cursors
         Math.random() < 0.8 ? 
-          20000 + Math.random() * 10000 : // 20-30 seconds for most new cursors
+          10000 + Math.random() * 10000 : // 10-20 seconds for most new cursors (was 20-30)
           0, // No rest for some new cursors
       isPreexisting: isPreexisting, // Used to identify cursors that were "already there"
       lifespan: cursorLifespan // Updated cursor lifespan
@@ -216,10 +216,14 @@
     // Choose a random image from the available ones
     const randomImageIndex = availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
     
+    // Use the mobile or desktop container appropriately for mobile cursors
+    const isMobile = window.innerWidth <= 768;
+    const containerSelector = isMobile ? '.mobile-collage' : '.desktop-collage';
+    
     // Get the image element
-    const imageElement = document.querySelector(`.collage-image-button:nth-child(${randomImageIndex + 1})`);
+    const imageElement = document.querySelector(`${containerSelector} .collage-image-button:nth-child(${randomImageIndex + 1})`);
     if (!imageElement) {
-      console.log(`Cannot find image element ${randomImageIndex} - making cursor static`);
+      console.log(`Cannot find image element ${randomImageIndex} in ${containerSelector} - making cursor static`);
       // Image element not found, make cursor static
       cursor.isMovingToTarget = false;
       cursor.isStatic = true;
@@ -242,7 +246,7 @@
     cursor.isDragging = false;
     cursor.isStatic = false;
     
-    console.log(`Cursor ${cursor.name} targeting image ${randomImageIndex}`);
+    console.log(`Cursor ${cursor.name} targeting image ${randomImageIndex} in ${containerSelector}`);
     
     return cursor;
   }
@@ -754,11 +758,41 @@
     if (imageLocks[index]) {
       // Image is locked, can't drag it
       console.log(`Image ${index} is currently being moved by another cursor`);
-      return;
+      
+      // IMPORTANT: Force release all bot cursor locks when human interacts
+      // This ensures human interactions take priority
+      const keys = Object.keys(imageLocks);
+      keys.forEach((key: string) => {
+        const lockId = imageLocks[parseInt(key, 10)];
+        if (lockId !== "human-user") {
+          // Release all bot cursor locks
+          console.log(`Releasing bot cursor lock on image ${key} to prioritize human interaction`);
+          delete imageLocks[parseInt(key, 10)];
+          stopDragging(parseInt(key, 10));
+          
+          // Also update any cursor that might be holding this image
+          fakeCursors = fakeCursors.map(cursor => {
+            if (cursor.targetImage === parseInt(key, 10)) {
+              cursor.isDragging = false;
+              cursor.targetImage = null;
+              // Make it find something else to interact with
+              cursor.isMovingToTarget = true;
+              console.log(`Cursor ${cursor.name} forced to release image ${key}`);
+            }
+            return cursor;
+          });
+        }
+      });
+      
+      // Now try to acquire the lock again
+      imageLocks[index] = "human-user";
+    } else {
+      // Lock this image for human user
+      imageLocks[index] = "human-user";
     }
     
     // Get the image element and its rect
-    const imageElement = document.querySelector(`.collage-image-button:nth-child(${index + 1})`);
+    const imageElement = document.querySelector(`.mobile-collage .collage-image-button:nth-child(${index + 1})`);
     if (!imageElement) return;
     
     const rect = imageElement.getBoundingClientRect();
@@ -766,21 +800,19 @@
     // Get the first touch
     const touch = event.touches[0];
     
-    // Get the image data to check if it's the owl
+    // Get the image data to check if it's a special image
     const imageData = collageImages[index];
-    const isOwl = imageData && (imageData.alt === 'Owl' || (typeof imageData.alt === 'string' && imageData.alt.includes('owl')));
-    const isSnake = imageData && (imageData.alt === 'Snake' || (typeof imageData.alt === 'string' && imageData.alt.includes('snake')));
+    const isSpecialImage = imageData && (
+      (imageData.alt === 'Owl' || (typeof imageData.alt === 'string' && imageData.alt.includes('owl'))) ||
+      (imageData.alt === 'Snake' || (typeof imageData.alt === 'string' && imageData.alt.includes('snake')))
+    );
     
     // Calculate grab offset from touch position within the image
-    // For the owl, adjust to center the grab on the visible content
     grabOffsetX = touch.clientX - rect.left;
     grabOffsetY = touch.clientY - rect.top;
     
     // Record which image is being dragged
     draggedImageIndex = index;
-    
-    // Lock this image for human user
-    imageLocks[index] = "human-user";
     
     // Add dragging class to body to ensure cursor stays as grabbing
     document.body.classList.add('dragging');
@@ -788,12 +820,9 @@
     // Bring this image to front
     bringToFront(index);
     
-    // Log debugging info for owl
-    if (isOwl || isSnake) {
-      console.log(`Starting to drag Owl at touch position: ${touch.clientX}, ${touch.clientY}`);
-      console.log(`Owl rect: left=${rect.left}, top=${rect.top}, width=${rect.width}, height=${rect.height}`);
-      console.log(`Grab offset: x=${grabOffsetX}, y=${grabOffsetY}`);
-    }
+    // Log debugging info
+    console.log(`Human touching image ${index} at position: ${touch.clientX}, ${touch.clientY}`);
+    console.log(`Image locks after human touch: ${JSON.stringify(imageLocks)}`);
   }
   
   // Function to handle touch move events (mobile drag)
@@ -925,10 +954,35 @@
     
     // First, check for cursors that have exceeded their lifespan and should be removed
     const now = Date.now();
+    
+    // IMPROVED LIFECYCLE: Check for inactive cursors that should be expired
+    // Modify the expiration criteria to be more aggressive on desktop
     const expiredCursors = fakeCursors.filter(cursor => {
       if (cursor.id === "human-user") return false; // Never expire the human cursor
-      // Check if cursor has exceeded its lifespan (default 30-90 seconds)
-      return (now - cursor.lastActiveTime) > cursor.lifespan;
+      
+      // On desktop, expire cursor either if it has exceeded lifespan or it's static and inactive
+      if (!isMobile) {
+        // If cursor is static and has been static for more than 20 seconds, remove it
+        if (cursor.isStatic && (now - cursor.lastActiveTime > 20000)) {
+          return true;
+        }
+        
+        // If cursor completed an action (dragged and released an image) over 15 seconds ago, remove it
+        if (!cursor.isDragging && !cursor.isMovingToTarget && 
+            (now - cursor.lastActiveTime > 15000)) {
+          return true;
+        }
+        
+        // If cursor has exceeded its total lifespan
+        if ((now - cursor.lastActiveTime) > cursor.lifespan) {
+          return true;
+        }
+      } else {
+        // On mobile, just use the standard lifespan check
+        return (now - cursor.lastActiveTime) > cursor.lifespan;
+      }
+      
+      return false; // Keep the cursor
     });
     
     // Remove any expired cursors
@@ -947,7 +1001,15 @@
       // Filter out the expired cursors
       fakeCursors = fakeCursors.filter(cursor => {
         if (cursor.id === "human-user") return true; // Always keep human cursor
-        return (now - cursor.lastActiveTime) <= cursor.lifespan;
+        
+        // On desktop, use more aggressive expiration criteria
+        if (!isMobile) {
+          // Keep cursor if it's not in the expired list
+          return !expiredCursors.some(expiredCursor => expiredCursor.id === cursor.id);
+        } else {
+          // On mobile, just use the standard lifespan check
+          return (now - cursor.lastActiveTime) <= cursor.lifespan;
+        }
       });
       
       // Notify parent component of cursor change
@@ -977,17 +1039,45 @@
       onFakeCursorsUpdate(fakeCursors);
     }
     
-    // IMPORTANT: Since cursors now use position:absolute in the parent component,
-    // all positions should be document-relative (i.e., clientX/Y coordinates + scrollY).
-    // Always add window.scrollY to cursor positions for proper document positioning.
+    // Special handling for mobile: ensure at least one cursor is always dragging something
+    if (isMobile) {
+      const draggingCursors = fakeCursors.filter(c => c.isDragging && c.id !== "human-user");
+      const visibleImagesCount = visibleImages.length;
+      
+      // If we have images but no dragging cursors, force the first cursor to drag
+      if (draggingCursors.length === 0 && visibleImagesCount > 0 && fakeCursors.length > 0) {
+        const availableIndexes = visibleImages.filter(index => !imageLocks[index]);
+        
+        if (availableIndexes.length > 0) {
+          // Find first non-human cursor
+          const botCursorIndex = fakeCursors.findIndex(c => c.id !== "human-user");
+          
+          if (botCursorIndex !== -1) {
+            const targetImageIndex = availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
+            const imageElement = document.querySelector(`.collage-image-button:nth-child(${targetImageIndex + 1})`);
+            
+            if (imageElement) {
+              console.log(`Forcing mobile cursor ${fakeCursors[botCursorIndex].name} to drag image ${targetImageIndex}`);
+              
+              // Force it to start dragging
+              const cursor = fakeCursors[botCursorIndex];
+              cursor.isStatic = false;
+              cursor.isMovingToTarget = false;
+              
+              // Use the helper function to set up the cursor correctly
+              proceedWithImageSelection(imageElement, cursor, targetImageIndex);
+              fakeCursors[botCursorIndex] = cursor;
+              
+              // Update parent with changes
+              onFakeCursorsUpdate(fakeCursors);
+            }
+          }
+        }
+      }
+    }
     
     // For each cursor, update its position based on its state
     fakeCursors = fakeCursors.map(cursor => {
-      // Update the lastActiveTime for moving cursors to keep track of when they're active
-      if (!cursor.isStatic && (cursor.isDragging || cursor.isMovingToTarget)) {
-        cursor.lastActiveTime = now;
-      }
-      
       // On mobile, hide cursors that aren't dragging images
       if (isMobile && !cursor.isDragging) {
         // Move cursor off-screen when not dragging on mobile
@@ -1009,6 +1099,11 @@
         return cursor;
       }
       
+      // Update the lastActiveTime for moving cursors to keep track of when they're active
+      if (!cursor.isStatic && (cursor.isDragging || cursor.isMovingToTarget)) {
+        cursor.lastActiveTime = now;
+      }
+      
       // Save previous position for velocity calculation
       const prevX = cursor.x;
       const prevY = cursor.y;
@@ -1022,9 +1117,7 @@
         cursor.curveOffsetY = (Math.random() * 100) - 50;
       }
       
-      // STEP:1 HANDLE STATE TRANSITIONS - omitted for brevity
-      
-      // STEP 2: HANDLE MOVEMENT BASED ON STATE
+      // STEP 1: HANDLE STATE TRANSITIONS
       // Use appropriate speeds based on device type
       const mobileDevice = window.innerWidth <= 768;
       const MOVEMENT_SPEED = mobileDevice ? 8.0 : 5.0; // Faster speed on mobile for better visibility
@@ -1091,8 +1184,14 @@
           }
         }
         
-        // Get the image element
-        const imageElement = document.querySelector(`.collage-image-button:nth-child(${cursor.targetImage + 1})`);
+        // Get the image element - try both mobile and desktop containers
+        const imageSelector = `.collage-image-button:nth-child(${cursor.targetImage + 1})`;
+        let imageElement = document.querySelector(isMobile ? `.mobile-collage ${imageSelector}` : `.desktop-collage ${imageSelector}`);
+        
+        // Fallback if not found in the expected container
+        if (!imageElement) {
+          imageElement = document.querySelector(imageSelector);
+        }
         
         // IMPROVEMENT: Try an alternative selector if the first one fails
         let imageFound = !!imageElement;
@@ -1102,7 +1201,9 @@
           // Try by z-index
           const targetZIndex = collageImages[cursor.targetImage]?.zIndex;
           if (targetZIndex) {
-            alternativeImageElement = document.querySelector(`.collage-image-button[style*="z-index: ${targetZIndex}"]`);
+            alternativeImageElement = document.querySelector(isMobile ? 
+              `.mobile-collage .collage-image-button[style*="z-index: ${targetZIndex}"]` : 
+              `.desktop-collage .collage-image-button[style*="z-index: ${targetZIndex}"]`);
             if (alternativeImageElement) {
               imageFound = true;
             }
@@ -1110,7 +1211,9 @@
           
           // If still not found, try by array index
           if (!alternativeImageElement) {
-            const allImageButtons = document.querySelectorAll('.collage-image-button');
+            const allImageButtons = document.querySelectorAll(isMobile ? 
+              '.mobile-collage .collage-image-button' : 
+              '.desktop-collage .collage-image-button');
             const imageArray = Array.from(allImageButtons);
             if (cursor.targetImage < imageArray.length) {
               alternativeImageElement = imageArray[cursor.targetImage];
@@ -1167,13 +1270,19 @@
               cursor.targetImage = null;
               cursor.isDragging = false;
               
-              // Set a resting period (8-12 seconds) after dropping the image
-              cursor.restingPeriod = 8000 + Math.random() * 4000;
+              // Set a resting period (5-10 seconds) after dropping the image
+              cursor.restingPeriod = 5000 + Math.random() * 5000; // Reduced from 8-12 seconds
               
               // Update activity timestamp
               cursor.lastActiveTime = Date.now();
               
-              console.log(`Cursor ${cursor.name} dropped the image and will rest for ${Math.round(cursor.restingPeriod/1000)} seconds`);
+              // IMPORTANT: On desktop, give the cursor a very short remaining lifespan
+              // so it disappears shortly after dropping an image
+              if (!isMobile) {
+                cursor.lifespan = 8000 + Math.random() * 7000; // 8-15 seconds before disappearing
+              }
+              
+              console.log(`Cursor ${cursor.name} dropped the image and will disappear in ${Math.round(cursor.lifespan/1000)} seconds`);
             }
             
             cursor.isMovingToTarget = false;
@@ -1190,27 +1299,18 @@
             return cursor;
           } else {
             // Just set a new destination to continue dragging
-            const horizontalMargin = 100;
-            const verticalMargin = 100;
+            const horizontalMargin = 50; // Smaller margin for mobile
+            const verticalMargin = 50;
             cursor.destinationX = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
             cursor.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
             
-            // Simplified curve setup
-            const curveStrength = 30 + Math.random() * 70; 
-            const startX = cursor.x;
-            const startY = cursor.y;
-            const endX = cursor.destinationX;
-            const endY = cursor.destinationY;
-            
-            // Just use midpoint with offset for control point
-            cursor.controlX = (startX + endX) / 2 + (Math.random() - 0.5) * curveStrength;
-            cursor.controlY = (startY + endY) / 2 + (Math.random() - 0.5) * curveStrength;
-            
-            // Reset curve progress
-            cursor.curveProgress = 0;
-            
             // Update activity timestamp
             cursor.lastActiveTime = Date.now();
+            
+            // IMPORTANT: On desktop, moving a cursor should reset its lifespan clock
+            if (!isMobile) {
+              cursor.lastActiveTime = Date.now();
+            }
             
             return cursor;
           }
@@ -1220,8 +1320,6 @@
         // NOTE: getBoundingClientRect() returns viewport-relative coordinates, so we need to
         // add window.scrollY for absolute positioning of cursors
         const imgRect = activeElement.getBoundingClientRect();
-        const imageCenterX = imgRect.left + imgRect.width / 2;
-        const imageCenterY = imgRect.top + imgRect.height / 2 + window.scrollY;
         
         // Calculate direction to destination
         const dirX = dx / distance;
@@ -1258,8 +1356,9 @@
         const newLeft = cursor.x - cursor.grabOffsetX;
         const newTop = cursor.y - cursor.grabOffsetY;
         
-        // Get container for constraints
-        const container = document.querySelector('.desktop-collage') || document.querySelector('.mobile-collage');
+        // Get container for constraints - ensure we get the correct container (mobile vs desktop)
+        const containerSelector = isMobile ? '.mobile-collage' : '.desktop-collage';
+        const container = document.querySelector(containerSelector);
         const containerRect = container ? container.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
         
         // Apply constraints to keep within bounds
@@ -1271,6 +1370,60 @@
           0,
           Math.min(containerRect.height - imgRect.height, newTop)
         );
+        
+        // DETECTION OF BOUNDARY COLLISION: Check if we're hitting any boundaries
+        const isTouchingLeftBoundary = constrainedLeft <= 0;
+        const isTouchingRightBoundary = constrainedLeft >= (containerRect.width - imgRect.width);
+        const isTouchingTopBoundary = constrainedTop <= 0;
+        const isTouchingBottomBoundary = constrainedTop >= (containerRect.height - imgRect.height);
+        const isAtBoundary = isTouchingLeftBoundary || isTouchingRightBoundary || isTouchingTopBoundary || isTouchingBottomBoundary;
+        
+        // If we're at a boundary for 10 consecutive frames, set a new destination
+        if (!cursor.boundaryCount) cursor.boundaryCount = 0;
+        
+        if (isAtBoundary) {
+          cursor.boundaryCount++;
+          
+          // If we've been at a boundary for too long, choose a new destination
+          if (cursor.boundaryCount > 10) {
+            console.log(`Cursor ${cursor.name} stuck at boundary with image ${cursor.targetImage} - setting new destination`);
+            
+            // Choose a sensible destination AWAY from the boundary
+            const margin = 50;
+            const safeWidth = Math.max(containerRect.width - 2*margin - imgRect.width, 100);
+            const safeHeight = Math.max(containerRect.height - 2*margin - imgRect.height, 100);
+            
+            // Ensure destination is away from the current boundary
+            let newX = margin + Math.random() * safeWidth;
+            let newY = margin + Math.random() * safeHeight;
+            
+            // If hitting left boundary, ensure destination is to the right
+            if (isTouchingLeftBoundary) {
+              newX = containerRect.width / 3 + Math.random() * (containerRect.width / 2);
+            }
+            // If hitting right boundary, ensure destination is to the left
+            if (isTouchingRightBoundary) {
+              newX = margin + Math.random() * (containerRect.width / 2);
+            }
+            // If hitting top boundary, ensure destination is to the bottom
+            if (isTouchingTopBoundary) {
+              newY = containerRect.height / 3 + Math.random() * (containerRect.height / 2);
+            }
+            // If hitting bottom boundary, ensure destination is to the top
+            if (isTouchingBottomBoundary) {
+              newY = margin + Math.random() * (containerRect.height / 2);
+            }
+            
+            cursor.destinationX = newX;
+            cursor.destinationY = newY;
+            cursor.boundaryCount = 0;
+            
+            console.log(`New destination set to ${newX.toFixed(1)}, ${newY.toFixed(1)}`);
+          }
+        } else {
+          // Reset boundary count if we're not at a boundary
+          cursor.boundaryCount = 0;
+        }
         
         // IMPROVED SYNC: If the image position was constrained, update the cursor position too
         // This ensures the cursor and image remain perfectly in sync at boundaries
@@ -1288,8 +1441,16 @@
           top: constrainedTop
         };
         
+        // Only log position changes if they're actually changing
+        const hasMovedSignificantly = 
+          Math.abs(imageData.left - constrainedLeft) > 0.1 || 
+          Math.abs(imageData.top - constrainedTop) > 0.1;
+          
         // Update the element's position directly
         if (activeElement instanceof HTMLElement) {
+          if (hasMovedSignificantly) {
+            console.log(`Moving image ${cursor.targetImage} to position: left=${constrainedLeft.toFixed(1)}, top=${constrainedTop.toFixed(1)} (Mobile: ${isMobile})`);
+          }
           activeElement.style.left = `${constrainedLeft}px`;
           activeElement.style.top = `${constrainedTop}px`;
         }
@@ -1334,15 +1495,60 @@
       return cursor;
     });
     
+    // Check if we need to create a new cursor on mobile if none are dragging
+    if (isMobile) {
+      const nonHumanCursors = fakeCursors.filter(c => c.id !== "human-user");
+      const draggingCursors = nonHumanCursors.filter(c => c.isDragging);
+      
+      if (nonHumanCursors.length === 0 || (draggingCursors.length === 0 && visibleImages.length > 0)) {
+        // No cursors or no dragging cursors but images are available
+        const now = Date.now();
+        const timeSinceLastCursor = now - lastCursorCreationTime;
+        
+        // Only create a new cursor if it's been at least 10 seconds since the last one
+        if (timeSinceLastCursor > 10000) {
+          console.log("Mobile needs more active cursors - creating a new one");
+          
+          // Create a cursor that will definitely drag an image
+          const newCursor = createFakeCursor(false); // Not static
+          newCursor.isMovingToTarget = true;
+          
+          // Get available images
+          const availableIndexes = visibleImages.filter(index => !imageLocks[index]);
+          
+          if (availableIndexes.length > 0) {
+            // Choose a random image
+            const targetIndex = availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
+            
+            // Get the image element
+            const imageElement = document.querySelector(`.mobile-collage .collage-image-button:nth-child(${targetIndex + 1})`);
+            if (imageElement) {
+              // Set up cursor to skip "moving to target" phase and go straight to dragging
+              proceedWithImageSelection(imageElement, newCursor, targetIndex);
+              
+              // Add the cursor
+              fakeCursors = [...fakeCursors, newCursor];
+              lastCursorCreationTime = Date.now();
+              
+              console.log(`New mobile cursor ${newCursor.name} created and dragging image ${targetIndex}`);
+              
+              // Notify parent component of cursor change
+              onFakeCursorsUpdate(fakeCursors);
+            }
+          }
+        }
+      }
+    }
+    
     // Update parent component with new cursor states
     onFakeCursorsUpdate(fakeCursors);
     
-    // Check if we need to create a new cursor
-    if (fakeCursors.length < MAX_CURSORS) {
+    // Check if we need to create a new cursor (for desktop)
+    if (fakeCursors.length < MAX_CURSORS && !isMobile) {
       const now = Date.now();
       const timeSinceLastCursor = now - lastCursorCreationTime;
-      const minTimeBetweenCursors = isMobile ? 3 * 60 * 1000 : 60 * 1000; // 3 min on mobile, 1 min on desktop
-      const randomDelayFactor = isMobile ? 5 * 60 * 1000 : 2 * 60 * 1000; // Up to additional 5 min on mobile, 2 min on desktop
+      const minTimeBetweenCursors = 60 * 1000; // 1 min on desktop
+      const randomDelayFactor = 2 * 60 * 1000; // Up to additional 2 min on desktop
       
       // Create cursor with appropriate timing
       if (timeSinceLastCursor > minTimeBetweenCursors + (Math.random() * randomDelayFactor)) {
@@ -2422,13 +2628,12 @@
       grabOffsetY?: number;
       destinationX?: number;
       destinationY?: number;
+      boundaryCount?: number;
     }, 
     randomImageIndex: number
   ) {
     // First, ensure we release any existing image this cursor might be targeting
-    // (This is a safety check in case our previous state cleanup missed anything)
     if (cursor.targetImage !== null && cursor.targetImage !== randomImageIndex) {
-      // Double check we're not already targeting this same image
       if (imageLocks[cursor.targetImage] === cursor.id) {
         delete imageLocks[cursor.targetImage];
         stopDragging(cursor.targetImage);
@@ -2436,30 +2641,34 @@
       }
     }
     
-    // CRITICAL FIX: Skip the "moving to target" phase entirely
-    // Get the image data FIRST
+    // Check if the image is already locked by someone else
+    if (imageLocks[randomImageIndex] && imageLocks[randomImageIndex] !== cursor.id) {
+      console.log(`Image ${randomImageIndex} is already locked by ${imageLocks[randomImageIndex]}, cursor ${cursor.name} can't grab it`);
+      return cursor; // Return without modifying the cursor further
+    }
+    
+    // Get the image data
     const imageData = collageImages[randomImageIndex];
-    if (!imageData) return;  // Safety check
+    if (!imageData) {
+      console.log(`Image data not found for index ${randomImageIndex}`);
+      return cursor;  // Safety check
+    }
     
     // Get the element rect for precise grab offset calculation
     const rect = imageElement.getBoundingClientRect();
     
-    // Calculate grab offset - CRUCIAL for proper image alignment
-    // This is where the cursor is grabbing the image relative to the image's top-left corner
-    // For client coordinates (from getBoundingClientRect), we need to subtract scrollY from cursor.y
-    cursor.grabOffsetX = cursor.x - rect.left;
-    cursor.grabOffsetY = (cursor.y - window.scrollY) - rect.top;
+    // Position the cursor near the center of the image
+    cursor.x = rect.left + rect.width / 2;
+    cursor.y = rect.top + rect.height / 2 + window.scrollY;
     
-    // Ensure grab offset is within image bounds
-    cursor.grabOffsetX = Math.max(0, Math.min(rect.width, cursor.grabOffsetX));
-    cursor.grabOffsetY = Math.max(0, Math.min(rect.height, cursor.grabOffsetY));
+    // Calculate grab offset
+    cursor.grabOffsetX = rect.width / 2; // Grab in the middle of the image
+    cursor.grabOffsetY = rect.height / 2;
     
-    // Log this for debugging
-    cursor.grabOffsetX = cursor.x - imageData.left;
-    cursor.grabOffsetY = cursor.y - imageData.top;
+    // Initialize boundary counter
+    cursor.boundaryCount = 0;
     
-    // Log this for debugging
-    console.log(`Cursor ${cursor.name} grabbing image ${randomImageIndex} at offset: ${cursor.grabOffsetX.toFixed(1)}, ${cursor.grabOffsetY.toFixed(1)}`);
+    console.log(`Cursor ${cursor.name} grabbing image ${randomImageIndex} at center`);
     
     // Skip the isMovingToTarget phase - go DIRECTLY to dragging
     cursor.isMovingToTarget = false;
@@ -2473,10 +2682,27 @@
     startDragging(randomImageIndex);
     
     // Set a destination to move to
-    const horizontalMargin = 100;
-    const verticalMargin = 100;
-    cursor.destinationX = horizontalMargin + Math.random() * (window.innerWidth - horizontalMargin * 2);
-    cursor.destinationY = verticalMargin + Math.random() * (window.innerHeight - verticalMargin * 2);
+    const isMobile = window.innerWidth <= 768;
+    const containerSelector = isMobile ? '.mobile-collage' : '.desktop-collage';
+    const container = document.querySelector(containerSelector);
+    const containerRect = container ? container.getBoundingClientRect() : { width: window.innerWidth, height: window.innerHeight };
+    
+    // IMPROVED: Use container dimensions with sensible margins for setting destination
+    const SAFE_MARGIN = isMobile ? 30 : 80;
+    
+    // Calculate safe area for destination to avoid boundary issues
+    const minX = SAFE_MARGIN;
+    const maxX = Math.max(containerRect.width - SAFE_MARGIN - rect.width, minX + 100);
+    const minY = SAFE_MARGIN;
+    const maxY = Math.max(containerRect.height - SAFE_MARGIN - rect.height, minY + 100);
+    
+    // Set destination within safe boundaries
+    cursor.destinationX = minX + Math.random() * (maxX - minX);
+    cursor.destinationY = minY + Math.random() * (maxY - minY);
+    
+    console.log(`Cursor ${cursor.name} moving image ${randomImageIndex} to destination: ${cursor.destinationX.toFixed(1)}, ${cursor.destinationY.toFixed(1)}`);
+    
+    return cursor;
   }
 
   // ... existing code ...
@@ -2513,7 +2739,7 @@
     const newCursor = createFakeCursor(cursorBehavior.shouldStartStatic);
     
     // If static, just add it
-    if (cursorBehavior.shouldStartStatic) {
+    if (cursorBehavior.shouldStartStatic && !isMobile) {
       console.log(`Created static cursor`);
       fakeCursors = [...fakeCursors, newCursor];
       lastCursorCreationTime = Date.now();
@@ -2542,6 +2768,12 @@
       return true;
     }
     
+    // On mobile, never create static cursors
+    if (isMobile && cursorBehavior.shouldStartStatic) {
+      // Override to make it non-static on mobile
+      newCursor.isStatic = false;
+    }
+    
     // Not static, so make it target an image (for both mobile and desktop)
     newCursor.isMovingToTarget = true;
     
@@ -2557,7 +2789,38 @@
       return false;
     }
     
-    // Immediately set up the cursor to target an image
+    // Select a container based on mobile status
+    const containerSelector = isMobile ? '.mobile-collage' : '.desktop-collage';
+    
+    // Choose a random available image
+    const randomIndex = Math.floor(Math.random() * availableIndexes.length);
+    const targetIndex = availableIndexes[randomIndex];
+    
+    // Get the image element
+    const imageElement = document.querySelector(`${containerSelector} .collage-image-button:nth-child(${targetIndex + 1})`);
+    
+    if (!imageElement) {
+      console.log(`Failed to find image element ${targetIndex} in ${containerSelector}`);
+      return false;
+    }
+    
+    // If on mobile, go straight to dragging (skip the moving to target phase)
+    if (isMobile) {
+      // Set up for immediate dragging
+      proceedWithImageSelection(imageElement, newCursor, targetIndex);
+      
+      // Add the cursor
+      fakeCursors = [...fakeCursors, newCursor];
+      lastCursorCreationTime = Date.now();
+      
+      console.log(`Created mobile cursor ${newCursor.name} dragging image ${targetIndex}`);
+      
+      // Notify parent
+      onFakeCursorsUpdate(fakeCursors);
+      return true;
+    }
+    
+    // For desktop, use normal setup
     const configuredCursor = setupPreexistingCursor(newCursor);
     
     // Add the cursor only if it successfully targeted an image
@@ -2591,10 +2854,48 @@
       hasCursorInitialized = true;
       cursorInitializationDelay = 0;
       
-      // Force a cursor to appear quickly on mobile
+      // Force a cursor to appear quickly on mobile and make it DRAG images
       setTimeout(() => {
         console.log("Forcibly creating first mobile cursor");
-        attemptToCreateNewCursor();
+        
+        // Create a non-static cursor that will target and drag an image
+        const newCursor = createFakeCursor(false); // Not static
+        newCursor.isMovingToTarget = true;
+        
+        // Get available images
+        const visibleImageIndexes = [...visibleImages];
+        
+        // Only proceed if we have visible images to target
+        if (visibleImageIndexes.length > 0) {
+          const availableIndexes = visibleImageIndexes.filter(index => !imageLocks[index]);
+          
+          if (availableIndexes.length > 0) {
+            // Choose a random image
+            const targetIndex = availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
+            
+            // Get the image element
+            const imageElement = document.querySelector(`.collage-image-button:nth-child(${targetIndex + 1})`);
+            if (imageElement) {
+              // Set up cursor to skip "moving to target" phase and go straight to dragging
+              proceedWithImageSelection(imageElement, newCursor, targetIndex);
+              
+              // Add the cursor
+              fakeCursors = [...fakeCursors, newCursor];
+              lastCursorCreationTime = Date.now();
+              
+              console.log(`Mobile cursor ${newCursor.name} created and dragging image ${targetIndex}`);
+              
+              // Notify parent component of cursor change
+              onFakeCursorsUpdate(fakeCursors);
+            } else {
+              console.log("Mobile cursor created but could not find image element to drag");
+            }
+          } else {
+            console.log("Mobile cursor created but no available images to drag");
+          }
+        } else {
+          console.log("Mobile cursor created but no visible images yet");
+        }
       }, 5000); // Give images time to load first
     } else {
       // On desktop, use the regular initialization process
@@ -2766,6 +3067,19 @@
     box-sizing: border-box;
   }
 
+  /* Fix mobile collage display on mobile devices */
+  @media (max-width: 768px) {
+    .mobile-collage {
+      display: block;
+      width: 100%;
+      height: 60vh;
+    }
+    
+    .desktop-collage {
+      display: none;
+    }
+  }
+
   .drag-hint {
     position: absolute;
     top: 50%;
@@ -2836,19 +3150,5 @@
       overflow: hidden;
     }
   }
-
-  /* Add styles for the selected/dragging image */
-  .collage-image-button.dragging {
-    box-shadow: 0 0 0 4px var(--cursor-color, #4ECDC4), 0 0 0 6px rgba(255,255,255,0.5);
-    z-index: 1000 !important; /* Ensure dragged image is always on top */
-    /* transform: scale(1.05); */ /* Removed enlargement of dragged image */
-    transition: box-shadow 0.2s ease;
-  }
   
-  /* Ensure mobile .dragging class works */
-  @media (max-width: 768px) {
-    .collage-image-button.dragging {
-      box-shadow: 0 0 0 3px var(--cursor-color, #4ECDC4), 0 0 0 5px rgba(255,255,255,0.5);
-    }
-  }
 </style> 
