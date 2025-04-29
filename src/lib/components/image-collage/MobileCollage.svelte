@@ -78,17 +78,19 @@
 <style>
   .mobile-collage {
     display: none;
-    position: absolute;
-    top: 0;
-    left: 0;
+    position: relative;
     width: 100%;
-    height: 80vh; /* Increased height for more room */
+    height: 85vh;
     overflow: hidden;
     margin-top: var(--spacing-md);
     margin-bottom: var(--spacing-md);
     padding: 10px;
     box-sizing: border-box;
     z-index: 5;
+    transform: translateZ(0);
+    will-change: transform;
+    contain: layout paint size;
+    isolation: isolate;
   }
 
   .drag-hint {
@@ -97,9 +99,9 @@
     left: 50%;
     transform: translate(-50%, -50%);
     color: #363636;
-    z-index: 1000; /* Increased z-index to ensure visibility */
-    width: 64px; /* Larger size */
-    height: 64px; /* Larger size */
+    z-index: 1000;
+    width: 64px;
+    height: 64px;
     pointer-events: none;
     animation: pulse 2s infinite;
   }
@@ -111,7 +113,7 @@
     }
     50% {
       opacity: 1;
-      transform: translate(-50%, -50%) scale(1.2); /* More noticeable pulse */
+      transform: translate(-50%, -50%) scale(1.2);
     }
     100% {
       opacity: 0.8;
@@ -128,6 +130,11 @@
     will-change: transform;
     -webkit-tap-highlight-color: transparent;
     touch-action: none;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    perspective: 1000px;
+    -webkit-perspective: 1000px;
   }
 
   .collage-image-button:not(:active) {
@@ -150,9 +157,12 @@
   @media (max-width: 768px) {
     .mobile-collage {
       display: block;
-      left: 0;
-      width: 100vw;
-      height: 85vh; /* Even more height on actual mobile devices */
+      width: 100%;
+      height: 85vh;
+      position: relative;
+      transform: translateZ(0);
+      contain: layout paint size;
+      isolation: isolate;
     }
   }
 </style> 

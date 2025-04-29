@@ -7,12 +7,11 @@
   import DragHandler from './image-collage/DragHandler.svelte';
   import draggingStore, { startDragging, stopDragging } from '../stores/draggingStore.js';
   import { browser } from '$app/environment';
+  import { writable } from 'svelte/store';
   
   export let imageDimensions: any[] = [];
   export let largeScreenImages: any[] = [];
-  export let fakeCursors: Cursor[] = [];
-  export let onFakeCursorsUpdate: (cursors: Cursor[]) => void;
-
+  let cursors: Cursor[] = [];
   let collageImages: CollageImage[] = [];
   let imagesReady = false;
   let visibleImages: number[] = [];
@@ -26,9 +25,21 @@
   let windowWidth = 1200; // Default SSR width
   let windowHeight = 800; // Default SSR height
 
-  // Initialize window dimensions in onMount
+  // Create isMobile store
+  const isMobile = writable(false);
+  
+  // Update isMobile store on mount and window resize
+  function updateMobileState() {
+    if (browser) {
+      $isMobile = window.innerWidth <= 768;
+    }
+  }
+  
   onMount(() => {
-    if (!browser) return;
+    updateMobileState();
+    if (browser) {
+      window.addEventListener('resize', updateMobileState);
+    }
     
     // Set initial window dimensions
     windowWidth = window.innerWidth;
@@ -77,47 +88,46 @@
   function getDebugBorderStyle(imageIndex: number): string {
     const lockOwnerId = imageLocks[imageIndex];
     if (!lockOwnerId || lockOwnerId === "human-user") {
+      // Clear any existing highlight
+      const element = document.querySelector(`.collage-image-button:nth-child(${imageIndex + 1})`);
+      if (element instanceof HTMLElement) {
+        element.style.boxShadow = '';
+        element.style.outline = '';
+        element.style.borderRadius = '';
+      }
       return '';
     }
     
-    const cursor = fakeCursors.find(c => c.id === lockOwnerId);
+    const cursor = cursors.find(c => c.id === lockOwnerId);
     if (!cursor) {
+      // Clear any existing highlight
+      const element = document.querySelector(`.collage-image-button:nth-child(${imageIndex + 1})`);
+      if (element instanceof HTMLElement) {
+        element.style.boxShadow = '';
+        element.style.outline = '';
+        element.style.borderRadius = '';
+      }
       return '';
     }
     
+    // Only show highlight if cursor is actively dragging this image
     if (cursor.isDragging && cursor.targetImage === imageIndex) {
       return `
         box-shadow: 0 0 0 4px ${cursor.color}, 0 0 0 6px rgba(255,255,255,0.8);
-        border-radius: var(--border-radius-md);
+        border-radius: 4px;
         outline: 2px dashed ${cursor.color};
         outline-offset: 2px;
+        transition: box-shadow 0.2s ease-in-out, outline 0.2s ease-in-out;
       `;
     }
     
-    // Skip DOM access during SSR
-    if (!browser) return '';
-    
-    const imageElement = document.querySelector(`.collage-image-button:nth-child(${imageIndex + 1})`);
-    if (!imageElement) {
-      return '';
+    // Clear highlight in all other cases
+    const element = document.querySelector(`.collage-image-button:nth-child(${imageIndex + 1})`);
+    if (element instanceof HTMLElement) {
+      element.style.boxShadow = '';
+      element.style.outline = '';
+      element.style.borderRadius = '';
     }
-    
-    const imgRect = imageElement.getBoundingClientRect();
-    const cursorX = cursor.x;
-    const cursorY = cursor.y - window.scrollY;
-    
-    if (cursorX >= imgRect.left && 
-        cursorX <= imgRect.right && 
-        cursorY >= imgRect.top && 
-        cursorY <= imgRect.bottom) {
-    return `
-      box-shadow: 0 0 0 4px ${cursor.color}, 0 0 0 6px rgba(255,255,255,0.8);
-      border-radius: var(--border-radius-md);
-      outline: 2px dashed ${cursor.color};
-      outline-offset: 2px;
-    `;
-    }
-    
     return '';
   }
   
@@ -181,21 +191,23 @@
       const isDahlia = img.src.includes('dahlia.png');
 
       if (isMobile) {
-        // Mobile sizing
+        // Mobile sizing - balanced sizes
         if (isOrchid || isDahlia) {
-          width = windowWidth * 0.90; // Make orchid and dahlia very large on mobile
+          width = windowWidth * 0.55; // Make orchid and dahlia prominent
         } else if (index === womanIndex || index === knightIndex) {
-          width = windowWidth * 0.85;
+          width = windowWidth * 0.45;
         } else if (index === beetleIndex) {
           width = windowWidth * 0.25;
         } else if (index === birdIndex) {
-          width = windowWidth * 0.30;
+          width = windowWidth * 0.25; // Smaller parrots (was 0.35)
+        } else if (index === snakeIndex) {
+          width = windowWidth * 0.40; // Bigger snake
         } else if (index === rockIndex) {
           width = windowWidth * 0.20;
         } else {
           width = aspectRatio >= 1 ? 
-            windowWidth * 0.4 : // Landscape
-            windowWidth * 0.3;  // Portrait
+            windowWidth * 0.35 : // Landscape
+            windowWidth * 0.30;  // Portrait
         }
       } else {
         // Desktop sizing
@@ -225,18 +237,18 @@
       }
 
       height = width / aspectRatio;
-
-      return {
+    
+    return {
         ...img,
-        width,
-        height,
+      width,
+      height,
         area: width * height,
         zIndex: 100,
         rotation: isMobile ? (Math.random() * 6 - 3) : 0,
         scale: 1
-      };
-    });
-
+    };
+  });
+  
     // Sort by area (largest to smallest) for z-index layering
     const sortedBySize = [...sizedImages].sort((a, b) => b.area - a.area);
 
@@ -284,9 +296,18 @@
       // Try to find a position with minimal overlap
       while (attempts < maxAttempts) {
         if (isMobile) {
-          // Mobile positioning - use full width
-          left = 50 + Math.random() * (windowWidth - img.width - 100);
-          top = 50 + Math.random() * (windowHeight - img.height - 100);
+          // Mobile positioning - use container dimensions instead of window
+          const container = document.querySelector('.mobile-collage');
+          if (container) {
+            const rect = container.getBoundingClientRect();
+            const margin = 20;
+            left = margin + Math.random() * (rect.width - img.width - margin * 2);
+            top = margin + Math.random() * (rect.height - img.height - margin * 2);
+          } else {
+            // Fallback if container not found
+            left = 50 + Math.random() * (windowWidth - img.width - 100);
+            top = 50 + Math.random() * (windowHeight - img.height - 100);
+          }
         } else {
           // Desktop positioning - use right two-thirds
           if (index < 4) {
@@ -301,24 +322,33 @@
             
             left = xRange[0] + Math.random() * (xRange[1] - xRange[0]);
             top = yRange[0] + Math.random() * (yRange[1] - yRange[0]);
-          } else {
+        } else {
             // For smaller images, find gaps within the right two-thirds
             left = desktopLeftBoundary + Math.random() * (usableWidth - img.width);
             top = 50 + Math.random() * (windowHeight - img.height - 100);
           }
         }
 
-        // Ensure images stay within bounds
+        // Update the bounds checking for mobile
         if (isMobile) {
-          left = Math.max(50, Math.min(windowWidth - img.width - 50, left));
+          const container = document.querySelector('.mobile-collage');
+          if (container) {
+            const rect = container.getBoundingClientRect();
+            const margin = 20;
+            left = Math.max(margin, Math.min(rect.width - img.width - margin, left));
+            top = Math.max(margin, Math.min(rect.height - img.height - margin, top));
+          } else {
+            left = Math.max(50, Math.min(windowWidth - img.width - 50, left));
+            top = Math.max(50, Math.min(windowHeight - img.height - 50, top));
+          }
         } else {
           left = Math.max(desktopLeftBoundary, Math.min(windowWidth - img.width - 50, left));
+          top = Math.max(50, Math.min(windowHeight - img.height - 50, top));
         }
-        top = Math.max(50, Math.min(windowHeight - img.height - 50, top));
 
         // Calculate overlap with existing images
         const newRect: Rect = {
-          left,
+      left,
           right: left + img.width,
           top,
           bottom: top + img.height
@@ -382,15 +412,13 @@
   onMount(async () => {
     if (!browser) return;
     
+    console.log('ImageCollage mounting, loading images...');
+    console.log('Image dimensions available:', imageDimensions.length);
+    
     try {
-      console.log('ImageCollage mounting, loading images...');
-      console.log('Image dimensions available:', imageDimensions.length);
-      logState('Start');
-      
       await preloadImages();
       console.log('Images preloaded successfully');
       
-      // Create empty image objects with proper attributes
       const images = getImages();
       console.log(`Creating collage with ${images.length} images`);
       
@@ -399,7 +427,6 @@
         return;
       }
     
-      // Generate positions and sizes immediately after preload
       collageImages = generateInitialPositions(images);
       console.log(`Generated positions for ${collageImages.length} images`);
       
@@ -407,10 +434,9 @@
       setTimeout(() => {
         imagesReady = true;
         console.log('Images ready set to true');
-        logState('After setting imagesReady');
         
         // Show images gradually
-        const delayTime = isDesktop ? 180 : 100; // Faster on mobile
+        const delayTime = isDesktop ? 180 : 100;
         collageImages.forEach((img, index) => {
           setTimeout(() => {
             visibleImages = [...visibleImages, index];
@@ -512,47 +538,134 @@
       timeout = setTimeout(later, wait);
     };
   }
+
+  // Add reactive statement to update styles when cursors or locks change
+  $: {
+    if (collageImages && cursors.length > 0) {
+      collageImages.forEach((_, index) => {
+        const style = getDebugBorderStyle(index);
+        const element = document.querySelector(`.collage-image-button:nth-child(${index + 1})`);
+        if (element instanceof HTMLElement) {
+          // Clear existing styles first
+          element.style.boxShadow = '';
+          element.style.outline = '';
+          element.style.borderRadius = '';
+          // Apply new styles if any
+          if (style) {
+            element.style.cssText += style;
+          }
+        }
+      });
+    }
+  }
 </script>
 
-<CursorSystem 
-  cursors={fakeCursors}
-  onCursorsUpdate={onFakeCursorsUpdate}
-/>
+{#if browser}
+  {#if $isMobile}
+    <div class="collage-container">
+      {#if imagesReady}
+        <CursorSystem 
+          {cursors}
+          {collageImages}
+          {imageLocks}
+          {visibleImages}
+          onCursorsUpdate={(updatedCursors) => {
+            console.log('Cursor update:', updatedCursors.map(c => ({
+              name: c.name,
+              isDragging: c.isDragging,
+              targetImage: c.targetImage
+            })));
+            cursors = updatedCursors;
+          }}
+        />
 
-<DragHandler
-  {collageImages}
-  {imageLocks}
-  onCollageImagesUpdate={(images) => collageImages = images}
-  onImageLocksUpdate={(locks) => imageLocks = locks}
-  bind:draggedImageIndex
-  on:dragstart={({ detail }) => bringToFront(detail.index)}
-  bind:startDrag={boundStartDrag}
-  bind:handleTouchStart={boundHandleTouchStart}
-/>
+        <DragHandler
+          {collageImages}
+          {imageLocks}
+          onCollageImagesUpdate={(images) => {
+            console.log('Images updated from drag');
+            collageImages = images;
+          }}
+          onImageLocksUpdate={(locks) => {
+            console.log('Image locks updated:', locks);
+            imageLocks = locks;
+          }}
+          bind:draggedImageIndex
+          on:dragstart={({ detail }) => bringToFront(detail.index)}
+          bind:startDrag={boundStartDrag}
+          bind:handleTouchStart={boundHandleTouchStart}
+        />
 
-<DesktopCollage
-  {collageImages}
-  {imagesReady}
-  {visibleImages}
-  onStartDrag={handleStartDrag}
-  onBringToFront={bringToFront}
-  {getDebugBorderStyle}
-  on:update={updateCollageImages}
-/>
+        <MobileCollage
+          {collageImages}
+          {imagesReady}
+          {visibleImages}
+          {hasInteractedWithCollage}
+          {draggedImageIndex}
+          onStartDrag={handleStartDrag}
+          onTouchStart={handleTouchStart}
+          onBringToFront={bringToFront}
+          {getDebugBorderStyle}
+          on:update={updateCollageImages}
+        >
+          <svelte:fragment slot="drag-hint">
+            <slot name="drag-hint" />
+          </svelte:fragment>
+        </MobileCollage>
+      {/if}
+    </div>
+  {:else}
+    {#if imagesReady}
+      <CursorSystem 
+        {cursors}
+        {collageImages}
+        {imageLocks}
+        {visibleImages}
+        onCursorsUpdate={(updatedCursors) => {
+          console.log('Cursor update:', updatedCursors.map(c => ({
+            name: c.name,
+            isDragging: c.isDragging,
+            targetImage: c.targetImage
+          })));
+          cursors = updatedCursors;
+        }}
+      />
 
-<MobileCollage
-  {collageImages}
-  {imagesReady}
-  {visibleImages}
-  {hasInteractedWithCollage}
-  {draggedImageIndex}
-  onStartDrag={handleStartDrag}
-  onTouchStart={handleTouchStart}
-  onBringToFront={bringToFront}
-  {getDebugBorderStyle}
-  on:update={updateCollageImages}
->
-  <svelte:fragment slot="drag-hint">
-    <slot name="drag-hint" />
-  </svelte:fragment>
-</MobileCollage> 
+      <DragHandler
+        {collageImages}
+        {imageLocks}
+        onCollageImagesUpdate={(images) => {
+          console.log('Images updated from drag');
+          collageImages = images;
+        }}
+        onImageLocksUpdate={(locks) => {
+          console.log('Image locks updated:', locks);
+          imageLocks = locks;
+        }}
+        bind:draggedImageIndex
+        on:dragstart={({ detail }) => bringToFront(detail.index)}
+        bind:startDrag={boundStartDrag}
+        bind:handleTouchStart={boundHandleTouchStart}
+      />
+
+      <DesktopCollage
+        {collageImages}
+        {imagesReady}
+        {visibleImages}
+        onStartDrag={handleStartDrag}
+        onBringToFront={bringToFront}
+        {getDebugBorderStyle}
+        on:update={updateCollageImages}
+      />
+    {/if}
+  {/if}
+{/if}
+
+<style>
+  .collage-container {
+    position: relative;
+    width: 100%;
+    min-height: 85vh;
+    overflow: hidden;
+  }
+</style> 

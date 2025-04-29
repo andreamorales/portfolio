@@ -22,10 +22,6 @@
   import panto from '$lib/images/panto_horizontal.svg?raw';
   import Roblox from '$lib/images/Roblox.svg?raw';
 
-  // Import additional images for large screens
-  import flowers from '$lib/images/flowers.png';
-  import bobo from '$lib/images/bobo.png';
-
   // Import Lucide pointer icon
   import { Pointer } from 'lucide-svelte';
 
@@ -401,24 +397,24 @@
 
   // Add the large screen images to the dimensions array
   const largeScreenImages = [
-    { 
-      src: flowers, 
-      alt: "Flowers", 
-      width: 400, 
-      height: 500, 
-      zIndex: 2, 
-      aspectRatio: "400/500",
-      contentOffsets: { top: 10, right: 10, bottom: 10, left: 10 }
-    },
-    { 
-      src: bobo, 
-      alt: "Bobo", 
-      width: 300, 
-      height: 400, 
-      zIndex: 4, 
-      aspectRatio: "300/400",
-      contentOffsets: { top: 10, right: 10, bottom: 10, left: 10 }
-    }
+    // { 
+    //   src: flowers, 
+    //   alt: "Flowers", 
+    //   width: 400, 
+    //   height: 500, 
+    //   zIndex: 2, 
+    //   aspectRatio: "400/500",
+    //   contentOffsets: { top: 10, right: 10, bottom: 10, left: 10 }
+    // },
+    // { 
+    //   src: bobo, 
+    //   alt: "Bobo", 
+    //   width: 300, 
+    //   height: 400, 
+    //   zIndex: 4, 
+    //   aspectRatio: "300/400",
+    //   contentOffsets: { top: 10, right: 10, bottom: 10, left: 10 }
+    // }
   ];
 
   // Function to generate random positions but ensure desktop images are on right side

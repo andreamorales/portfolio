@@ -104,16 +104,23 @@
   function handleDrag(event: MouseEvent) {
     if (draggedImageIndex === null || !currentDragElement) return;
     
-    // Get the actual desktop collage container
-    const container = document.querySelector('.desktop-collage') as HTMLElement;
+    const isMobile = window.innerWidth <= 768;
+    
+    // Get the appropriate container
+    const containerSelector = isMobile ? '.mobile-collage' : '.desktop-collage';
+    const container = document.querySelector(containerSelector) as HTMLElement;
     if (!container) return;
     
     const containerRect = container.getBoundingClientRect();
     
-    // Calculate the position relative to the viewport, not the container
-    // Since the .desktop-collage is position: fixed and covers the entire viewport
-    const desiredImageLeft = event.clientX - grabOffsetX;
-    const desiredImageTop = event.clientY - grabOffsetY;
+    // Calculate positions relative to the container for mobile, or viewport for desktop
+    const desiredImageLeft = isMobile ?
+      event.clientX - grabOffsetX - containerRect.left :
+      event.clientX - grabOffsetX;
+    
+    const desiredImageTop = isMobile ?
+      event.clientY - grabOffsetY - containerRect.top :
+      event.clientY - grabOffsetY;
     
     const MIN_MARGIN = 0;
     
@@ -123,8 +130,9 @@
     const imageWidth = imageData.width;
     const imageHeight = imageData.height;
     
-    const containerWidth = window.innerWidth;
-    const containerHeight = window.innerHeight;
+    // Use appropriate dimensions for bounds checking
+    const boundaryWidth = isMobile ? containerRect.width : window.innerWidth;
+    const boundaryHeight = isMobile ? containerRect.height : window.innerHeight;
     
     const isOwl = imageData.alt === 'Owl' || (typeof imageData.alt === 'string' && imageData.alt.includes('owl'));
     const isSnake = imageData.alt === 'Snake' || (typeof imageData.alt === 'string' && imageData.alt.includes('snake'));
@@ -132,24 +140,24 @@
     
     const left = Math.max(
       MIN_MARGIN,
-      Math.min(containerWidth - imageWidth - MIN_MARGIN, desiredImageLeft)
+      Math.min(boundaryWidth - imageWidth - MIN_MARGIN, desiredImageLeft)
     );
     const top = Math.max(
       minTop,
-      Math.min(containerHeight - imageHeight - MIN_MARGIN, desiredImageTop)
+      Math.min(boundaryHeight - imageHeight - MIN_MARGIN, desiredImageTop)
     );
     
     // Use the stored element reference
     const imageElement = currentDragElement;
     
-    // Set the styles directly on the element
+    // Update the element
     imageElement.style.left = `${left}px`;
     imageElement.style.top = `${top}px`;
     
     const scaleFactor = 1;
     imageElement.style.transform = `rotate(${imageData.rotation}deg) scale(${scaleFactor})`;
     
-    // Update the collageImages array
+    // Update the data
     collageImages = collageImages.map((img, i) => {
       if (i === draggedImageIndex) {
         return {
@@ -179,7 +187,7 @@
     
     const containerRect = container.getBoundingClientRect();
     
-    // Calculate positions relative to the container since mobile uses position: absolute
+    // Calculate positions relative to the container
     const desiredImageLeft = touch.clientX - grabOffsetX - containerRect.left;
     const desiredImageTop = touch.clientY - grabOffsetY - containerRect.top;
     

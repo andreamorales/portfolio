@@ -42,7 +42,8 @@
             cursor: grab;
             width: {img.width}px;
             height: {img.height}px;
-            {getDebugBorderStyle(i)}
+            {getDebugBorderStyle(i)};
+            will-change: transform, box-shadow, outline;
           "
         >
           <img 
@@ -58,7 +59,7 @@
               {img.aspectRatio ? `aspect-ratio: ${img.aspectRatio};` : ''}
             "
             draggable="false"
-          >
+          />
         </button>
       {/if}
     {/each}

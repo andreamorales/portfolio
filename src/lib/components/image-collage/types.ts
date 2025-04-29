@@ -39,8 +39,6 @@ export interface Cursor {
   destinationX: number;
   destinationY: number;
   delayCount: number;
-  lastVelocity?: number;
-  dragStartTime?: number;
   curveOffsetX: number;
   curveOffsetY: number;
   timeFactor: number;
@@ -51,11 +49,10 @@ export interface Cursor {
   originX: number;
   originY: number;
   holdDuration: number;
-  grabOffsetX?: number;
-  grabOffsetY?: number;
-  boundaryCount?: number;
-  lastActiveTime?: number;
-  isStatic?: boolean;
-  restingPeriod?: number;
-  lifespan?: number;
+  grabOffsetX: number;
+  grabOffsetY: number;
+  lastActiveTime: number;
+  isStatic: boolean;
+  restingPeriod: number;
+  lifespan: number;
 } 
