@@ -1165,6 +1165,15 @@
     
     return '';
   }
+
+  let mounted = false;
+
+  onMount(() => {
+    // Small delay to ensure everything is ready
+    setTimeout(() => {
+      mounted = true;
+    }, 0);
+  });
 </script>
 
 <svelte:head>
@@ -1177,84 +1186,100 @@
 
 <div class="landing-page">
   <main class="container flex-column-left">
-    <div class="header flex-column-left gap-large">
-      <div class="title-container">
-        <h1 class="title">Andy<br>Morales</h1>
-        <div class="colibri-container">
-          <img src={colibri} alt="Colibri" class="colibri-image">
+    {#if mounted}
+      <div class="header flex-column-left gap-large">
+        <div class="title-container" in:fade={{ duration: 600, delay: 200 }}>
+          <h1 class="title">Andy<br>Morales</h1>
+          <div class="colibri-container">
+            <img src={colibri} alt="Colibri" class="colibri-image">
+          </div>
         </div>
-      </div>
-      <div class="flex-column-left gap-small">
-        <div class="description">
-          I lead the design of creative and technical products.
+        <div class="flex-column-left gap-small" in:fade={{ duration: 600, delay: 400 }}>
+          <div class="description">
+            I lead the design of creative and technical products.
+          </div>
+          <div class="company-logos">
+            <span in:fade={{ duration: 400, delay: 600 }}>
+              {@html Consensys}
+            </span>
+            <span in:fade={{ duration: 400, delay: 750 }}>
+              {@html MongoDB}
+            </span>
+            <span in:fade={{ duration: 400, delay: 900 }}>
+              {@html Roblox}
+            </span>
+            <span in:fade={{ duration: 400, delay: 1050 }}>
+              {@html panto}
+            </span>
+          </div>
         </div>
-        <div class="company-logos">
-          {@html Consensys}
-          {@html MongoDB}
-          {@html Roblox}
-          {@html panto}
+
+        <div class="cta" in:fade={{ duration: 600, delay: 1200 }}>
+          <button class="button-secondary" on:click={toggleContactForm}>Get in touch</button>
         </div>
       </div>
 
-      <div class="cta">
-        <button class="button-secondary" on:click={toggleContactForm}>Get in touch</button>
-      </div>
-    </div>
+      <!-- Replace the desktop and mobile collage sections with our new component -->
+      <ImageCollage 
+        {imageDimensions}
+        {largeScreenImages}
+        {fakeCursors}
+        onFakeCursorsUpdate={updateFakeCursors}
+      >
+        <svelte:fragment slot="drag-hint">
+          <Pointer size={36} />
+        </svelte:fragment>
+      </ImageCollage>
 
-    <!-- Replace the desktop and mobile collage sections with our new component -->
-    <ImageCollage 
-      {imageDimensions}
-      {largeScreenImages}
-      {fakeCursors}
-      onFakeCursorsUpdate={updateFakeCursors}
-    >
-      <svelte:fragment slot="drag-hint">
-        <Pointer size={36} />
-      </svelte:fragment>
-    </ImageCollage>
-
-    <div class="portfolio-list">
-      {#each portfolioItems as item, index}
-        <div class="portfolio-item flex-column-left gap-medium">
-          <button 
-            class="portfolio-header flex-row gap-medium" 
-            on:click={() => toggleExpand(index)} 
-            on:keydown={(e) => e.key === 'Enter' && toggleExpand(index)}
-            aria-expanded={item.expanded}
-            aria-controls={`portfolio-content-${index}`}
-          >
-            <h2>{item.title}</h2>
-            <div class="tags flex-row gap-small">
-              {#each item.tags as tag}
-                <Label 
-                  text={tag} 
-                  variant="semisolid" 
-                  color="default" 
-                />
-              {/each}
-            </div>
-          </button>
-          {#if item.expanded}
-            <div id={`portfolio-content-${index}`} class="portfolio-content">
-              <PortfolioExpandedView
-                title={item.title}
-                description={item.description}
-                videoUrl={item.videoUrl}
-                images={item.images}
-                content={item.content}
-                year={item.year}
-                role={item.role}
-                projectLength={item.projectLength}
-                metrics={item.metrics}
-                heroImage={item.title.includes('MongoDB') ? '/images/portfolio/mongodb/hero.jpg' : 
-                          item.title.includes('Roblox') ? '/images/portfolio/roblox/hero.png' :
-                          item.title.includes('FireHydrant') ? '/images/portfolio/firehydrant/hero.png' : ''}
-              />
+      <div class="portfolio-list" in:fade={{ duration: 600, delay: 1400 }}>
+        {#each portfolioItems as item, index (item.title)}
+          {#if mounted}
+            <div class="portfolio-item" in:fade={{ duration: 300, delay: 1400 + (index * 150) }}>
+              <button 
+                class="portfolio-header flex-row gap-medium" 
+                on:click={() => toggleExpand(index)} 
+                on:keydown={(e) => e.key === 'Enter' && toggleExpand(index)}
+                aria-expanded={item.expanded}
+                aria-controls={`portfolio-content-${index}`}
+              >
+                <h2>{item.title}</h2>
+                <div class="tags flex-row gap-small">
+                  {#each item.tags as tag}
+                    <Label 
+                      text={tag} 
+                      variant="semisolid" 
+                      color="default" 
+                    />
+                  {/each}
+                </div>
+              </button>
+              {#if item.expanded}
+                <div 
+                  id={`portfolio-content-${index}`} 
+                  class="portfolio-content"
+                  transition:fade={{ duration: 300 }}
+                >
+                  <PortfolioExpandedView
+                    title={item.title}
+                    description={item.description}
+                    videoUrl={item.videoUrl}
+                    images={item.images}
+                    content={item.content}
+                    year={item.year}
+                    role={item.role}
+                    projectLength={item.projectLength}
+                    metrics={item.metrics}
+                    heroImage={item.title.includes('MongoDB') ? '/images/portfolio/mongodb/hero.jpg' : 
+                              item.title.includes('Roblox') ? '/images/portfolio/roblox/hero.png' :
+                              item.title.includes('FireHydrant') ? '/images/portfolio/firehydrant/hero.png' : ''}
+                  />
+                </div>
+              {/if}
             </div>
           {/if}
-        </div>
-      {/each}
-    </div>
+        {/each}
+      </div>
+    {/if}
   </main>
 </div>
 
@@ -1339,7 +1364,11 @@
     display: inline-flex;
     align-items: center;
     gap: 1rem;
-    margin-top: 0.5rem;
+  }
+
+  .company-logos span {
+    display: flex;
+    align-items: center;
   }
 
   .company-logos :global(svg) {

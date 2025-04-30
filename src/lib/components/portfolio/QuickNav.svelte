@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { browser } from '$app/environment';
+  import { slide, fade } from 'svelte/transition';
   // Props - all portfolio items
   export let items: Array<{
     id: number;
@@ -148,8 +149,9 @@
     on:touchstart={handleTouchStart}
     on:touchmove={handleTouchMove}
     on:touchend={handleTouchEnd}
+    transition:slide={{ duration: 200 }}
   >
-    <div class="nav-header">
+    <div class="nav-header" transition:fade={{ duration: 150 }}>
       <span>{isMobile ? 'Portfolio' : 'Jump to'}</span>
       <button 
         class="button-clear collapse-toggle" 
@@ -167,13 +169,14 @@
         </svg>
       </button>
     </div>
-    <div class="previews-container">
+    <div class="previews-container" transition:slide={{ duration: 200 }}>
       {#each sortedItems as item}
         {@const titleParts = splitTitle(item.title)}
         <button 
           class="preview-item {activeItemId === item.id ? 'active' : ''}" 
           on:click={() => scrollToAndExpandItem(item.id)}
           aria-label="Jump to {item.title}"
+          transition:fade={{ duration: 150 }}
         >
           <div class="preview-title">
             <div class="title-main">{titleParts.main}</div>

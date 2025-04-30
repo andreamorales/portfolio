@@ -19,11 +19,12 @@
   // Local imports
   import PortfolioExpandedView from './PortfolioExpandedView.svelte';
   import DetailsGrid from './DetailsGrid.svelte';
+  import { slide, fade } from 'svelte/transition';
 </script>
 
-<div class="portfolio-item {expanded ? 'expanded' : ''}">
+<div class="portfolio-item {expanded ? 'expanded' : ''}" transition:slide={{ duration: 300 }}>
   {#if expanded}
-    <div class="expanded-content">
+    <div class="expanded-content" transition:fade={{ duration: 200 }}>
         <PortfolioExpandedView
           title={title}
           description={description}
@@ -33,7 +34,7 @@
         />
     </div>
   {:else}
-    <div class="portfolio-content">
+    <div class="portfolio-content" transition:fade={{ duration: 200 }}>
       <div class="preview-container">
         <img src={previewImage} alt={title} class="preview-image" />
       </div>
@@ -42,16 +43,18 @@
         <p>{description}</p>
         
         {#if tags.length > 0}
-          <div class="tags">
+          <div class="tags" transition:fade={{ duration: 150 }}>
             {#each tags as tag}
-              <span class="tag">{tag}</span>
+              <span class="tag" transition:fade={{ duration: 100 }}>
+                {tag}
+              </span>
             {/each}
           </div>
         {/if}
         
-        <div class="portfolio-links">
+        <div class="portfolio-links" transition:fade={{ duration: 150 }}>
           {#if githubUrl}
-            <a href={githubUrl} target="_blank" rel="noopener noreferrer" class="portfolio-link">
+            <a href={githubUrl} target="_blank" rel="noopener noreferrer" class="portfolio-link" transition:fade>
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
               </svg>
@@ -60,7 +63,7 @@
           {/if}
           
           {#if liveUrl}
-            <a href={liveUrl} target="_blank" rel="noopener noreferrer" class="portfolio-link">
+            <a href={liveUrl} target="_blank" rel="noopener noreferrer" class="portfolio-link" transition:fade>
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                 <polyline points="15 3 21 3 21 9"></polyline>
