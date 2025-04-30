@@ -10,22 +10,30 @@
   export let githubUrl: string = '';
   export let liveUrl: string = '';
   export let expanded: boolean = false;
+  // Add new props for DetailsGrid
+  export let year: string = '';
+  export let role: string = '';
+  export let projectLength: string = '';
+  export let metrics: string[] = [];
 
   // Local imports
   import PortfolioExpandedView from './PortfolioExpandedView.svelte';
+  import DetailsGrid from './DetailsGrid.svelte';
 </script>
 
 <div class="portfolio-item {expanded ? 'expanded' : ''}">
-  <div class="portfolio-content">
-    {#if expanded}
-      <PortfolioExpandedView
-        title={title}
-        description={description}
-        videoUrl={videoUrl}
-        images={images}
-        content={content}
-      />
-    {:else}
+  {#if expanded}
+    <div class="expanded-content">
+        <PortfolioExpandedView
+          title={title}
+          description={description}
+          videoUrl={videoUrl}
+          images={images}
+          content={content}
+        />
+    </div>
+  {:else}
+    <div class="portfolio-content">
       <div class="preview-container">
         <img src={previewImage} alt={title} class="preview-image" />
       </div>
@@ -63,8 +71,8 @@
           {/if}
         </div>
       </div>
-    {/if}
-  </div>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -75,13 +83,23 @@
     transition: all 0.3s ease;
   }
 
-  .portfolio-content {
+  .expanded-content {
+    margin-top: var(--spacing-lg);
+  }
+
+  .portfolio-item .portfolio-content {
     background-color: var(--background-color);
     border-radius: 4px;
     overflow: hidden;
     box-shadow: 4px 4px 0px 0px var(--grey-mid);
     border: 1px solid var(--grey-light);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    padding: 0;
+  }
+
+  /* Make sure expanded state also has no padding */
+  .portfolio-item.expanded .portfolio-content {
+    padding: 0;
   }
 
   .portfolio-item:not(.expanded) .portfolio-content:hover {

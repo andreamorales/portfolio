@@ -291,6 +291,7 @@
     gap: var(--spacing-lg);
     overflow: hidden;
     margin: 0 auto;
+    padding: 0;
   }
   
   .content-container {
@@ -322,6 +323,7 @@
     background-color: rgba(0, 0, 0, 0.03);
     border-radius: var(--border-radius);
     overflow: hidden;
+    padding: 0 1.5rem;
   }
   
   .view-toggle {
@@ -418,6 +420,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--spacing-xl);
+    padding: 0 1.5rem;
   }
   
   .project-description {
@@ -596,34 +599,22 @@
   .project-details-grid {
     width: 100%;
     background-color: transparent;
-    border-radius: var(--border-radius);
-    overflow: hidden;
-    margin-bottom: var(--spacing-md);
     font-family: var(--font-family);
   }
   
   .details-row {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-  }
-  
-  .details-row:last-child {
-    border-bottom: none;
-  }
-  
-  .metrics-row {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    border-bottom: 1px solid var(--black);
   }
   
   .details-cell {
-    padding: var(--spacing-md);
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-xs);
-    border-right: 1px solid rgba(0, 0, 0, 0.12);
+    padding: var(--spacing-sm);
+    border-right: 1px solid var(--black);
   }
-  
+
   .details-cell:last-child {
     border-right: none;
   }
@@ -640,20 +631,16 @@
     font-variation-settings: 'CASL' 0, 'wght' 500;
     word-wrap: break-word;
   }
-  
+
   /* Make sure the grid is responsive */
   @media (max-width: 600px) {
     .details-row {
       grid-template-columns: 1fr;
     }
     
-    .details-cell {
+    .details-cell:not(:last-child) {
       border-right: none;
-      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    }
-    
-    .details-cell:last-child {
-      border-bottom: none;
+      border-bottom: 1px solid var(--black);
     }
   }
   
@@ -677,10 +664,8 @@
   /* Hero image styling */
   .hero-image-container {
     width: 100%;
-    margin-bottom: var(--spacing-lg);
-    border-radius: var(--border-radius);
+    padding: var(--spacing-lg);
     overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   }
   
   .hero-image {
@@ -688,5 +673,13 @@
     height: auto;
     display: block;
     object-fit: cover;
+  }
+
+  /* Add padding to specific content areas instead */
+  .project-description,
+  .content-blocks,
+  .image-gallery,
+  .video-container {
+    padding: 0 1.5rem;
   }
 </style> 

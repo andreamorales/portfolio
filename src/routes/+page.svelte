@@ -1393,7 +1393,7 @@
   }
 
   .portfolio-header:hover h2 {
-    color: var(--interactive-hover);
+    opacity: 0.8;
   }
 
   .portfolio-header h2 {
@@ -1402,11 +1402,11 @@
     font-size: 18px;
     font-style: normal;
     font-weight: 370;
-    line-height: 18px; /* 240% */
+    line-height: 18px;
     letter-spacing: 0.4px;
     text-decoration-line: underline;
     margin: 0;
-    transition: color var(--transition);
+    transition: opacity var(--transition);
     font-variation-settings: 'CASL' 0, 'wght' 370;
     background-color: var(--bg-color);
     padding: var(--spacing-xxs) var(--spacing-xs);
@@ -1419,7 +1419,6 @@
   }
 
   .portfolio-content {
-    padding: 1.5rem;
     font-family: var(--font-recursive);
     font-weight: 400;
     font-variation-settings: 'CASL' 0, 'wght' 400;
