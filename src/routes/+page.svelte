@@ -231,9 +231,16 @@
   });
 
   // Function to toggle expansion of portfolio items
-  function toggleExpand(index: number) {
+  function toggleExpand(index: number, fromQuickNav: boolean = false) {
     // Create a copy of the portfolio items array
     const updatedPortfolioItems = [...portfolioItems];
+    
+    if (fromQuickNav && updatedPortfolioItems[index].expanded) {
+      // If it's already expanded and we're clicking from QuickNav,
+      // just scroll to it without toggling
+      scrollToItem(index);
+      return;
+    }
     
     // Toggle the expanded state
     updatedPortfolioItems[index].expanded = !updatedPortfolioItems[index].expanded;
@@ -253,20 +260,33 @@
         title: updatedPortfolioItems[index].title,
         thumbnail
       }];
+      
+      scrollToItem(index);
     } else {
       // Remove from expanded items
       expandedItems = expandedItems.filter(item => item.id !== index);
     }
-    
-    // If expanding, scroll to the item after a short delay to allow render
-    if (updatedPortfolioItems[index].expanded) {
-      setTimeout(() => {
-        const element = document.getElementById(`portfolio-content-${index}`);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 100);
-    }
+  }
+
+  // Helper function to scroll to an item
+  function scrollToItem(index: number) {
+    setTimeout(() => {
+      const element = document.getElementById(`portfolio-content-${index}`);
+      if (element) {
+        // Get the element's position
+        const elementRect = element.getBoundingClientRect();
+        const absoluteElementTop = elementRect.top + window.pageYOffset;
+        // Add offset to show the title (adjust this value as needed)
+        const offset = 100;
+        const scrollToY = absoluteElementTop - offset;
+        
+        // Scroll with offset
+        window.scrollTo({
+          top: scrollToY,
+          behavior: 'smooth'
+        });
+      }
+    }, 100);
   }
 
   // Collage image placement
@@ -1244,7 +1264,11 @@
 {/if}
 
 <!-- Add QuickNav component at the end of the template -->
-<QuickNav items={allNavigationItems} hasExpandedItem={expandedItems.length > 0} />
+<QuickNav 
+  items={allNavigationItems} 
+  hasExpandedItem={expandedItems.length > 0} 
+  onExpandItem={toggleExpand}
+/>
 
 <style>
   .landing-page {

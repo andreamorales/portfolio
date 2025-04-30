@@ -34,16 +34,18 @@
     event.preventDefault();
     event.stopPropagation();
     
-    if (imageLocks[index]) {
-      return;
-    }
+    if (imageLocks[index]) return;
     
-    // Store target element directly from the event
     const imageElement = event.currentTarget as HTMLElement;
     if (!imageElement) return;
     
     const rect = imageElement.getBoundingClientRect();
+    const container = imageElement.closest('.mobile-collage, .desktop-collage');
+    if (!container) return;
     
+    const containerRect = container.getBoundingClientRect();
+    
+    // Calculate grab offset relative to the image's position within the container
     grabOffsetX = event.clientX - rect.left;
     grabOffsetY = event.clientY - rect.top;
     
@@ -62,8 +64,7 @@
   }
 
   export function handleTouchStart(event: TouchEvent, index: number) {
-    event.preventDefault();
-    
+    // Only prevent default if we're actually starting a drag
     if (imageLocks[index]) {
       const keys = Object.keys(imageLocks);
       keys.forEach((key: string) => {
@@ -73,25 +74,31 @@
         }
       });
       onImageLocksUpdate(imageLocks);
-      
-      imageLocks[index] = "human-user";
-    } else {
-      imageLocks[index] = "human-user";
+      return;
     }
-    onImageLocksUpdate(imageLocks);
+    
+    // Now we know we're starting a drag, prevent default
+    event.preventDefault();
     
     const touch = event.touches[0];
-    // Store target element directly from the event
     const imageElement = event.currentTarget as HTMLElement;
     if (!imageElement) return;
     
     const rect = imageElement.getBoundingClientRect();
+    const container = imageElement.closest('.mobile-collage, .desktop-collage');
+    if (!container) return;
     
+    const containerRect = container.getBoundingClientRect();
+    
+    // Calculate grab offset relative to the image's position within the container
     grabOffsetX = touch.clientX - rect.left;
     grabOffsetY = touch.clientY - rect.top;
     
     draggedImageIndex = index;
     currentDragElement = imageElement;
+    
+    imageLocks[index] = "human-user";
+    onImageLocksUpdate(imageLocks);
     
     document.body.classList.add('dragging');
     
@@ -101,146 +108,140 @@
     dispatch('touchstart', { index });
   }
 
-  function handleDrag(event: MouseEvent) {
-    if (draggedImageIndex === null || !currentDragElement) return;
-    
-    const isMobile = window.innerWidth <= 768;
-    
-    // Get the appropriate container
-    const containerSelector = isMobile ? '.mobile-collage' : '.desktop-collage';
-    const container = document.querySelector(containerSelector) as HTMLElement;
-    if (!container) return;
-    
-    const containerRect = container.getBoundingClientRect();
-    
-    // Calculate positions relative to the container for mobile, or viewport for desktop
-    const desiredImageLeft = isMobile ?
-      event.clientX - grabOffsetX - containerRect.left :
-      event.clientX - grabOffsetX;
-    
-    const desiredImageTop = isMobile ?
-      event.clientY - grabOffsetY - containerRect.top :
-      event.clientY - grabOffsetY;
-    
-    const MIN_MARGIN = 0;
-    
-    const imageData = collageImages[draggedImageIndex];
-    if (!imageData) return;
-    
-    const imageWidth = imageData.width;
-    const imageHeight = imageData.height;
-    
-    // Use appropriate dimensions for bounds checking
-    const boundaryWidth = isMobile ? containerRect.width : window.innerWidth;
-    const boundaryHeight = isMobile ? containerRect.height : window.innerHeight;
-    
-    const isOwl = imageData.alt === 'Owl' || (typeof imageData.alt === 'string' && imageData.alt.includes('owl'));
-    const isSnake = imageData.alt === 'Snake' || (typeof imageData.alt === 'string' && imageData.alt.includes('snake'));
-    const minTop = (isOwl || isSnake) ? -imageHeight * 0.1 : MIN_MARGIN;
-    
-    const left = Math.max(
-      MIN_MARGIN,
-      Math.min(boundaryWidth - imageWidth - MIN_MARGIN, desiredImageLeft)
-    );
-    const top = Math.max(
-      minTop,
-      Math.min(boundaryHeight - imageHeight - MIN_MARGIN, desiredImageTop)
-    );
-    
-    // Use the stored element reference
-    const imageElement = currentDragElement;
-    
-    // Update the element
-    imageElement.style.left = `${left}px`;
-    imageElement.style.top = `${top}px`;
-    
-    const scaleFactor = 1;
-    imageElement.style.transform = `rotate(${imageData.rotation}deg) scale(${scaleFactor})`;
-    
-    // Update the data
-    collageImages = collageImages.map((img, i) => {
-      if (i === draggedImageIndex) {
-        return {
-          ...img,
-          left,
-          top
-        };
-      }
-      return img;
-    });
-    
-    onCollageImagesUpdate(collageImages);
-    dispatch('drag', { index: draggedImageIndex });
-  }
-
   function handleTouchMove(event: TouchEvent) {
-    if (draggedImageIndex === null || !currentDragElement) return;
+    if (draggedImageIndex === null || !currentDragElement) {
+      // If we're not dragging, don't prevent default (allow scrolling)
+      return;
+    }
     
+    // Only prevent default if we're actually dragging
     event.preventDefault();
     
     const touch = event.touches[0];
     if (!touch) return;
     
     // Get the mobile collage container
-    const container = document.querySelector('.mobile-collage') as HTMLElement;
+    const container = currentDragElement.closest('.mobile-collage, .collage-container') as HTMLElement;
     if (!container) return;
     
+    // Get absolute container position and dimensions
     const containerRect = container.getBoundingClientRect();
     
-    // Calculate positions relative to the container
-    const desiredImageLeft = touch.clientX - grabOffsetX - containerRect.left;
-    const desiredImageTop = touch.clientY - grabOffsetY - containerRect.top;
-    
-    const MIN_MARGIN = 0;
-    
+    // Image data
     const imageData = collageImages[draggedImageIndex];
     if (!imageData) return;
     
-    const imageWidth = imageData.width;
-    const imageHeight = imageData.height;
+    // Calculate top and left limits of container - account for scroll position
+    const containerTop = containerRect.top + window.scrollY;
+    const containerLeft = containerRect.left + window.scrollX;
+    const containerBottom = containerTop + containerRect.height;
+    const containerRight = containerLeft + containerRect.width;
     
-    // Use container dimensions for bounds checking
-    const containerWidth = containerRect.width;
-    const containerHeight = containerRect.height;
+    // Calculate absolute touch position including scroll position
+    const absoluteTouchX = touch.pageX;
+    const absoluteTouchY = touch.pageY;
     
-    const isOwl = imageData.alt === 'Owl' || (typeof imageData.alt === 'string' && imageData.alt.includes('owl'));
-    const isSnake = imageData.alt === 'Snake' || (typeof imageData.alt === 'string' && imageData.alt.includes('snake'));
-    const minTop = (isOwl || isSnake) ? -imageHeight * 0.1 : MIN_MARGIN;
+    // Calculate relative position within container
+    const relX = absoluteTouchX - containerLeft;
+    const relY = absoluteTouchY - containerTop;
     
-    const left = Math.max(
-      MIN_MARGIN,
-      Math.min(containerWidth - imageWidth - MIN_MARGIN, desiredImageLeft)
-    );
-    const top = Math.max(
-      minTop,
-      Math.min(containerHeight - imageHeight - MIN_MARGIN, desiredImageTop)
-    );
+    // Calculate new position with boundaries
+    // For left boundary: don't let left edge of image go below 0
+    // For right boundary: don't let right edge of image go beyond container width
+    const left = Math.max(0, Math.min(containerRect.width - imageData.width, relX - grabOffsetX));
     
-    // Use the stored element reference
-    const imageElement = currentDragElement;
+    // For top boundary: don't let top edge go above 0
+    // For bottom boundary: don't let bottom edge go below container height
+    const bottom = containerRect.height - ((relY - grabOffsetY) + imageData.height);
+    const top = Math.max(0, Math.min(containerRect.height - imageData.height, relY - grabOffsetY));
     
-    // Update the element
-    imageElement.style.left = `${left}px`;
-    imageElement.style.top = `${top}px`;
+    // Make absolutely sure bottom edge stays within container
+    if (top + imageData.height > containerRect.height) {
+      // Don't update - would exceed bottom boundary
+      return;
+    }
     
-    // Apply transforms
-    const scaleFactor = 1;
-    imageElement.style.transform = `rotate(${imageData.rotation}deg) scale(${scaleFactor})`;
+    // Update the element position 
+    currentDragElement.style.left = `${left}px`;
+    currentDragElement.style.top = `${top}px`;
+    currentDragElement.style.transform = `rotate(${imageData.rotation}deg) scale(1)`;
     
-    // Update the data
+    // Debug
+    console.log(`Container height: ${containerRect.height}, Image height: ${imageData.height}, Top: ${top}, Bottom edge at: ${top + imageData.height}`);
+    
+    // Update the data model
     collageImages = collageImages.map((img, i) => {
       if (i === draggedImageIndex) {
-        return {
-          ...img,
-          left,
-          top
-        };
+        return { ...img, left, top };
       }
       return img;
     });
     
     onCollageImagesUpdate(collageImages);
     dispatch('touchmove', { index: draggedImageIndex });
+  }
+
+  function handleDrag(event: MouseEvent) {
+    if (draggedImageIndex === null || !currentDragElement) return;
+    
+    // Get the container directly from the dragged element
+    const container = currentDragElement.closest('.mobile-collage, .collage-container, .desktop-collage') as HTMLElement;
+    if (!container) return;
+    
+    // Get absolute container position and dimensions
+    const containerRect = container.getBoundingClientRect();
+    
+    // Image data
+    const imageData = collageImages[draggedImageIndex];
+    if (!imageData) return;
+    
+    // Calculate top and left limits of container - account for scroll position
+    const containerTop = containerRect.top + window.scrollY;
+    const containerLeft = containerRect.left + window.scrollX;
+    const containerBottom = containerTop + containerRect.height;
+    const containerRight = containerLeft + containerRect.width;
+    
+    // Calculate absolute mouse position including scroll position
+    const absoluteMouseX = event.pageX;
+    const absoluteMouseY = event.pageY;
+    
+    // Calculate relative position within container
+    const relX = absoluteMouseX - containerLeft;
+    const relY = absoluteMouseY - containerTop;
+    
+    // Calculate new position with boundaries
+    // For left boundary: don't let left edge of image go below 0
+    // For right boundary: don't let right edge of image go beyond container width
+    const left = Math.max(0, Math.min(containerRect.width - imageData.width, relX - grabOffsetX));
+    
+    // For top boundary: don't let top edge go above 0
+    // For bottom boundary: don't let bottom edge go below container height  
+    const top = Math.max(0, Math.min(containerRect.height - imageData.height, relY - grabOffsetY));
+    
+    // Make absolutely sure bottom edge stays within container
+    if (top + imageData.height > containerRect.height) {
+      // Don't update - would exceed bottom boundary
+      return;
+    }
+    
+    // Update the element position
+    currentDragElement.style.left = `${left}px`;
+    currentDragElement.style.top = `${top}px`;
+    currentDragElement.style.transform = `rotate(${imageData.rotation}deg) scale(1)`;
+    
+    // Debug
+    console.log(`Container height: ${containerRect.height}, Image height: ${imageData.height}, Top: ${top}, Bottom edge at: ${top + imageData.height}`);
+    
+    // Update the data model
+    collageImages = collageImages.map((img, i) => {
+      if (i === draggedImageIndex) {
+        return { ...img, left, top };
+      }
+      return img;
+    });
+    
+    onCollageImagesUpdate(collageImages);
+    dispatch('drag', { index: draggedImageIndex });
   }
 
   function endDrag() {

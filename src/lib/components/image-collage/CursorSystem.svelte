@@ -360,7 +360,7 @@
     cursors = cursors.map(cursor => {
       if (cursor.isStatic || cursor.id === "human-user") return cursor;
 
-      const MOVEMENT_SPEED = isMobile ? 8.0 : 5.0;
+      const MOVEMENT_SPEED = isMobile ? 4.0 : 5.0; // Slightly slower on mobile for smoother movement
 
       if (cursor.isMovingToTarget && !cursor.isDragging && cursor.targetImage !== null) {
         const dx = cursor.targetX - cursor.x;
@@ -380,7 +380,8 @@
               margin + Math.random() * (window.innerWidth - margin * 2),
               margin + Math.random() * (window.innerHeight - margin * 2),
               imageData.width,
-              imageData.height
+              imageData.height,
+              isMobile
             );
             cursor.destinationX = destX;
             cursor.destinationY = destY;
@@ -400,11 +401,23 @@
           return cursor;
         }
 
-        const dx = cursor.destinationX - cursor.x;
-        const dy = cursor.destinationY - cursor.y;
+        const container = document.querySelector(containerSelector);
+        if (!container) return cursor;
+
+        const containerRect = container.getBoundingClientRect();
+        const imageRect = imageElement.getBoundingClientRect();
+
+        // Calculate the current position and the target position
+        const currentLeft = parseFloat(imageElement.style.left) || 0;
+        const currentTop = parseFloat(imageElement.style.top) || 0;
+
+        // Calculate direction to destination
+        const dx = cursor.destinationX - currentLeft;
+        const dy = cursor.destinationY - currentTop;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         if (distance < 5) {
+          // Reached destination - release image
           if (cursor.targetImage !== null) {
             stopDragging(cursor.targetImage);
             delete imageLocks[cursor.targetImage];
@@ -417,43 +430,33 @@
             return setupPreexistingCursor(cursor);
           }
         } else {
+          // Move towards destination
           const dirX = dx / distance;
           const dirY = dy / distance;
-          cursor.x += dirX * MOVEMENT_SPEED;
-          cursor.y += dirY * MOVEMENT_SPEED;
           
-          // Get container and image dimensions
-          const container = document.querySelector(containerSelector);
-          const imageRect = imageElement.getBoundingClientRect();
-          const containerRect = container ? container.getBoundingClientRect() : null;
+          // Calculate new position
+          const newLeft = currentLeft + dirX * MOVEMENT_SPEED;
+          const newTop = currentTop + dirY * MOVEMENT_SPEED;
           
-          // Calculate position relative to container
-          let relativeX = cursor.x - cursor.grabOffsetX;
-          let relativeY = cursor.y - cursor.grabOffsetY;
-          
-          if (isMobile && containerRect) {
-            // For mobile, adjust position relative to container
-            relativeX -= containerRect.left;
-            relativeY -= containerRect.top;
-          }
-          
-          // Update image position with constraints
+          // Constrain to container bounds
           const { left: constrainedLeft, top: constrainedTop } = constrainToWindow(
-            relativeX,
-            relativeY,
+            newLeft,
+            newTop,
             imageRect.width,
             imageRect.height,
             isMobile
           );
           
-          // Update cursor position if image was constrained
-          if (constrainedLeft !== relativeX) {
-            cursor.x = constrainedLeft + cursor.grabOffsetX + (isMobile && containerRect ? containerRect.left : 0);
-          }
-          if (constrainedTop !== relativeY) {
-            cursor.y = constrainedTop + cursor.grabOffsetY + (isMobile && containerRect ? containerRect.top : 0);
+          // Update cursor position to match image movement
+          if (isMobile) {
+            cursor.x = constrainedLeft + cursor.grabOffsetX + containerRect.left;
+            cursor.y = constrainedTop + cursor.grabOffsetY + containerRect.top;
+          } else {
+            cursor.x = constrainedLeft + cursor.grabOffsetX;
+            cursor.y = constrainedTop + cursor.grabOffsetY;
           }
           
+          // Update image position
           imageElement.style.left = `${constrainedLeft}px`;
           imageElement.style.top = `${constrainedTop}px`;
           

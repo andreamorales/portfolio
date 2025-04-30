@@ -184,35 +184,36 @@
     // Size all images first
     const sizedImages = images.map((img, index) => {
       const aspectRatio = img.width / img.height;
-      let width, height;
+      let width: number;
+      let height: number;
 
       // Check for orchid and dahlia specifically by filename
       const isOrchid = img.src.includes('orchid.png');
       const isDahlia = img.src.includes('dahlia.png');
 
       if (isMobile) {
-        // Mobile sizing - balanced sizes
+        // Mobile sizing - more conservative sizes to prevent overflow
         if (isOrchid || isDahlia) {
-          width = windowWidth * 0.55; // Make orchid and dahlia prominent
+          width = windowWidth * 0.40; // Reduced from 0.55 to prevent overflow
         } else if (index === womanIndex || index === knightIndex) {
-          width = windowWidth * 0.45;
+          width = windowWidth * 0.35; // Reduced from 0.45
         } else if (index === beetleIndex) {
-          width = windowWidth * 0.25;
+          width = windowWidth * 0.25; // Keep beetle small
         } else if (index === birdIndex) {
-          width = windowWidth * 0.25; // Smaller parrots (was 0.35)
+          width = windowWidth * 0.25; // Keep birds small
         } else if (index === snakeIndex) {
-          width = windowWidth * 0.40; // Bigger snake
+          width = windowWidth * 0.35; // Slightly reduced from 0.40
         } else if (index === rockIndex) {
-          width = windowWidth * 0.20;
+          width = windowWidth * 0.20; // Keep rock small
         } else {
           width = aspectRatio >= 1 ? 
-            windowWidth * 0.35 : // Landscape
-            windowWidth * 0.30;  // Portrait
+            windowWidth * 0.30 : // Landscape - reduced from 0.35
+            windowWidth * 0.25;  // Portrait - reduced from 0.30
         }
-      } else {
+        } else {
         // Desktop sizing
         if (isOrchid) {
-          width = windowWidth * 0.18; // Make orchid and dahlia very large on desktop
+          width = windowWidth * 0.18;
         } else if (isDahlia) {
           width = windowWidth * 0.23;
         } else if (index === womanIndex) {
@@ -229,7 +230,7 @@
           width = windowWidth * 0.15;
         } else if (index === rockIndex) {
           width = windowWidth * 0.1;
-        } else {
+          } else {
           width = aspectRatio >= 1 ? 
             windowWidth * 0.12 : // Landscape
             windowWidth * 0.10;  // Portrait
@@ -237,21 +238,21 @@
       }
 
       height = width / aspectRatio;
-    
-    return {
-        ...img,
-      width,
-      height,
+        
+        return {
+          ...img,
+        width,
+        height,
         area: width * height,
         zIndex: 100,
         rotation: isMobile ? (Math.random() * 6 - 3) : 0,
         scale: 1
-    };
-  });
+        };
+      });
   
     // Sort by area (largest to smallest) for z-index layering
     const sortedBySize = [...sizedImages].sort((a, b) => b.area - a.area);
-
+    
     // Define the usable area for desktop (right two-thirds)
     const desktopLeftBoundary = windowWidth * 0.33; // Start at one-third from left
     const usableWidth = windowWidth - desktopLeftBoundary - 50; // Subtract right margin
@@ -296,17 +297,44 @@
       // Try to find a position with minimal overlap
       while (attempts < maxAttempts) {
         if (isMobile) {
-          // Mobile positioning - use container dimensions instead of window
-          const container = document.querySelector('.mobile-collage');
-          if (container) {
-            const rect = container.getBoundingClientRect();
-            const margin = 20;
-            left = margin + Math.random() * (rect.width - img.width - margin * 2);
-            top = margin + Math.random() * (rect.height - img.height - margin * 2);
-          } else {
-            // Fallback if container not found
-            left = 50 + Math.random() * (windowWidth - img.width - 100);
-            top = 50 + Math.random() * (windowHeight - img.height - 100);
+          // Mobile positioning - use viewport-relative height
+          const margin = 20;
+          const mobileContainerWidth = windowWidth - (margin * 2);
+          const mobileContainerHeight = Math.floor(windowHeight * 0.85) - (margin * 2); // Match container's 85vh
+
+          // Calculate position within fixed bounds
+          left = margin + Math.random() * (mobileContainerWidth - img.width - margin * 2);
+          top = margin + Math.random() * (mobileContainerHeight - img.height - margin * 2);
+
+          // Ensure bounds - strictly enforce container boundaries
+          left = Math.max(
+            margin,
+            Math.min(mobileContainerWidth - img.width - margin, left)
+          );
+          top = Math.max(
+            margin,
+            Math.min(mobileContainerHeight - img.height - margin, top)
+          );
+
+          // Add some spacing between images
+          const MIN_SPACING = 20;
+          let hasOverlap = false;
+
+          // Check overlap with existing images
+          for (const placed of placedImages) {
+            const dx = Math.abs((left + img.width/2) - (placed.left + placed.width/2));
+            const dy = Math.abs((top + img.height/2) - (placed.top + placed.height/2));
+            const minSpacingX = (img.width + placed.width)/2 + MIN_SPACING;
+            const minSpacingY = (img.height + placed.height)/2 + MIN_SPACING;
+
+            if (dx < minSpacingX && dy < minSpacingY) {
+              hasOverlap = true;
+              break;
+            }
+          }
+
+          if (!hasOverlap) {
+            break;
           }
         } else {
           // Desktop positioning - use right two-thirds
@@ -327,23 +355,6 @@
             left = desktopLeftBoundary + Math.random() * (usableWidth - img.width);
             top = 50 + Math.random() * (windowHeight - img.height - 100);
           }
-        }
-
-        // Update the bounds checking for mobile
-        if (isMobile) {
-          const container = document.querySelector('.mobile-collage');
-          if (container) {
-            const rect = container.getBoundingClientRect();
-            const margin = 20;
-            left = Math.max(margin, Math.min(rect.width - img.width - margin, left));
-            top = Math.max(margin, Math.min(rect.height - img.height - margin, top));
-          } else {
-            left = Math.max(50, Math.min(windowWidth - img.width - 50, left));
-            top = Math.max(50, Math.min(windowHeight - img.height - 50, top));
-          }
-        } else {
-          left = Math.max(desktopLeftBoundary, Math.min(windowWidth - img.width - 50, left));
-          top = Math.max(50, Math.min(windowHeight - img.height - 50, top));
         }
 
         // Calculate overlap with existing images
@@ -389,15 +400,15 @@
 
       // Add this image to our placed images list
       placedImages.push({
-        left,
-        top,
+          left,
+          top,
         width: img.width,
         height: img.height
       });
 
       // Calculate z-index based on size (largest in back)
       const zIndex = 1000 + (sortedBySize.length - index) * 10;
-
+      
       return {
         ...img,
         left,
@@ -408,6 +419,19 @@
     });
   }
 
+  // Add debounce function
+  function debounce(func: Function, wait: number) {
+    let timeout: ReturnType<typeof setTimeout>;
+    return function executedFunction(...args: any[]) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
+
   // Initialize the collage
   onMount(async () => {
     if (!browser) return;
@@ -416,7 +440,7 @@
     console.log('Image dimensions available:', imageDimensions.length);
     
     try {
-      await preloadImages();
+        await preloadImages();
       console.log('Images preloaded successfully');
       
       const images = getImages();
@@ -430,16 +454,16 @@
       collageImages = generateInitialPositions(images);
       console.log(`Generated positions for ${collageImages.length} images`);
       
-      // Enable images after a delay
-      setTimeout(() => {
-        imagesReady = true;
+      // Enable images after a short delay
+        setTimeout(() => {
+          imagesReady = true;
         console.log('Images ready set to true');
-        
+          
         // Show images gradually
         const delayTime = isDesktop ? 180 : 100;
-        collageImages.forEach((img, index) => {
-          setTimeout(() => {
-            visibleImages = [...visibleImages, index];
+          collageImages.forEach((img, index) => {
+            setTimeout(() => {
+              visibleImages = [...visibleImages, index];
             console.log(`Made image ${index} visible`);
           }, 150 + index * delayTime);
         });
@@ -453,23 +477,30 @@
         const oldWidth = windowWidth;
         const oldHeight = windowHeight;
         
-        isDesktop = window.innerWidth > 768;
+        // Only update window dimensions, don't regenerate on every resize
         windowWidth = window.innerWidth;
         windowHeight = window.innerHeight;
+        isDesktop = windowWidth > 768;
         
-        // Regenerate positions if window size changed significantly
-        if (Math.abs(oldWidth - windowWidth) > 50 || Math.abs(oldHeight - windowHeight) > 50) {
+        // Only regenerate positions if:
+        // 1. Device type changed (desktop <-> mobile)
+        // 2. Window width changed significantly (more than 100px)
+        // 3. Window height changed significantly (more than 100px) AND we're in desktop mode
+        if (wasDesktop !== isDesktop || 
+            Math.abs(oldWidth - windowWidth) > 100 || 
+            (Math.abs(oldHeight - windowHeight) > 100 && !isMobile)) {
           console.log('Window size changed significantly, regenerating positions');
           collageImages = generateInitialPositions(images);
         }
       }, 250);
       window.addEventListener('resize', resizeListener);
-    } catch (error) {
-      console.error('Error loading images:', error);
-    }
+      
+      } catch (error) {
+        console.error('Error loading images:', error);
+      }
   });
-  
-  // Clean up event listeners
+    
+    // Clean up event listeners
   onDestroy(() => {
     if (!browser) return;
     
@@ -524,19 +555,6 @@
   function handleTouchStart(e: TouchEvent, i: number) {
             hasInteractedWithCollage = true;
     boundHandleTouchStart(e, i);
-  }
-
-  // Add debounce function
-  function debounce(func: Function, wait: number) {
-    let timeout: ReturnType<typeof setTimeout>;
-    return function executedFunction(...args: any[]) {
-      const later = () => {
-        clearTimeout(timeout);
-        func(...args);
-      };
-      clearTimeout(timeout);
-      timeout = setTimeout(later, wait);
-    };
   }
 
   // Add reactive statement to update styles when cursors or locks change
@@ -612,8 +630,8 @@
             <slot name="drag-hint" />
           </svelte:fragment>
         </MobileCollage>
-      {/if}
-    </div>
+  {/if}
+</div>
   {:else}
     {#if imagesReady}
       <CursorSystem 
@@ -657,15 +675,50 @@
         {getDebugBorderStyle}
         on:update={updateCollageImages}
       />
-    {/if}
+      {/if}
   {/if}
 {/if}
 
 <style>
   .collage-container {
+    /* Create a positioning context */
     position: relative;
     width: 100%;
-    min-height: 85vh;
-    overflow: hidden;
+    height: 85vh;
+    max-height: 85vh;
+    overflow: hidden !important;
+    margin: 0;
+    padding: 0;
+    /* Force containment */
+    contain: strict;
+    /* Force hard clipping */
+    clip: rect(0, auto, 85vh, 0);
+    /* Force hardware acceleration */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    /* Create stacking context */
+    isolation: isolate;
+    /* Prevent scrolling */
+    touch-action: none;
+  }
+
+  @media (max-width: 768px) {
+    .collage-container {
+      height: 85vh;
+      max-height: 85vh;
+      margin: var(--spacing-md) 0;
+      /* Force containment */
+      contain: strict;
+      /* Force clipping */
+      overflow: hidden !important;
+      clip: rect(0, auto, 85vh, 0);
+      /* Force hardware acceleration */
+      transform: translateZ(0);
+      -webkit-transform: translateZ(0);
+      /* Create stacking context */
+      isolation: isolate;
+      /* Prevent scrolling */
+      touch-action: none;
+    }
   }
 </style> 

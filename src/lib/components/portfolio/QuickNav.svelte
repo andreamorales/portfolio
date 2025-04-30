@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
+  import { browser } from '$app/environment';
   // Props - all portfolio items
   export let items: Array<{
     id: number;
@@ -19,10 +21,49 @@
   
   // State for collapsed/expanded view
   let isCollapsed = false;
+  let isMobile = false;
+  let activeItemId: number | null = null;
+  
+  // Update collapsed state based on mobile
+  $: {
+    if (browser && isMobile && !hasExpandedItem) {
+      isCollapsed = true;
+    }
+  }
   
   // Sort items by ID to match portfolio order
   $: sortedItems = [...items].sort((a, b) => a.id - b.id);
   
+  // Function to check which item is in view
+  function updateActiveItem() {
+    if (!browser) return;
+    
+    const scrollPosition = window.scrollY + window.innerHeight / 2; // Use middle of viewport
+    
+    // Find all portfolio items
+    const portfolioItems = sortedItems.map(item => {
+      const element = document.getElementById(`portfolio-content-${item.id}`);
+      if (!element) return null;
+      
+      const rect = element.getBoundingClientRect();
+      const absoluteTop = rect.top + window.scrollY;
+      const absoluteBottom = absoluteTop + rect.height;
+      
+      return {
+        id: item.id,
+        top: absoluteTop,
+        bottom: absoluteBottom
+      };
+    }).filter(item => item !== null);
+    
+    // Find the item that contains the current scroll position
+    const activeItem = portfolioItems.find(item => 
+      item && scrollPosition >= item.top && scrollPosition <= item.bottom
+    );
+    
+    activeItemId = activeItem ? activeItem.id : null;
+  }
+
   // Function to toggle collapsed state
   function toggleCollapse() {
     isCollapsed = !isCollapsed;
@@ -71,16 +112,37 @@
     };
   }
   
-  // Function to scroll to a specific portfolio item
-  export function scrollToItem(id: number) {
-    const element = document.getElementById(`portfolio-content-${id}`);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Add function to expand item
+  export let onExpandItem: (id: number, fromQuickNav?: boolean) => void;
+  
+  // Function to scroll to a specific portfolio item and expand it
+  function scrollToAndExpandItem(id: number) {
+    // Call onExpandItem with fromQuickNav=true
+    onExpandItem(id, true);
+  }
+
+  function updateMobileState() {
+    if (browser) {
+      isMobile = window.innerWidth <= 768;
     }
   }
+
+  onMount(() => {
+    updateMobileState();
+    window.addEventListener('resize', updateMobileState);
+    window.addEventListener('scroll', updateActiveItem);
+    
+    // Initial check for active item
+    updateActiveItem();
+    
+    return () => {
+      window.removeEventListener('resize', updateMobileState);
+      window.removeEventListener('scroll', updateActiveItem);
+    };
+  });
 </script>
 
-{#if hasExpandedItem}
+{#if hasExpandedItem || isMobile}
   <div 
     class="quick-nav {isCollapsed ? 'collapsed' : ''}"
     on:touchstart={handleTouchStart}
@@ -88,7 +150,7 @@
     on:touchend={handleTouchEnd}
   >
     <div class="nav-header">
-      <span>Jump to</span>
+      <span>{isMobile ? 'Portfolio' : 'Jump to'}</span>
       <button 
         class="button-clear collapse-toggle" 
         on:click={toggleCollapse} 
@@ -109,8 +171,8 @@
       {#each sortedItems as item}
         {@const titleParts = splitTitle(item.title)}
         <button 
-          class="button-clear preview-item" 
-          on:click={() => scrollToItem(item.id)}
+          class="preview-item {activeItemId === item.id ? 'active' : ''}" 
+          on:click={() => scrollToAndExpandItem(item.id)}
           aria-label="Jump to {item.title}"
         >
           <div class="preview-title">
@@ -204,7 +266,7 @@
     max-height: calc(70vh - 45px);
     scrollbar-width: thin;
     scrollbar-color: var(--grey-light) transparent;
-    padding: var(--spacing-xs);
+    padding: 0;
     transition: height var(--transition-normal) var(--easing-standard), 
                 padding var(--transition-normal) var(--easing-standard);
   }
@@ -222,23 +284,63 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    width: 220px;
-    padding: var(--spacing-xs);
-    margin-bottom: var(--spacing-xxs);
-    border-radius: var(--border-radius);
+    width: 100%;
+    padding: var(--spacing-xs) var(--spacing-md);
+    margin: 0;
+    border-radius: 0;
     min-height: auto;
     height: auto;
     transition: all var(--transition-fast) var(--easing-standard);
+    outline: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  
+  .preview-item.active {
+    background-color: var(--text-color);
+  }
+  
+  .preview-item.active .title-main,
+  .preview-item.active .title-descriptor {
+    color: var(--bg-color);
+  }
+  
+  .preview-item.active .thumbnail-placeholder {
+    color: var(--bg-color);
   }
   
   .preview-item:hover {
-    background-color: transparent;
-    transform: translateX(calc(-1 * var(--spacing-xxs)));
+    background-color: var(--text-color);
+    transform: none;
+  }
+  
+  .preview-item:hover .title-main,
+  .preview-item:hover .title-descriptor {
+    color: var(--bg-color);
+  }
+  
+  .preview-item:hover .thumbnail-placeholder {
+    color: var(--bg-color);
   }
   
   .preview-item:focus {
     outline: none;
-    box-shadow: 0 0 0 2px var(--grey-light);
+    box-shadow: none;
+  }
+  
+  .preview-item:focus-visible {
+    outline: none;
+    box-shadow: none;
+  }
+  
+  .preview-item:active {
+    background-color: var(--text-color);
+  }
+  
+  .preview-item:active .title-main,
+  .preview-item:active .title-descriptor {
+    color: var(--bg-color);
   }
   
   .preview-thumbnail {
@@ -252,6 +354,7 @@
     align-items: center;
     justify-content: center;
     border: 1px solid var(--grey-light);
+    margin-right: var(--spacing-md);
   }
   
   .preview-thumbnail img {
@@ -277,6 +380,7 @@
     flex: 1;
     margin-right: var(--spacing-xs);
     overflow: hidden;
+    padding-left: var(--spacing-md);
   }
   
   .title-main {
@@ -337,10 +441,10 @@
     
     .previews-container {
       flex-direction: row;
-      padding: var(--spacing-sm);
+      padding: 0;
       overflow-y: hidden;
       overflow-x: auto;
-      gap: var(--spacing-xs);
+      gap: 0;
       flex-wrap: nowrap;
       width: 100%;
       background-color: var(--bg-color);
@@ -349,27 +453,28 @@
     }
     
     .preview-item {
-      width: auto;
-      min-width: 120px;
-      max-width: 140px;
-      margin-bottom: 0;
-      margin-right: var(--spacing-xs);
+      width: 130px;
+      margin: 0;
       flex-shrink: 0;
       flex-direction: column;
       justify-content: flex-start;
       gap: var(--spacing-xxs);
+      border-radius: 0;
+      padding: var(--spacing-xs);
+    }
+    
+    .preview-title {
+      padding-left: 0;
+      margin-right: 0;
+      text-align: center;
+      width: 100%;
     }
     
     .preview-thumbnail {
       width: 100%;
       height: 80px;
       margin-bottom: var(--spacing-xxs);
-    }
-    
-    .preview-title {
       margin-right: 0;
-      text-align: center;
-      width: 100%;
     }
     
     .title-main, .title-descriptor {
