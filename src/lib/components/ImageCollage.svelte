@@ -344,16 +344,30 @@
             const xRange = quadrant % 2 === 0 ? 
               [desktopLeftBoundary, desktopLeftBoundary + usableWidth * 0.5] : 
               [desktopLeftBoundary + usableWidth * 0.5, windowWidth - img.width - 50];
+              
+            // Ensure there's enough vertical space for the image
+            const topMargin = 50; // Add top margin
+            const bottomMargin = 50; // Bottom margin
             const yRange = quadrant < 2 ? 
-              [50, windowHeight * 0.5] : 
-              [windowHeight * 0.5, windowHeight - img.height - 50];
+              [topMargin, windowHeight * 0.5 - img.height] : 
+              [windowHeight * 0.5, windowHeight - img.height - bottomMargin];
             
             left = xRange[0] + Math.random() * (xRange[1] - xRange[0]);
             top = yRange[0] + Math.random() * (yRange[1] - yRange[0]);
+            
+            // Extra safety to ensure image is fully visible
+            top = Math.max(topMargin, Math.min(top, windowHeight - img.height - bottomMargin));
         } else {
             // For smaller images, find gaps within the right two-thirds
             left = desktopLeftBoundary + Math.random() * (usableWidth - img.width);
-            top = 50 + Math.random() * (windowHeight - img.height - 100);
+            
+            // Ensure smaller images also stay within vertical bounds
+            const topMargin = 50; // Add top margin
+            const bottomMargin = 50; // Bottom margin
+            top = topMargin + Math.random() * (windowHeight - img.height - bottomMargin - topMargin);
+            
+            // Extra safety check
+            top = Math.max(topMargin, Math.min(top, windowHeight - img.height - bottomMargin));
           }
         }
 
