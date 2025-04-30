@@ -420,7 +420,7 @@
     display: flex;
     flex-direction: column;
     gap: var(--spacing-xl);
-    padding: 0 1.5rem;
+    padding: var(--spacing-lg);
   }
   
   .project-description {
@@ -620,13 +620,13 @@
   }
   
   .details-label {
-    font-size: var(--font-size-sm);
+    font-size: var(--font-size-xxs);
     color: var(--muted-text);
     font-variation-settings: 'CASL' 0, 'wght' 400;
   }
   
   .details-value {
-    font-size: var(--font-size-base);
+    font-size: var(--font-size-sm);
     color: var(--text-color);
     font-variation-settings: 'CASL' 0, 'wght' 500;
     word-wrap: break-word;
@@ -664,7 +664,6 @@
   /* Hero image styling */
   .hero-image-container {
     width: 100%;
-    padding: var(--spacing-lg);
     overflow: hidden;
   }
   
@@ -673,6 +672,7 @@
     height: auto;
     display: block;
     object-fit: cover;
+    border-radius: var(--border-radius-sm);
   }
 
   /* Add padding to specific content areas instead */
