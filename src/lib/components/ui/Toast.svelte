@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import { fade } from 'svelte/transition';
   
   export let message: string;
   export let duration: number = 3000; // Duration in milliseconds
@@ -18,46 +19,56 @@
     }, duration);
   }
   
+  // Handle toast click for email fallback
+  function handleToastClick() {
+    // If message contains email, make it clickable
+    if (message.includes('andreamoralescoto@gmail.com')) {
+      window.location.href = 'mailto:andreamoralescoto@gmail.com';
+    }
+  }
+  
   // Clean up timer on component destruction
   onDestroy(() => {
     if (timer) clearTimeout(timer);
   });
 </script>
 
-<div class="toast" class:visible>
-  <span>{message}</span>
-</div>
+{#if visible}
+  <div 
+    class="toast" 
+    transition:fade
+    on:click={handleToastClick}
+  >
+    {message}
+  </div>
+{/if}
 
 <style>
   .toast {
     position: fixed;
-    top: 20px;
+    top: var(--spacing-lg);
     left: 50%;
-    transform: translateX(-50%) translateY(-100px);
-    background-color: var(--black);
-    color: white;
-    padding: 12px 20px;
+    transform: translateX(-50%);
+    background-color: var(--text-color);
+    color: var(--bg-color);
+    padding: var(--spacing-sm) var(--spacing-md);
     border-radius: var(--border-radius);
     font-family: var(--font-family);
     font-size: var(--font-size-sm);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 9999;
-    opacity: 0;
-    transition: transform 0.3s ease, opacity 0.3s ease;
-    text-align: center;
-    min-width: 200px;
-    max-width: 80%;
-  }
-  
-  .toast.visible {
-    transform: translateX(-50%) translateY(0);
-    opacity: 1;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    cursor: pointer; /* Show clickable cursor */
   }
   
   @media (max-width: 768px) {
     .toast {
-      width: 90%;
-      max-width: 90%;
+      position: fixed;
+      top: calc(env(safe-area-inset-top, 0px) + 20px);
+      width: calc(100% - var(--spacing-lg));
+      max-width: none;
+      text-align: center;
+      z-index: 9999;
+      margin-top: 40px;
     }
   }
 </style> 

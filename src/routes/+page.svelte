@@ -1044,19 +1044,58 @@
   function copyEmailToClipboard() {
     const email = 'andreamoralescoto@gmail.com';
     
-    // Use the clipboard API to copy the email
-    navigator.clipboard.writeText(email)
-      .then(() => {
-        // Show success toast
-        toastMessage = 'Email copied!';
-        showToast = true;
-      })
-      .catch(err => {
-        // Show error toast if copying failed
-        console.error('Failed to copy email: ', err);
-        toastMessage = 'Failed to copy email';
-        showToast = true;
-      });
+    // Create a temporary input element
+    const tempInput = document.createElement('input');
+    tempInput.value = email;
+    document.body.appendChild(tempInput);
+    
+    // For mobile devices, we need to try multiple approaches
+    try {
+      // First try using clipboard API
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(email)
+          .then(() => {
+            showToastSuccess();
+          })
+          .catch(() => {
+            // If clipboard API fails, fall back to selection method
+            useSelectionMethod();
+          });
+      } else {
+        // If clipboard API is not available, use selection method
+        useSelectionMethod();
+      }
+    } catch (err) {
+      // Final fallback
+      console.error('Copy failed:', err);
+      showToastError();
+    }
+    
+    // Clean up the temp input
+    document.body.removeChild(tempInput);
+    
+    function useSelectionMethod() {
+      try {
+        // Select and copy using selection API (works on more browsers)
+        tempInput.select();
+        tempInput.setSelectionRange(0, 99999); // For mobile
+        document.execCommand('copy');
+        showToastSuccess();
+      } catch (err) {
+        console.error('Selection copy failed:', err);
+        showToastError();
+      }
+    }
+    
+    function showToastSuccess() {
+      toastMessage = 'Email copied!';
+      showToast = true;
+    }
+    
+    function showToastError() {
+      toastMessage = 'Tap to email: andreamoralescoto@gmail.com';
+      showToast = true;
+    }
   }
   
   // Legacy function for backward compatibility - now copies email instead
