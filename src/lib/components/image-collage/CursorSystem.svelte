@@ -64,8 +64,8 @@
     const containerHeight = browser ? window.innerHeight : 800;
     
     const cursorLifespan = isStatic ? 
-      (20000 + Math.random() * 20000) : // 20-40 seconds for static cursors
-      (30000 + Math.random() * 30000);  // 30-60 seconds for moving cursors
+      (10000 + Math.random() * 15000) : // 10-25 seconds for static cursors
+      (15000 + Math.random() * 20000);  // 15-35 seconds for moving cursors
 
     return {
       id,
@@ -83,7 +83,7 @@
       delayCount: 0,
       curveOffsetX: (Math.random() * 100) - 50,
       curveOffsetY: (Math.random() * 100) - 50,
-      timeFactor: isPreexisting ? Math.random() * 10 : 0,
+      timeFactor: isPreexisting ? Math.random() * 5 : 0, // Reduced from 10 to 5
       randomOffset: { x: 0, y: 0 },
       offsetX: 0,
       offsetY: 0,
@@ -96,16 +96,27 @@
       lastActiveTime: Date.now(),
       isStatic,
       restingPeriod: isPreexisting ? 
-        Math.random() * 4000 : 
+        Math.random() * 2000 : // Reduced from 4000 to 2000
         Math.random() < 0.8 ? 
-          10000 + Math.random() * 10000 : 
+          3000 + Math.random() * 5000 : // Reduced from 10000+10000 to 3000+5000
           0,
-      lifespan: cursorLifespan
+      lifespan: cursorLifespan,
+      moveCount: 0, // Start with 0 moves
+      maxMoves: Math.random() < 0.7 ? 1 : 2, // 70% of cursors move only 1 image, 30% move 2
+      movementDelay: 0 // Default to no delay
     };
   }
 
   function setupPreexistingCursor(cursor: Cursor): Cursor {
     if (!browser) return cursor;
+
+    // Check if cursor has already reached its max moves limit
+    if (cursor.moveCount && cursor.maxMoves && cursor.moveCount >= cursor.maxMoves) {
+      console.log(`Cursor ${cursor.name} has already moved ${cursor.moveCount} images (max: ${cursor.maxMoves}), making it static`);
+      cursor.isMovingToTarget = false;
+      cursor.isStatic = true;
+      return cursor;
+    }
 
     const visibleImageIndexes = [...visibleImages];
     const availableIndexes = visibleImageIndexes.filter(index => !imageLocks[index]);
@@ -203,6 +214,10 @@
       cursor.isStatic = false;
     }
     
+    // Increment the moveCount
+    cursor.moveCount = (cursor.moveCount || 0) + 1;
+    console.log(`Cursor ${cursor.name} now moving image ${cursor.moveCount} of ${cursor.maxMoves}`);
+    
     return cursor;
   }
 
@@ -213,17 +228,14 @@
       if (cursorInitializationDelay === 0) {
         const isMobile = window.innerWidth <= 768;
         
-        // Set a variable delay before any cursor activity
-        // On mobile, use a shorter delay (15-30 seconds) to make interaction more visible
-        cursorInitializationDelay = isMobile ? 
-          15000 + Math.random() * 15000 : // 15-30 seconds on mobile
-          20000 + Math.random() * 40000;  // 20-60 seconds on desktop
+        // Set a much shorter delay before cursor activity (max 5 seconds)
+        cursorInitializationDelay = 1000 + Math.random() * 4000; // 1-5 seconds on both mobile and desktop
         
         console.log(`Will delay cursor appearance by ${Math.round(cursorInitializationDelay/1000)} seconds`);
         
         // Initialize the page visit timer for the guaranteed cursor appearance
         pageVisitStartTime = Date.now();
-        guaranteedCursorTimer = isMobile ? 30000 : 60000; // 30 sec on mobile, 1 min on desktop
+        guaranteedCursorTimer = 5000; // 5 sec guaranteed appearance on both mobile and desktop
         
         return;
       }
@@ -236,7 +248,7 @@
       
       // Check if we've reached the guaranteed cursor appearance time
       if (guaranteedCursorTimer <= 0 && !hasCursorInitialized) {
-        // Force initialization now to guarantee cursor appears within 1 minute
+        // Force initialization now to guarantee cursor appears within 5 seconds
         console.log('Forcing cursor initialization due to timeout');
         hasCursorInitialized = true;
         initializeCursorSystem(true);
@@ -257,8 +269,8 @@
     if (isMobile) {
       const now = Date.now();
       const timeSinceLastCursor = now - lastCursorCreationTime;
-      const mobileMinimumInterval = 30 * 1000;
-      const mobileRandomInterval = 60 * 1000;
+      const mobileMinimumInterval = 45 * 1000; // 45 seconds (up from 10)
+      const mobileRandomInterval = 30 * 1000; // 30 seconds additional random time
       
       if (timeSinceLastCursor < mobileMinimumInterval + (Math.random() * mobileRandomInterval)) {
         return;
@@ -268,8 +280,8 @@
     if (cursors.length < MAX_CURSORS) {
       const now = Date.now();
       const timeSinceLastCursor = now - lastCursorCreationTime;
-      const minTimeBetweenCursors = isMobile ? 3 * 60 * 1000 : 60 * 1000;
-      const randomDelayFactor = isMobile ? 5 * 60 * 1000 : 2 * 60 * 1000;
+      const minTimeBetweenCursors = isMobile ? 60 * 1000 : 50 * 1000; // 60s for mobile, 50s for desktop (about a minute)
+      const randomDelayFactor = isMobile ? 30 * 1000 : 20 * 1000; // 30s random for mobile, 20s for desktop
       
       if (timeSinceLastCursor > minTimeBetweenCursors + (Math.random() * randomDelayFactor)) {
         attemptToCreateNewCursor();
@@ -319,22 +331,22 @@
       if (cursor.id === "human-user") return false;
       
       if (!isMobile) {
-        // If cursor is static and has been static for more than 20 seconds, remove it
-        if (cursor.isStatic && (now - cursor.lastActiveTime > 20000)) {
+        // If cursor is static and has been static for more than 10 seconds, remove it (reduced from 20)
+        if (cursor.isStatic && (now - cursor.lastActiveTime > 10000)) {
           console.log(`Cursor ${cursor.name} expired due to inactivity`);
           return true;
         }
-        // If cursor completed an action (dragged and released an image) over 15 seconds ago, remove it
-        if (!cursor.isDragging && !cursor.isMovingToTarget && (now - cursor.lastActiveTime > 15000)) {
+        // If cursor completed an action (dragged and released an image) over 8 seconds ago, remove it (reduced from 15)
+        if (!cursor.isDragging && !cursor.isMovingToTarget && (now - cursor.lastActiveTime > 8000)) {
           console.log(`Cursor ${cursor.name} expired due to no interaction`);
           return true;
         }
       }
       
       const timeLeft = cursor.lifespan - (now - cursor.lastActiveTime);
-      // Start fading out in the last 2 seconds
-      if (timeLeft < 2000) {
-        const opacity = Math.max(0, timeLeft / 2000);
+      // Start fading out in the last 1.5 seconds (was 2)
+      if (timeLeft < 1500) {
+        const opacity = Math.max(0, timeLeft / 1500);
         const element = document.querySelector(`[data-cursor-id="${cursor.id}"]`);
         if (element instanceof HTMLElement) {
           element.style.opacity = opacity.toString();
@@ -363,6 +375,12 @@
       const MOVEMENT_SPEED = isMobile ? 4.0 : 5.0; // Slightly slower on mobile for smoother movement
 
       if (cursor.isMovingToTarget && !cursor.isDragging && cursor.targetImage !== null) {
+        // Check if we need to wait for the initial movement delay
+        if (cursor.movementDelay && cursor.movementDelay > 0) {
+          cursor.movementDelay -= 16; // Reduce the delay timer
+          return cursor; // Skip movement until delay expires
+        }
+
         const dx = cursor.targetX - cursor.x;
         const dy = cursor.targetY - cursor.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -387,10 +405,13 @@
             cursor.destinationY = destY;
           }
         } else {
+          // Add variation to movement speed based on the cursor's individual properties
+          const speed = MOVEMENT_SPEED * (0.7 + (Math.random() * 0.6)); // Speed varies by ±30%
+          
           const dirX = dx / distance;
           const dirY = dy / distance;
-          cursor.x += dirX * MOVEMENT_SPEED;
-          cursor.y += dirY * MOVEMENT_SPEED;
+          cursor.x += dirX * speed;
+          cursor.y += dirY * speed;
         }
       } else if (cursor.isDragging && cursor.targetImage !== null) {
         const containerSelector = isMobile ? '.mobile-collage' : '.desktop-collage';
@@ -424,10 +445,20 @@
             cursor.targetImage = null;
           }
           cursor.isDragging = false;
-          cursor.isMovingToTarget = Math.random() > 0.5;
           
-          if (cursor.isMovingToTarget) {
-            return setupPreexistingCursor(cursor);
+          // Check if cursor has reached its max moves limit
+          if (cursor.moveCount && cursor.maxMoves && cursor.moveCount >= cursor.maxMoves) {
+            // Cursor has reached its move limit, make it static
+            console.log(`Cursor ${cursor.name} has reached max moves (${cursor.maxMoves}), making it static`);
+            cursor.isMovingToTarget = false;
+            cursor.isStatic = true;
+          } else {
+            // Cursor still has moves left, determine if it should target another image
+            cursor.isMovingToTarget = Math.random() > 0.5;
+            
+            if (cursor.isMovingToTarget) {
+              return setupPreexistingCursor(cursor);
+            }
           }
         } else {
           // Move towards destination
@@ -482,46 +513,69 @@
 
     const isMobile = window.innerWidth <= 768;
     
-    // Should we have cursors at app start? 70% chance unless forced
-    const shouldHaveCursorsAtStart = forceCursor || Math.random() < 0.7;
+    // Increase the probability of having cursors at start from 70% to 90%
+    const shouldHaveCursorsAtStart = forceCursor || Math.random() < 0.9;
     
     if (shouldHaveCursorsAtStart) {
-      // Determine how many cursors to start with - 50% chance of 2 cursors at start
-      const initialCursorCount = isMobile ? 1 : (Math.random() < 0.5 ? 2 : 1);
-      console.log(`Creating ${initialCursorCount} initial visitor${initialCursorCount > 1 ? 's' : ''}`);
+      // Always start with exactly ONE cursor, regardless of device
+      // We'll schedule a potential second cursor with a much longer delay
+      const initialCursorCount = 1;
+      console.log(`Creating initial visitor`);
       
       // Remove any existing cursors first
       cursors = cursors.filter(c => c.id === "human-user");
       
-      // Create the initial cursor(s)
-      for (let i = 0; i < initialCursorCount; i++) {
-        // Reduced chance to create a static cursor on desktop from 80% to 50%
-        const shouldBeStatic = isMobile || Math.random() < 0.5;
-        
-        // Create a preexisting cursor (appears to already be using the site)
-        const newCursor = createFakeCursor(shouldBeStatic, true);
-        
-        // If we're on mobile, move the cursor off-screen until it drags something
-        if (isMobile) {
-          newCursor.x = -9999;
-          newCursor.y = -9999;
-        }
-        
-        // Only set up the cursor for dragging if it's not static
-        const configuredCursor = shouldBeStatic ? 
-          newCursor : // Static cursors don't need drag setup
-          setupPreexistingCursor(newCursor); // Only set up non-static cursors
-        
-        // For static cursors, add a shorter resting period (5-15 seconds)
-        if (shouldBeStatic) {
-          configuredCursor.restingPeriod = 5000 + Math.random() * 10000;
-        }
-        
-        cursors = [...cursors, configuredCursor];
-      }
+      // Create the initial cursor(s) with staggered timing
+      const createCursorWithDelay = (index: number) => {
+        setTimeout(() => {
+          // Reduced chance to create a static cursor to 30% (from 50%)
+          const shouldBeStatic = isMobile || Math.random() < 0.3;
+          
+          // Create a preexisting cursor (appears to already be using the site)
+          const newCursor = createFakeCursor(shouldBeStatic, true);
+          
+          // Add more randomized timing factors to each cursor
+          newCursor.timeFactor = Math.random() * 10; // More varied timeFactor (0-10)
+          newCursor.movementDelay = 1000 + Math.random() * 8000; // Random delay before first movement (1-9 seconds)
+          
+          // If we're on mobile, move the cursor off-screen until it drags something
+          if (isMobile) {
+            newCursor.x = -9999;
+            newCursor.y = -9999;
+          }
+          
+          // Only set up the cursor for dragging if it's not static
+          const configuredCursor = shouldBeStatic ? 
+            newCursor : // Static cursors don't need drag setup
+            setupPreexistingCursor(newCursor); // Only set up non-static cursors
+          
+          // For static cursors, add a more varied resting period
+          if (shouldBeStatic) {
+            configuredCursor.restingPeriod = 3000 + Math.random() * 10000; // 3-13 seconds
+          }
+          
+          cursors = [...cursors, configuredCursor];
+          onCursorsUpdate(cursors);
+          
+          // Record last cursor creation time
+          lastCursorCreationTime = Date.now();
+          
+          // If on desktop and we have fewer than MAX_CURSORS, schedule a potential second cursor
+          // but with a much longer delay (90-120 seconds)
+          if (!isMobile && index === 0 && Math.random() < 0.6) { // 60% chance for second cursor
+            console.log("Scheduling potential second cursor with long delay");
+            setTimeout(() => {
+              // Only add if we still have room
+              if (cursors.filter(c => c.id !== "human-user").length < MAX_CURSORS) {
+                createCursorWithDelay(1);
+              }
+            }, 90000 + Math.random() * 30000); // 90-120 second delay for second cursor
+          }
+        }, index === 0 ? 0 : (90000 + Math.random() * 30000)); // First cursor immediately, others after 90-120s
+      };
       
-      onCursorsUpdate(cursors);
-      lastCursorCreationTime = Date.now();
+      // Create first cursor immediately
+      createCursorWithDelay(0);
     } else {
       console.log('No cursors at initialization');
     }
@@ -586,7 +640,7 @@
         left: {cursor.x}px;
         top: {cursor.y}px;
         --cursor-color: {cursor.color};
-        opacity: {cursor.isStatic ? 0.7 : 1};
+        opacity: 1;
         pointer-events: none;
         transition: opacity 0.5s ease-out;
       "
@@ -605,7 +659,7 @@
     width: 100%;
     height: 100vh;
     pointer-events: none;
-    z-index: 1000;
+    z-index: 4;
   }
 
   .fake-cursor {
@@ -613,6 +667,12 @@
     transform: translate(-50%, -50%);
     transition: left 0.1s linear, top 0.1s linear, opacity 0.5s ease-out;
     pointer-events: none;
+    animation: fadeIn 0.8s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 
   .fake-cursor-dot {

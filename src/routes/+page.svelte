@@ -23,7 +23,7 @@
   import Roblox from '$lib/images/Roblox.svg?raw';
 
   // Import Lucide pointer icon
-  import { Pointer } from 'lucide-svelte';
+  import { Pointer, Mail, Linkedin } from 'lucide-svelte';
 
   // Import the new PortfolioExpandedView component
   import PortfolioExpandedView from '$lib/components/portfolio/PortfolioExpandedView.svelte';
@@ -1213,6 +1213,11 @@
       mounted = true;
     }, 0);
   });
+
+  // Add LinkedIn function after copyEmailToClipboard function
+  function openLinkedInProfile() {
+    window.open('https://www.linkedin.com/in/andreasmorales/', '_blank');
+  }
 </script>
 
 <svelte:head>
@@ -1254,7 +1259,14 @@
         </div>
 
         <div class="cta" in:fade={{ duration: 600, delay: 1200 }}>
-          <button class="button-secondary" on:click={toggleContactForm}>Get in touch</button>
+          <button class="button-secondary" on:click={toggleContactForm}>
+            <Mail size={18} class="icon" />
+            <span>Email</span>
+          </button>
+          <button class="button-secondary" on:click={openLinkedInProfile}>
+            <Linkedin size={18} class="icon" />
+            <span>LinkedIn</span>
+          </button>
         </div>
       </div>
 
@@ -1308,9 +1320,7 @@
                     role={item.role}
                     projectLength={item.projectLength}
                     metrics={item.metrics}
-                    heroImage={item.title.includes('MongoDB') ? '/images/portfolio/mongodb/hero.jpg' : 
-                              item.title.includes('Roblox') ? '/images/portfolio/roblox/hero.png' :
-                              item.title.includes('FireHydrant') ? '/images/portfolio/firehydrant/hero.png' : ''}
+                    heroImage={`/images/portfolio/${item.title.toLowerCase().split(':')[0].replace(/\s+/g, '')}/hero.png`}
                   />
                 </div>
               {/if}
@@ -1511,6 +1521,7 @@
     position: relative;
     z-index: 5;
     display: flex;
+    gap: 1rem;
     justify-content: center;
   }
   
@@ -1527,6 +1538,9 @@
     pointer-events: auto;
     font-family: var(--font-recursive);
     font-variation-settings: 'CASL' 0, 'wght' 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
   
   .button-secondary:hover {
@@ -1616,6 +1630,20 @@
       gap: 1rem;
       width: 100%;
       max-width: 200px;
+    }
+
+    .cta {
+      flex-direction: row;
+      gap: 0.75rem;
+    }
+
+    .button-secondary {
+      font-size: 0.875rem;
+      padding: 0.6rem 1rem;
+    }
+
+    .button-secondary .icon {
+      stroke-width: 1.5px;
     }
   }
 

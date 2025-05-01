@@ -55,4 +55,7 @@ export interface Cursor {
   isStatic: boolean;
   restingPeriod: number;
   lifespan: number;
+  moveCount?: number;
+  maxMoves?: number;
+  movementDelay?: number;
 } 
