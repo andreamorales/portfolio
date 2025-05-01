@@ -141,6 +141,14 @@
       window.removeEventListener('scroll', updateActiveItem);
     };
   });
+
+  // Add error handling function
+  function handleImageError(event: Event) {
+    const imgElement = event.target as HTMLImageElement;
+    if (imgElement && imgElement.src.endsWith('.png')) {
+      imgElement.src = imgElement.src.replace('.png', '.jpg');
+    }
+  }
 </script>
 
 {#if hasExpandedItem || isMobile}
@@ -186,7 +194,11 @@
           </div>
           <div class="preview-thumbnail">
             {#if item.thumbnail}
-              <img src={item.thumbnail} alt={item.title} />
+              <img 
+                src={item.thumbnail} 
+                alt={item.title} 
+                on:error={handleImageError}
+              />
             {:else}
               <div class="thumbnail-placeholder">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

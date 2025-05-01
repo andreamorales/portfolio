@@ -34,41 +34,48 @@
 </script>
 
 {#if visible}
-  <div 
-    class="toast" 
-    transition:fade
-    on:click={handleToastClick}
+  <button 
+    class="toast"
+    on:click={() => visible = false}
+    on:keydown={(e) => {
+      if (e.key === 'Enter' || e.key === 'Space') {
+        visible = false;
+      }
+    }}
+    type="button"
+    aria-label="Close notification"
   >
     {message}
-  </div>
+  </button>
 {/if}
 
 <style>
   .toast {
     position: fixed;
-    top: var(--spacing-lg);
+    bottom: var(--spacing-xl);
     left: 50%;
     transform: translateX(-50%);
     background-color: var(--text-color);
     color: var(--bg-color);
-    padding: var(--spacing-sm) var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-lg);
     border-radius: var(--border-radius);
-    font-family: var(--font-family);
     font-size: var(--font-size-sm);
-    z-index: 9999;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    cursor: pointer; /* Show clickable cursor */
+    font-family: var(--font-recursive);
+    font-variation-settings: 'CASL' 0, 'wght' 400;
+    z-index: var(--z-100);
+    animation: slideUp 0.3s var(--easing-standard);
+    cursor: pointer;
+    border: none;
   }
   
-  @media (max-width: 768px) {
-    .toast {
-      position: fixed;
-      top: calc(env(safe-area-inset-top, 0px) + 20px);
-      width: calc(100% - var(--spacing-lg));
-      max-width: none;
-      text-align: center;
-      z-index: 9999;
-      margin-top: 40px;
+  @keyframes slideUp {
+    from {
+      transform: translate(-50%, 100%);
+      opacity: 0;
+    }
+    to {
+      transform: translate(-50%, 0);
+      opacity: 1;
     }
   }
 </style> 

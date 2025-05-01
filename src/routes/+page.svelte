@@ -42,6 +42,7 @@
       expanded: false,
       description: "Reimagined MongoDB's Realm Schema designer with a focus on enhancing developer experience through intuitive UI and streamlined workflows.",
       videoUrl: "/videos/mongodb-realm-demo.mp4",
+      quickNavThumbnail: "/images/portfolio/mongodb/preview1.jpg",
       images: [
         { src: "/images/portfolio/mongodb/preview1.jpg", alt: "Realm Schema Designer", caption: "Main interface showing relationship mapping" },
         { src: "/images/portfolio/mongodb/preview2.jpg", alt: "Schema details", caption: "Field type configuration with validation settings" }
@@ -67,6 +68,7 @@
       expanded: false,
       description: "Ducky is a productivity application helping teams manage projects efficiently through customizable workflows and real-time collaboration.",
       videoUrl: "/videos/ducky-product-demo.mp4",
+      quickNavThumbnail: "/images/portfolio/ducky/preview1.jpg",
       images: [
         { src: "/images/portfolio/ducky/preview1.jpg", alt: "Ducky Dashboard", caption: "Team dashboard showing active projects" },
         { src: "/images/portfolio/ducky/preview2.jpg", alt: "Task Management", caption: "Drag-and-drop task management interface" }
@@ -92,6 +94,7 @@
       expanded: false,
       description: "Created a comprehensive design system for FireHydrant's incident management platform, increasing design consistency and development efficiency.",
       videoUrl: "/videos/firehydrant-design-system.mp4",
+      quickNavThumbnail: "/images/portfolio/firehydrant/preview1.jpg",
       images: [
         { src: "/images/portfolio/firehydrant/preview1.jpg", alt: "Component Library", caption: "Core component library overview" },
         { src: "/images/portfolio/firehydrant/preview2.jpg", alt: "Design Tokens", caption: "Color system and design tokens" }
@@ -117,6 +120,7 @@
       expanded: false,
       description: "Redesigned Roblox's Creator Hub to empower developers with better analytics, community engagement tools, and monetization options.",
       videoUrl: "/videos/roblox-creator-hub.mp4",
+      quickNavThumbnail: "/images/portfolio/roblox/preview1.jpg",
       images: [
         { src: "/images/portfolio/roblox/preview1.jpg", alt: "Analytics Dashboard", caption: "Game performance analytics" },
         { src: "/images/portfolio/roblox/preview2.jpg", alt: "Asset Management", caption: "Creator asset management interface" }
@@ -142,6 +146,7 @@
       expanded: false,
       description: "Panto is a design collaboration platform that bridges the gap between designers and developers with automated handoff and version control.",
       videoUrl: "/videos/panto-demo.mp4",
+      quickNavThumbnail: "/images/portfolio/panto/preview1.jpg",
       images: [
         { src: "/images/portfolio/panto/preview1.jpg", alt: "Design Interface", caption: "Main collaborative design interface" },
         { src: "/images/portfolio/panto/preview2.jpg", alt: "Code Generation", caption: "Automated code generation from designs" }
@@ -167,6 +172,7 @@
       expanded: false,
       description: "La Güila Toys is a line of educational toys designed to help children learn about ecology and sustainability through play.",
       videoUrl: "/videos/laguila-product-showcase.mp4",
+      quickNavThumbnail: "/images/portfolio/laguila/preview1.jpg",
       images: [
         { src: "/images/portfolio/laguila/preview1.jpg", alt: "Toy Collection", caption: "Complete product line overview" },
         { src: "/images/portfolio/laguila/preview2.jpg", alt: "Packaging Design", caption: "Sustainable packaging design" }
@@ -192,6 +198,7 @@
       expanded: false,
       description: "Torch is a narrative-driven adventure game that explores themes of light and darkness in both gameplay mechanics and storytelling.",
       videoUrl: "/videos/torch-gameplay.mp4",
+      quickNavThumbnail: "/images/portfolio/torch/preview1.jpg",
       images: [
         { src: "/images/portfolio/torch/preview1.jpg", alt: "Game Environment", caption: "In-game environment showcasing lighting effects" },
         { src: "/images/portfolio/torch/preview2.jpg", alt: "Character Design", caption: "Main character concept art and modeling" }
@@ -216,48 +223,63 @@
   // Track which portfolio items are expanded
   let expandedItems: Array<{id: number, title: string, thumbnail?: string}> = [];
   
+  // Sort portfolio items by year (newest first)
+  $: sortedPortfolioItems = [...portfolioItems].sort((a, b) => {
+    const yearA = parseInt(a.year);
+    const yearB = parseInt(b.year);
+    return yearB - yearA;
+  });
+
   // Create an array of all portfolio items for QuickNav
-  $: allNavigationItems = portfolioItems.map((item, index) => {
-    const thumbnail = item.images && item.images.length > 0 
-      ? item.images[0].src 
-      : undefined;
+  $: allNavigationItems = sortedPortfolioItems.map((item, index) => {
+    // Generate the thumbnail path using the same pattern as hero images
+    const thumbnailPath = item.title === 'La Güila Toys: Full Product' ? 
+      '/images/portfolio/laguila/thumbnail.png' :
+      `/images/portfolio/${item.title.toLowerCase().split(':')[0]
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove diacritics/accents
+        .replace(/\s+/g, '')}/thumbnail.png`;
     
     return {
       id: index,
       title: item.title,
-      thumbnail,
+      thumbnail: thumbnailPath,
       expanded: item.expanded
     };
   });
 
   // Function to toggle expansion of portfolio items
   function toggleExpand(index: number, fromQuickNav: boolean = false) {
+    // Get the actual portfolio item from the sorted array
+    const sortedItem = sortedPortfolioItems[index];
+    // Find its index in the original array
+    const originalIndex = portfolioItems.findIndex(item => item === sortedItem);
+    
     // Create a copy of the portfolio items array
     const updatedPortfolioItems = [...portfolioItems];
     
-    if (fromQuickNav && updatedPortfolioItems[index].expanded) {
+    if (fromQuickNav && updatedPortfolioItems[originalIndex].expanded) {
       // If it's already expanded and we're clicking from QuickNav,
       // just scroll to it without toggling
       scrollToItem(index);
       return;
     }
     
-    // Toggle the expanded state
-    updatedPortfolioItems[index].expanded = !updatedPortfolioItems[index].expanded;
+    // Toggle the expanded state using the original index
+    updatedPortfolioItems[originalIndex].expanded = !updatedPortfolioItems[originalIndex].expanded;
     
     // Update the portfolioItems array to trigger reactivity
     portfolioItems = updatedPortfolioItems;
     
     // Update the list of expanded items for QuickNav
-    if (updatedPortfolioItems[index].expanded) {
+    if (updatedPortfolioItems[originalIndex].expanded) {
       // Add to expanded items
-      const thumbnail = updatedPortfolioItems[index].images && updatedPortfolioItems[index].images.length > 0 
-        ? updatedPortfolioItems[index].images[0].src 
+      const thumbnail = updatedPortfolioItems[originalIndex].images && updatedPortfolioItems[originalIndex].images.length > 0 
+        ? updatedPortfolioItems[originalIndex].images[0].src 
         : undefined;
         
       expandedItems = [...expandedItems, {
         id: index,
-        title: updatedPortfolioItems[index].title,
+        title: updatedPortfolioItems[originalIndex].title,
         thumbnail
       }];
       
@@ -415,8 +437,23 @@
     }
   ];
 
-  // Add the large screen images to the dimensions array
-  const largeScreenImages = [
+  // Add type definition for largeScreenImages
+  const largeScreenImages: Array<{
+    src: string;
+    alt: string;
+    width: number;
+    height: number;
+    zIndex: number;
+    aspectRatio: string;
+    flexShrink: number;
+    rotation: number;
+    contentOffsets: {
+      top: number;
+      right: number;
+      bottom: number;
+      left: number;
+    };
+  }> = [
     // { 
     //   src: flowers, 
     //   alt: "Flowers", 
@@ -424,17 +461,10 @@
     //   height: 500, 
     //   zIndex: 2, 
     //   aspectRatio: "400/500",
+    //   flexShrink: 0,
+    //   rotation: 0,
     //   contentOffsets: { top: 10, right: 10, bottom: 10, left: 10 }
     // },
-    // { 
-    //   src: bobo, 
-    //   alt: "Bobo", 
-    //   width: 300, 
-    //   height: 400, 
-    //   zIndex: 4, 
-    //   aspectRatio: "300/400",
-    //   contentOffsets: { top: 10, right: 10, bottom: 10, left: 10 }
-    // }
   ];
 
   // Function to generate random positions but ensure desktop images are on right side
@@ -1283,7 +1313,7 @@
       </ImageCollage>
 
       <div class="portfolio-list" in:fade={{ duration: 600, delay: 1400 }}>
-        {#each portfolioItems as item, index (item.title)}
+        {#each sortedPortfolioItems as item, index (item.title)}
           {#if mounted}
             <div class="portfolio-item" in:fade={{ duration: 300, delay: 1400 + (index * 150) }}>
               <button 
@@ -1305,6 +1335,19 @@
                 </div>
               </button>
               {#if item.expanded}
+                {#if item.title === 'La Güila Toys: Full Product'}
+                  {@const debugPath = `/images/portfolio/${item.title.toLowerCase().split(':')[0]
+                    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove diacritics/accents
+                    .replace(/\s+/g, '')}/hero.png`}
+                  {@const debugTitle = item.title.toLowerCase().split(':')[0]
+                    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                    .replace(/\s+/g, '')}
+                  {console.log('Debug La Güila path:', {
+                    originalTitle: item.title,
+                    normalizedTitle: debugTitle,
+                    finalPath: debugPath
+                  })}
+                {/if}
                 <div 
                   id={`portfolio-content-${index}`} 
                   class="portfolio-content"
@@ -1320,7 +1363,12 @@
                     role={item.role}
                     projectLength={item.projectLength}
                     metrics={item.metrics}
-                    heroImage={`/images/portfolio/${item.title.toLowerCase().split(':')[0].replace(/\s+/g, '')}/hero.png`}
+                    heroImage={item.title === 'La Güila Toys: Full Product' ? 
+                      '/images/portfolio/laguila/hero.png' :
+                      `/images/portfolio/${item.title.toLowerCase().split(':')[0]
+                        .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove diacritics/accents
+                        .replace(/\s+/g, '')}/hero.png`
+                    }
                   />
                 </div>
               {/if}
@@ -1642,9 +1690,6 @@
       padding: 0.6rem 1rem;
     }
 
-    .button-secondary .icon {
-      stroke-width: 1.5px;
-    }
   }
 
   @media (max-width: 548px) {

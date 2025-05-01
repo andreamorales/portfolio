@@ -16,8 +16,25 @@
   export let projectLength: string = '';
   export let metrics: Array<string> = [];
   
+  // Initialize the featuredImage variable
+  let featuredImage: string = '';
+  
   // Computed prop for featured image
-  $: featuredImage = heroImage || (images.length > 0 ? images[0].src : '');
+  $: {
+    if (heroImage) {
+      console.log('Hero image path received:', heroImage);
+      // First check if the heroImage already contains a file extension
+      if (heroImage.endsWith('.png') || heroImage.endsWith('.jpg') || heroImage.endsWith('.jpeg')) {
+        featuredImage = heroImage;
+      } else {
+        // Try to load the PNG version first, we'll handle fallback to JPG in the <img> tag
+        featuredImage = heroImage.endsWith('/') ? `${heroImage}hero.png` : `${heroImage}/hero.png`;
+      }
+      console.log('Final featured image path:', featuredImage);
+    } else {
+      featuredImage = images.length > 0 ? images[0].src : '';
+    }
+  }
   
   // State
   let activeView: 'video' | 'content' = 'content';
@@ -64,6 +81,17 @@
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape' && zoomedImage) {
       closeZoomImage();
+    }
+  }
+  
+  // Add a function to handle image error
+  function handleImageError(event: Event) {
+    const imgElement = event.target as HTMLImageElement;
+    console.log('Image failed to load:', imgElement.src);
+    if (imgElement && imgElement.src.endsWith('.png')) {
+      const newSrc = imgElement.src.replace('.png', '.jpg');
+      console.log('Trying fallback image:', newSrc);
+      imgElement.src = newSrc;
     }
   }
   
@@ -114,7 +142,12 @@
   <!-- Featured hero image -->
   {#if featuredImage}
     <div class="hero-image-container">
-      <img src={featuredImage} alt={title} class="hero-image" />
+      <img 
+        src={featuredImage} 
+        alt={title} 
+        class="hero-image" 
+        on:error={handleImageError}
+      />
     </div>
   {/if}
 
@@ -329,7 +362,6 @@
   .view-toggle {
     display: flex;
     gap: 0;
-    margin-bottom: var(--spacing-md);
     justify-content: center;
   }
   
@@ -420,7 +452,10 @@
     display: flex;
     flex-direction: column;
     gap: var(--spacing-xl);
-    padding: var(--spacing-lg);
+    padding-top: 0;
+    padding-bottom: var(--spacing-lg);
+    padding-left: var(--spacing-lg);
+    padding-right: var(--spacing-lg);
   }
   
   .project-description {
