@@ -1169,6 +1169,7 @@
                     role={item.role}
                     link={item.link}
                     metrics={item.metrics}
+                    team={item.team}
                     heroImage={item.title === 'La Güila Toys: Full Product' ? 
                       '/images/portfolio/laguila/hero.png' : `/images/portfolio/${item.title.toLowerCase().replace(/[^a-z0-9]+/g, '')}/hero.png`}
                   />

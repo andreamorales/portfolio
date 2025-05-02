@@ -12,6 +12,7 @@
   export let role: string = '';
   export let link: string = '';
   export let metrics: Array<string> = [];
+  export let team: Array<{role: string, name: string, relationship: string}> = [];
   
   // Initialize the featuredImage variable
   let featuredImage: string = '';
@@ -141,16 +142,17 @@
       <div class="details-cell">
         <div class="details-label">Team</div>
         <div class="details-value team-list">
-          <div class="team-member">
-            <span class="role">Senior Designer:</span>
-            <span class="name">Rashmi Srinivas</span>
-            <span class="relationship">(direct report)</span>
-          </div>
-          <div class="team-member">
-            <span class="role">UXR:</span>
-            <span class="name">Braden Thuraisingham</span>
-            <span class="relationship">(supervisor)</span>
-          </div>
+          {#if team && team.length > 0}
+            {#each team as member}
+              <div class="team-member">
+                <span class="role">{member.role}:</span>
+                <span class="name">{member.name}</span>
+                <span class="relationship">({member.relationship})</span>
+              </div>
+            {/each}
+          {:else}
+            <span class="muted-text">Solo project</span>
+          {/if}
         </div>
       </div>
     </div>

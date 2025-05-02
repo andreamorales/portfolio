@@ -12,6 +12,12 @@ interface ContentItem {
   caption?: string;
 }
 
+interface TeamMember {
+  role: string;
+  name: string;
+  relationship: string;
+}
+
 export interface PortfolioItem {
   title: string;
   tags: string[];
@@ -25,6 +31,7 @@ export interface PortfolioItem {
   role: string;
   link: string;
   metrics: string[];
+  team?: TeamMember[];
 }
 
 const initialPortfolioItems: PortfolioItem[] = [
@@ -55,6 +62,10 @@ const initialPortfolioItems: PortfolioItem[] = [
       "Task completion rate from 0->100% in two weeks.",
       "P0 bugs from original product reduced by 100%",
       "4 components contributed to LeafyGreen, the MongoDB design system"
+    ],
+    team: [
+      { role: "Senior Designer", name: "Rashmi Srinivas", relationship: "direct report" },
+      { role: "UXR", name: "Braden Thuraisingham", relationship: "supervisor" }
     ]
   },
   { 
@@ -157,7 +168,7 @@ const initialPortfolioItems: PortfolioItem[] = [
     title: 'La Güila Toys: Full Product', 
     tags: ['TOY DESIGN'],
     expanded: false,
-    description: "La Güila Toys is a line of toys that explore death and the passage of time, making bleak topics playful. I’ve created more than 20 toys in total.",
+    description: "La Güila Toys is a line of toys that explore death and the passage of time, making bleak topics playful. I've created more than 20 toys in total.",
     videoUrl: "/videos/laguila-product-showcase.mp4",
     quickNavThumbnail: "/images/portfolio/laguila/thumbnail.png",
     images: [
@@ -204,6 +215,9 @@ const initialPortfolioItems: PortfolioItem[] = [
     metrics: [
       "Winner of Golden Cobra Award",
       "Featured at Metatopia 2018",
+    ],
+    team: [
+      { role: "Illustrator", name: "Juan Apéstegui", relationship: "collaborator" }
     ]
   }
 ];
