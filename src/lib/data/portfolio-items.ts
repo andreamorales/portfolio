@@ -40,9 +40,13 @@ const initialPortfolioItems: PortfolioItem[] = [
       { src: "/images/portfolio/mongodb/hero.png", alt: "Schema details", caption: "Field type configuration with validation settings" }
     ],
     content: [
-      { type: "text", value: "The MongoDB Realm Schema project involved redesigning the database schema interface to make it more intuitive for developers. I focused on streamlining the workflow for creating data models and relationships." },
-      { type: "image", value: "/images/portfolio/mongodb/schema.png", caption: "Early wireframe explorations of the interface" },
-      { type: "text", value: "A key challenge was balancing technical functionality with visual clarity. The final design introduced a visual relationship map that dynamically updates as schemas evolve." }
+      { type: "text", 
+        value: "The MongoDB Realm Schema project involved redesigning the database schema interface to make it more intuitive for developers. I focused on streamlining the workflow for creating data models and relationships." },
+      { type: "image", 
+        value: "/images/portfolio/mongodb/schema.png", 
+        caption: "Early wireframe explorations of the interface" },
+      { type: "text", 
+        value: "A key challenge was balancing technical functionality with visual clarity. The final design introduced a visual relationship map that dynamically updates as schemas evolve." }
     ],
     year: "2020",
     role: "Lead Designer",
@@ -68,7 +72,7 @@ const initialPortfolioItems: PortfolioItem[] = [
       { type: "image", value: "/images/portfolio/ducky/hero.png", caption: "User journey map highlighting key touchpoints" },
       { type: "text", value: "I led both design and frontend development, implementing the UI with React and handling real-time updates via WebSockets. The design system was built to accommodate future scaling with consistent components." }
     ],
-    year: "2021",
+    year: "2024",
     role: "Lead Designer & Frontend Dev",
     link: "https://www.tryducky.com",
     metrics: [
@@ -92,7 +96,7 @@ const initialPortfolioItems: PortfolioItem[] = [
       { type: "image", value: "/images/portfolio/firehydrant/hero.png", caption: "Before and after comparison showing UI improvements" },
       { type: "text", value: "The system included comprehensive documentation, Figma component libraries, and coded components that reduced development time by 40% for new features." }
     ],
-    year: "2020",
+    year: "2022",
     role: "Design Systems Architect",
     link: "https://www.firehydrant.com",
     metrics: [
@@ -129,7 +133,7 @@ const initialPortfolioItems: PortfolioItem[] = [
     title: 'Panto: Full Product', 
     tags: ['UX/UI', 'FRONTEND'],
     expanded: false,
-    description: "Panto is a design collaboration platform that bridges the gap between designers and developers with automated handoff and version control.",
+    description: "Panto helps AI app layer companies evaluate the true usefulness of their data in order to post-train better AI models.",
     videoUrl: "/videos/panto-demo.mp4",
     quickNavThumbnail: "/images/portfolio/panto/thumbnail.png",
     images: [
@@ -140,7 +144,7 @@ const initialPortfolioItems: PortfolioItem[] = [
       { type: "image", value: "/images/portfolio/panto/hero.png", caption: "System architecture diagram" },
       { type: "text", value: "I was responsible for the full product lifecycle, from initial concept through design, development and launch. The platform uses a component-based approach that maintains design fidelity while producing clean, maintainable code." }
     ],
-    year: "2023",
+    year: "2024-2025",
     role: "Design Lead & Frontend Engineer",
     link: "https://www.trypanto.com",
     metrics: [
@@ -153,7 +157,7 @@ const initialPortfolioItems: PortfolioItem[] = [
     title: 'La Güila Toys: Full Product', 
     tags: ['TOY DESIGN'],
     expanded: false,
-    description: "La Güila Toys is a line of educational toys designed to help children learn about ecology and sustainability through play.",
+    description: "La Güila Toys is a line of toys that explore death and the passage of time, making bleak topics playful. I’ve created more than 20 toys in total.",
     videoUrl: "/videos/laguila-product-showcase.mp4",
     quickNavThumbnail: "/images/portfolio/laguila/thumbnail.png",
     images: [
@@ -164,37 +168,42 @@ const initialPortfolioItems: PortfolioItem[] = [
       { type: "image", value: "/images/portfolio/laguila/hero.png", caption: "Initial sketches and prototypes" },
       { type: "text", value: "The design process involved extensive research into sustainable materials, child development principles, and creating engaging ways to introduce complex ecological concepts through play." }
     ],
-    year: "2019",
+    year: "2023-2025",
     role: "Product Designer",
     link: "https://www.instagram.com/laguila_toys",
     metrics: [
-      "95% recycled materials used",
-      "12,500+ units sold in year one",
-      "Featured in 3 major design awards"
+      "Featured in 2 art shows at Ghost Fox Toys Gallery.",
+      "Completely self-taught.",
+      "One toy sold for $75"
     ]
   },
   { 
     title: 'Torch: Full Product', 
     tags: ['GAME DESIGN'],
     expanded: false,
-    description: "Torch is a narrative-driven adventure game that explores themes of light and darkness in both gameplay mechanics and storytelling.",
+    description: "Torch is a freeform Live Action Roleplaying game exploring themes of multigenerational storytelling and collective memory.",
     videoUrl: "/videos/torch-gameplay.mp4",
     quickNavThumbnail: "/images/portfolio/torch/thumbnail.png",
     images: [
-      { src: "/images/portfolio/torch/hero.png", alt: "Game Environment", caption: "In-game environment showcasing lighting effects" }
+      { src: "/images/portfolio/torch/hero.png", alt: "First page of the game, featuring a black and white illustrated  motif.", caption: "Cover of the game." },
+      { src: "/images/portfolio/torch/instructions.png", alt: "The second page of the instructions, featuring icons of a lamplight and a torch.", caption: "The second page of instructions" },
+      { src: "/images/portfolio/torch/outtake.png", alt: "A page signaling all the ways a player can create a scene, by focusig on their senses.", caption: "A page signaling all the ways a player can create a scene, by focusig on their senses." },
+      { src: "/images/portfolio/torch/rounds.png", alt: "A page explaining that playes must be lying on the floor, and each round the lamplight is moved in a circular motion.", caption: "The page that explains the mechanics of the game." },
+      { src: "/images/portfolio/torch/winner.png", alt: "A group of people announcing the win of the Golden Cobra Award for Torch.", caption: "The announcement of the Golden Cobra Award." },
     ],
     content: [
-      { type: "text", value: "Torch was designed as an immersive experience where light serves as both a gameplay mechanic and narrative device. Players use their torch to navigate dark environments, solve puzzles, and interact with the world." },
-      { type: "image", value: "/images/portfolio/torch/hero.png", caption: "Light mechanic prototype testing" },
-      { type: "text", value: "I served as lead game designer, developing the core mechanics, narrative structure, and visual direction. The game uses dynamic lighting as its central interaction model, creating both challenge and atmosphere." }
+      { type: "text", 
+        value: "Torch is a freeform Live Action Roleplaying game. It was born out of a game design retreat I attend every year in New Jersey, as part of my desire to participate in the Golden Cobra Challenge, a very well known LARP design competition. This game won the Best Multi-Generational Game award at Golden Cobra. The award was announced at Metatopia 2018." },
+      { type: "image", value: "/images/portfolio/torch/instructions.png", caption: "Instructions page." },
+      { type: "text", 
+        value: "The game puts players in the position of citizens of a country that has been recently granted independence, out of the blue. Players must then travel through time telling the stories of the impact that such an unexpected event has on the country and the individual lives of its citizens, from the Independence Day to 500 years in the future." }
     ],
-    year: "2022",
+    year: "2018-2020",
     role: "Lead Game Designer",
     link: "https://mentapurpura.itch.io/torch",
     metrics: [
-      "92% positive player reviews",
-      "Average 4.2hr play session length",
-      "Featured by IGN & GameSpot"
+      "Winner of Golden Cobra Award",
+      "Featured at Metatopia 2018",
     ]
   }
 ];

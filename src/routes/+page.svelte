@@ -49,9 +49,16 @@
   });
 
   // Sort portfolio items by year (newest first)
-  $: sortedPortfolioItems = [...items].sort((a: PortfolioItem, b: PortfolioItem) => 
-    parseInt(b.year) - parseInt(a.year)
-  );
+  $: sortedPortfolioItems = [...items].sort((a: PortfolioItem, b: PortfolioItem) => {
+    // Get the latest year from each item's year field
+    const getLatestYear = (year: string) => {
+      // If year contains a range (e.g., "2023-2025"), take the last year
+      const years = year.split('-').map(y => parseInt(y.trim()));
+      return Math.max(...years);
+    };
+    
+    return getLatestYear(b.year) - getLatestYear(a.year);
+  });
 
   // Create an array of all portfolio items for QuickNav
   $: allNavigationItems = sortedPortfolioItems.map((item: PortfolioItem, index: number) => ({
@@ -925,7 +932,6 @@
         document.execCommand('copy');
         showToastSuccess();
       } catch (err) {
-        console.error('Selection copy failed:', err);
         showToastError();
       }
     }
@@ -1148,19 +1154,6 @@
                 </div>
               </button>
               {#if item.expanded}
-                {#if item.title === 'La Güila Toys: Full Product'}
-                  {@const debugPath = `/images/portfolio/${item.title.toLowerCase().split(':')[0]
-                    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove diacritics/accents
-                    .replace(/\s+/g, '')}/hero.png`}
-                  {@const debugTitle = item.title.toLowerCase().split(':')[0]
-                    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-                    .replace(/\s+/g, '')}
-                  {console.log('Debug La Güila path:', {
-                    originalTitle: item.title,
-                    normalizedTitle: debugTitle,
-                    finalPath: debugPath
-                  })}
-                {/if}
                 <div 
                   id={`portfolio-content-${index}`} 
                   class="portfolio-content"
@@ -1328,11 +1321,11 @@
   }
 
   .portfolio-header:hover h2 {
-    opacity: 0.8;
+    color: var(--cursor-indigo);
   }
 
   .portfolio-header h2 {
-    color: #363636;
+    color: var(--text-color);
     font-family: var(--font-family);
     font-size: 18px;
     font-style: normal;
@@ -1341,7 +1334,7 @@
     letter-spacing: 0.4px;
     text-decoration-line: underline;
     margin: 0;
-    transition: opacity var(--transition);
+    transition: color var(--transition);
     font-variation-settings: 'CASL' 0, 'wght' 370;
     background-color: var(--bg-color);
     padding: var(--spacing-xxs) 0;

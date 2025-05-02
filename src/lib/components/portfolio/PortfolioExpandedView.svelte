@@ -19,10 +19,8 @@
   // Computed prop for featured image - use first image from images array
   $: {
     if (images && images.length > 0) {
-      console.log('Using first image as hero:', images[0].src);
       featuredImage = images[0].src;
     } else {
-      console.log('No images available for hero');
       featuredImage = '';
     }
   }
@@ -39,8 +37,8 @@
     // If switching to video, play it
     if (view === 'video' && activeView !== 'video' && videoElement) {
       setTimeout(() => {
-        videoElement.play().catch(err => {
-          console.error('Error playing video:', err);
+        videoElement.play().catch(() => {
+          // Error handling if needed
         });
       }, 10);
     }
@@ -78,10 +76,8 @@
   // Add a function to handle image error
   function handleImageError(event: Event) {
     const imgElement = event.target as HTMLImageElement;
-    console.log('Image failed to load:', imgElement.src);
     if (imgElement && imgElement.src.endsWith('.png')) {
       const newSrc = imgElement.src.replace('.png', '.jpg');
-      console.log('Trying fallback image:', newSrc);
       imgElement.src = newSrc;
     }
   }
@@ -136,12 +132,27 @@
       </div>
     </div>
     <div class="details-row metrics-row">
-      {#each metrics as metric, i}
+      {#each metrics.slice(0, 2) as metric}
         <div class="details-cell">
           <div class="details-label">Impact</div>
           <div class="details-value">{metric}</div>
         </div>
       {/each}
+      <div class="details-cell">
+        <div class="details-label">Team</div>
+        <div class="details-value team-list">
+          <div class="team-member">
+            <span class="role">Senior Designer:</span>
+            <span class="name">Rashmi Srinivas</span>
+            <span class="relationship">(direct report)</span>
+          </div>
+          <div class="team-member">
+            <span class="role">UXR:</span>
+            <span class="name">Braden Thuraisingham</span>
+            <span class="relationship">(supervisor)</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -166,43 +177,6 @@
     </div>
   {/if}
 
-  <!-- Toggle buttons - now below the description -->
-  <div class="view-toggle">
-    <button
-      class="button-secondary {activeView === 'content' ? 'active-toggle' : ''}"
-      on:click={() => toggleView('content')}
-    >
-      <span class="toggle-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-          <polyline points="14 2 14 8 20 8"></polyline>
-          <line x1="16" y1="13" x2="8" y2="13"></line>
-          <line x1="16" y1="17" x2="8" y2="17"></line>
-          <polyline points="10 9 9 9 8 9"></polyline>
-        </svg>
-      </span>
-      <span>Text & Images</span>
-    </button>
-    <button
-      class="button-secondary {activeView === 'video' ? 'active-toggle' : ''}"
-      on:click={() => toggleView('video')}
-    >
-      <span class="toggle-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
-          <line x1="7" y1="2" x2="7" y2="22"></line>
-          <line x1="17" y1="2" x2="17" y2="22"></line>
-          <line x1="2" y1="12" x2="22" y2="12"></line>
-          <line x1="2" y1="7" x2="7" y2="7"></line>
-          <line x1="2" y1="17" x2="7" y2="17"></line>
-          <line x1="17" y1="17" x2="22" y2="17"></line>
-          <line x1="17" y1="7" x2="22" y2="7"></line>
-        </svg>
-      </span>
-      <span>Video</span>
-    </button>
-  </div>
-  
   <!-- Content sections -->
   <div class="content-container flex-column">
     <!-- Video View -->
@@ -269,29 +243,38 @@
           {/each}
         </div>
         
-        <!-- Image gallery -->
+        <!-- Image gallery - only show unused images -->
         {#if images.length > 0}
-          <div class="image-gallery">
-            {#each images as image}
-              <div class="gallery-item">
-                <button 
-                  class="image-button"
-                  on:click={() => openZoomImage(image)}
-                  on:keydown={(e) => e.key === 'Enter' && openZoomImage(image)}
-                  aria-label="Zoom image"
-                >
-                  <img 
-                    src={image.src} 
-                    alt={image.alt}
-                    class="clickable-image"
-                  />
-                </button>
-                {#if image.caption}
-                  <p class="image-caption">{image.caption}</p>
-                {/if}
-              </div>
-            {/each}
-          </div>
+          {@const usedImages = new Set([
+            featuredImage, 
+            ...content
+              .filter(block => block.type === 'image')
+              .map(block => block.value)
+          ])}
+          {@const unusedImages = images.filter(img => !usedImages.has(img.src))}
+          {#if unusedImages.length > 0}
+            <div class="image-gallery">
+              {#each unusedImages as image}
+                <div class="gallery-item">
+                  <button 
+                    class="image-button"
+                    on:click={() => openZoomImage(image)}
+                    on:keydown={(e) => e.key === 'Enter' && openZoomImage(image)}
+                    aria-label="Zoom image"
+                  >
+                    <img 
+                      src={image.src} 
+                      alt={image.alt}
+                      class="clickable-image"
+                    />
+                  </button>
+                  {#if image.caption}
+                    <p class="image-caption">{image.caption}</p>
+                  {/if}
+                </div>
+              {/each}
+            </div>
+          {/if}
         {/if}
       </div>
     {/if}
@@ -481,10 +464,6 @@
     line-height: 1.6;
     font-variation-settings: 'CASL' 0, 'wght' 370;
     width: 100%;
-  }
-  
-  .image-block {
-    margin: var(--spacing-md) 0;
   }
   
   .image-block img {
@@ -933,5 +912,38 @@
     .hero-description {
       font-size: var(--font-size-base);
     }
+  }
+
+  .team-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xxs);
+  }
+
+  .team-member {
+    font-size: var(--font-size-xs);
+    line-height: 1.4;
+    padding-left: var(--spacing-sm);
+    position: relative;
+  }
+
+  .team-member::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: var(--text-color);
+  }
+
+  .role {
+    color: var(--muted-text);
+  }
+
+  .name {
+    color: var(--text-color);
+  }
+
+  .relationship {
+    color: var(--muted-text);
+    font-style: italic;
   }
 </style> 

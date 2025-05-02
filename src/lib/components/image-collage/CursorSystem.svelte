@@ -58,8 +58,6 @@
     const name = `User${randomUserNumber}`;
     const color = fakeUserColors[Math.floor(Math.random() * fakeUserColors.length)];
     
-    console.log(`Creating new cursor ${name} (static: ${isStatic}, preexisting: ${isPreexisting})`);
-    
     const containerWidth = browser ? window.innerWidth : 1200;
     const containerHeight = browser ? window.innerHeight : 800;
     
@@ -112,7 +110,6 @@
 
     // Check if cursor has already reached its max moves limit
     if (cursor.moveCount && cursor.maxMoves && cursor.moveCount >= cursor.maxMoves) {
-      console.log(`Cursor ${cursor.name} has already moved ${cursor.moveCount} images (max: ${cursor.maxMoves}), making it static`);
       cursor.isMovingToTarget = false;
       cursor.isStatic = true;
       return cursor;
@@ -216,7 +213,6 @@
     
     // Increment the moveCount
     cursor.moveCount = (cursor.moveCount || 0) + 1;
-    console.log(`Cursor ${cursor.name} now moving image ${cursor.moveCount} of ${cursor.maxMoves}`);
     
     return cursor;
   }
@@ -230,8 +226,6 @@
         
         // Set a much shorter delay before cursor activity (max 5 seconds)
         cursorInitializationDelay = 1000 + Math.random() * 4000; // 1-5 seconds on both mobile and desktop
-        
-        console.log(`Will delay cursor appearance by ${Math.round(cursorInitializationDelay/1000)} seconds`);
         
         // Initialize the page visit timer for the guaranteed cursor appearance
         pageVisitStartTime = Date.now();
@@ -248,8 +242,6 @@
       
       // Check if we've reached the guaranteed cursor appearance time
       if (guaranteedCursorTimer <= 0 && !hasCursorInitialized) {
-        // Force initialization now to guarantee cursor appears within 5 seconds
-        console.log('Forcing cursor initialization due to timeout');
         hasCursorInitialized = true;
         initializeCursorSystem(true);
         return;
@@ -257,7 +249,6 @@
       
       // Check if regular delay has expired
       if (cursorInitializationDelay <= 0) {
-        console.log('Natural cursor initialization');
         hasCursorInitialized = true;
         initializeCursorSystem(false);
       }
@@ -302,8 +293,6 @@
     const maxAllowed = isMobile ? 1 : MAX_CURSORS;
     
     if (nonHumanCursors.length > maxAllowed) {
-      console.log(`Too many cursors (${nonHumanCursors.length}), removing excess to maintain limit of ${maxAllowed}`);
-      
       // Sort by creation time and keep only the newest ones
       const sortedCursors = [...nonHumanCursors].sort((a, b) => b.lastActiveTime - a.lastActiveTime);
       const cursorsToRemove = sortedCursors.slice(maxAllowed);
@@ -333,12 +322,10 @@
       if (!isMobile) {
         // If cursor is static and has been static for more than 10 seconds, remove it (reduced from 20)
         if (cursor.isStatic && (now - cursor.lastActiveTime > 10000)) {
-          console.log(`Cursor ${cursor.name} expired due to inactivity`);
           return true;
         }
         // If cursor completed an action (dragged and released an image) over 8 seconds ago, remove it (reduced from 15)
         if (!cursor.isDragging && !cursor.isMovingToTarget && (now - cursor.lastActiveTime > 8000)) {
-          console.log(`Cursor ${cursor.name} expired due to no interaction`);
           return true;
         }
       }
@@ -449,7 +436,6 @@
           // Check if cursor has reached its max moves limit
           if (cursor.moveCount && cursor.maxMoves && cursor.moveCount >= cursor.maxMoves) {
             // Cursor has reached its move limit, make it static
-            console.log(`Cursor ${cursor.name} has reached max moves (${cursor.maxMoves}), making it static`);
             cursor.isMovingToTarget = false;
             cursor.isStatic = true;
           } else {
@@ -520,7 +506,6 @@
       // Always start with exactly ONE cursor, regardless of device
       // We'll schedule a potential second cursor with a much longer delay
       const initialCursorCount = 1;
-      console.log(`Creating initial visitor`);
       
       // Remove any existing cursors first
       cursors = cursors.filter(c => c.id === "human-user");
@@ -563,7 +548,6 @@
           // If on desktop and we have fewer than MAX_CURSORS, schedule a potential second cursor
           // but with a much longer delay (90-120 seconds)
           if (!isMobile && index === 0 && Math.random() < 0.6) { // 60% chance for second cursor
-            console.log("Scheduling potential second cursor with long delay");
             setTimeout(() => {
               // Only add if we still have room
               if (cursors.filter(c => c.id !== "human-user").length < MAX_CURSORS) {
@@ -576,8 +560,6 @@
       
       // Create first cursor immediately
       createCursorWithDelay(0);
-    } else {
-      console.log('No cursors at initialization');
     }
   }
 
@@ -591,7 +573,6 @@
     const nonHumanCursors = cursors.filter(c => c.id !== "human-user");
     
     if (nonHumanCursors.length >= maxAllowed) {
-      console.log(`Already at maximum cursors (${maxAllowed}), not creating new one`);
       return false;
     }
 
@@ -618,7 +599,6 @@
     if (!browser) return;
 
     const isMobile = window.innerWidth <= 768;
-    console.log(`CursorSystem mounted (mobile: ${isMobile})`);
     
     // Start the simulation interval which will handle initialization
     simulationInterval = window.setInterval(simulateFakeInteraction, 16);

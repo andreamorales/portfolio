@@ -166,9 +166,6 @@
     currentDragElement.style.top = `${top}px`;
     currentDragElement.style.transform = `rotate(${imageData.rotation}deg) scale(1)`;
     
-    // Debug
-    console.log(`Container height: ${containerRect.height}, Image height: ${imageData.height}, Top: ${top}, Bottom edge at: ${top + imageData.height}`);
-    
     // Update the data model
     collageImages = collageImages.map((img, i) => {
       if (i === draggedImageIndex) {
@@ -228,9 +225,6 @@
     currentDragElement.style.left = `${left}px`;
     currentDragElement.style.top = `${top}px`;
     currentDragElement.style.transform = `rotate(${imageData.rotation}deg) scale(1)`;
-    
-    // Debug
-    console.log(`Container height: ${containerRect.height}, Image height: ${imageData.height}, Top: ${top}, Bottom edge at: ${top + imageData.height}`);
     
     // Update the data model
     collageImages = collageImages.map((img, i) => {
