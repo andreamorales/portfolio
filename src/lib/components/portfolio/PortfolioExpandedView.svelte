@@ -170,12 +170,19 @@
   <!-- Featured hero image -->
   {#if featuredImage}
     <div class="hero-image-container">
-      <img 
-        src={featuredImage} 
-        alt={title} 
-        class="hero-image" 
-        on:error={handleImageError}
-      />
+      <button 
+        class="image-button"
+        on:click={() => openZoomImage({src: featuredImage, alt: title})}
+        on:keydown={(e) => e.key === 'Enter' && openZoomImage({src: featuredImage, alt: title})}
+        aria-label="Zoom hero image"
+      >
+        <img 
+          src={featuredImage} 
+          alt={title} 
+          class="hero-image clickable-image" 
+          on:error={handleImageError}
+        />
+      </button>
     </div>
   {/if}
 
@@ -468,10 +475,18 @@
     width: 100%;
   }
   
+  .image-block {
+    margin: var(--spacing-md) 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
   .image-block img {
     width: 100%;
+    max-height: 70vh;
     border-radius: var(--border-radius);
-    object-fit: cover;
+    object-fit: contain;
   }
   
   .image-caption {
@@ -480,6 +495,8 @@
     font-variation-settings: 'CASL' 0, 'wght' 340;
     color: var(--muted-text);
     margin-top: var(--spacing-xs);
+    text-align: center;
+    max-width: 65ch;
   }
   
   .image-gallery {
@@ -683,14 +700,22 @@
   .hero-image-container {
     width: 100%;
     overflow: hidden;
+    display: flex;
+    justify-content: center;
   }
   
   .hero-image {
     width: 100%;
     height: auto;
+    max-height: 70vh;
     display: block;
-    object-fit: cover;
+    object-fit: contain;
     border-radius: var(--border-radius-sm);
+  }
+
+  .hero-image-container .image-button {
+    width: 100%;
+    max-width: 1200px;
   }
 
   /* Add padding to specific content areas instead */
@@ -925,11 +950,16 @@
   .team-member {
     font-size: var(--font-size-xs);
     line-height: 1.4;
-    padding-left: var(--spacing-sm);
+    padding-left: 0;
     position: relative;
   }
 
-  .team-member::before {
+  /* Only add bullets when there's more than one team member */
+  .team-list:has(.team-member:nth-child(2)) .team-member {
+    padding-left: var(--spacing-sm);
+  }
+
+  .team-list:has(.team-member:nth-child(2)) .team-member::before {
     content: "•";
     position: absolute;
     left: 0;
