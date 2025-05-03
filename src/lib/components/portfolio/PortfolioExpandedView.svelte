@@ -299,7 +299,13 @@
             featuredImage, 
             ...content
               .filter(block => block.type === 'image')
-              .map(block => block.value)
+              .flatMap(block => {
+                const images = [block.value];
+                if (block.layout === 'side-by-side' && block.sideImage) {
+                  images.push(block.sideImage.value);
+                }
+                return images;
+              })
           ])}
           {@const unusedImages = images.filter(img => !usedImages.has(img.src))}
           {#if unusedImages.length > 0}
@@ -483,7 +489,7 @@
   }
   
   .image-block {
-    margin: var(--spacing-md) 0;
+    margin: var(--spacing-md) 0 0 0;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1018,6 +1024,7 @@
     gap: var(--spacing-md);
     width: 100%;
     justify-content: center;
+    align-items: stretch;
   }
 
   .side-by-side .image-container {
@@ -1029,11 +1036,21 @@
 
   .side-by-side .image-button {
     width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
   }
 
   .side-by-side .image-button img {
     width: 100%;
-    height: auto;
+    height: 100%;
     object-fit: cover;
+    mask-image: linear-gradient(to bottom, black 99%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 99%, transparent 100%);
+  }
+
+  .side-by-side .image-caption {
+    margin-top: var(--spacing-xs);
+    flex-shrink: 0;
   }
 </style> 

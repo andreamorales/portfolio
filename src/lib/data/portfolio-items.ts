@@ -39,7 +39,7 @@ export interface PortfolioItem {
   team?: TeamMember[];
 }
 
-const initialPortfolioItems: PortfolioItem[] = [
+const initialPortfolioItems = [
   { 
     title: 'MongoDB: Realm Schema', 
     tags: ['UX/UI'],
@@ -49,46 +49,42 @@ const initialPortfolioItems: PortfolioItem[] = [
     quickNavThumbnail: "/images/portfolio/mongodb/thumbnail.png",
     images: [
       { src: "/images/portfolio/mongodb/hero.png", alt: "Schema Designer Interface", caption: "The redesigned schema designer interface" },
+      { src: "/images/portfolio/mongodb/bluesky.gif", alt: "Blue Sky Workshop", caption: "Blue Sky workshop and prototyping" },
       { src: "/images/portfolio/mongodb/before.png", alt: "Previous Interface", caption: "The previous interface before redesign" },
-      { src: "/images/portfolio/mongodb/before2.png", alt: "Legacy Interface", caption: "Another view of the legacy interface" },
-      { src: "/images/portfolio/mongodb/schema.png", alt: "Schema Visualization", caption: "New schema visualization system" },
-      { src: "/images/portfolio/mongodb/workshop.png", alt: "Design Workshop", caption: "Collaborative design workshop with the team" },
       { src: "/images/portfolio/mongodb/uxr.png", alt: "User Research", caption: "User research findings and insights" },
-      { src: "/images/portfolio/mongodb/results.png", alt: "Results Dashboard", caption: "Project results and metrics" },
+      { src: "/images/portfolio/mongodb/workshop.gif", alt: "Design Workshop", caption: "Collaborative design workshop with the team" },
+      { src: "/images/portfolio/mongodb/figma.png", alt: "Figma Components", caption: "Component library in Figma" },
       { src: "/images/portfolio/mongodb/handoff.png", alt: "Design Handoff", caption: "Design to development handoff process" },
-      { src: "/images/portfolio/mongodb/figma.png", alt: "Figma Components", caption: "Component library in Figma" }
+      { src: "/images/portfolio/mongodb/results.png", alt: "Results Dashboard", caption: "Project results and metrics" }
     ],
     content: [
-      { type: "text", value: "The MongoDB Realm Schema project involved redesigning the database schema interface to make it more intuitive for developers." },
-      { type: "image", value: "/images/portfolio/mongodb/hero.png", caption: "The redesigned schema designer interface" },
-      { type: "text", value: "[Add description of the redesigned interface and its key features]" },
+      { type: "text", value: "In Q1 of 2020, Design led a two week series of workshops and rapid prototyping called \"Blue Sky.\"" },
+      { type: "text", value: "During those workshops, Design came up with a hunch: the Schema feature –the first feature any user of Realm has to contend with – was difficult to use, and not designed for easy context switching.\n\nThe PMs bought into the core hunch, and after seeing our blue sky prototype, slotted all of Q3 of 2020 to re-design the feature ahead of midQ4.\n\nThe question became: how can we prove that design hunch and ensure the schema feature is as user-friendly as possible?" },
+      { type: "image", value: "/images/portfolio/mongodb/before.png", caption: "The previous interface before redesign" },
+      { type: "text", value: "Our first pass at solving this \"hunch\" happened during Blue Sky 2020.\n\nIt was based on two main ideas:\nThe current Schema UI did not pass basic heuristic evaluations.\nThe UI required constant context switching between parts of the UI that were not connected/needed constant refreshing." },
+      { type: "image", value: "/images/portfolio/mongodb/bluesky.gif", caption: "Blue Sky workshop and prototyping" },
+      { type: "text", value: "Then I had the opportunity to confirm our hunch.\nI did this through generative research, prototyping, and evaluative research of prototypes." },
       { 
         type: "image", 
-        value: "/images/portfolio/mongodb/before.png", 
-        caption: "The previous interface before redesign",
+        value: "/images/portfolio/mongodb/uxr.png", 
+        caption: "User research findings and insights",
         layout: "side-by-side",
         sideImage: {
-          value: "/images/portfolio/mongodb/before2.png",
-          caption: "Another view of the legacy interface"
+          value: "/images/portfolio/mongodb/workshop.gif",
+          caption: "Collaborative design workshop with the team"
         }
       },
-      { type: "text", value: "[Compare and contrast the two legacy views and their limitations]" },
-      { type: "image", value: "/images/portfolio/mongodb/schema.png", caption: "New schema visualization system" },
-      { type: "text", value: "[Detail the new visualization system and how it improves understanding]" },
-      { type: "image", value: "/images/portfolio/mongodb/workshop.png", caption: "Collaborative design workshop with the team" },
-      { type: "text", value: "[Describe the workshop process and key insights gathered]" },
-      { type: "image", value: "/images/portfolio/mongodb/uxr.png", caption: "User research findings and insights" },
-      { type: "text", value: "[Summarize the key research findings and how they informed the design]" },
-      { type: "image", value: "/images/portfolio/mongodb/results.png", caption: "Project results and metrics" },
-      { type: "text", value: "[Share specific metrics and outcomes from the project]" },
-      { type: "image", value: "/images/portfolio/mongodb/handoff.png", caption: "Design to development handoff process" },
-      { type: "text", value: "[Explain the handoff process and how it ensured quality implementation]" },
+      { type: "text", value: "Our hunch was right! So now I began iterating on designs with the triad. Throughout 5 months, design iteration of wireframes began, informed by the past research, ongoing user research, and input from designers, PMs, and engineers." },
       { type: "image", value: "/images/portfolio/mongodb/figma.png", caption: "Component library in Figma" },
-      { type: "text", value: "[Describe the component system and how it supports the design]" }
+      { type: "text", value: "Finally! We arrived at a winning version. As we moved along into the scoping and specing process with engineering, it became clear that we needed to cut down scope even more or else this project would be too big a bet." },
+      { type: "image", value: "/images/portfolio/mongodb/handoff.png", caption: "Design to development handoff process" },
+      { type: "text", value: "With that in mind, I began cutting down the project where I could, while at the same time advocating for user delight: animated empty states, clearer copy, and \"short-cuts\" for more experienced users." },
+      { type: "image", value: "/images/portfolio/mongodb/results.png", caption: "Project results and metrics" },
+      { type: "text", value: "From pre-deployment research, our design got rid of all heuristics problems and reduced user friction to zero P0 (blocking) bugs. It also increased user session and task completion (first schema created) for mobile developers, from near 0 to over 10 a day." }
     ],
     year: "2020",
     role: "Lead Designer",
-    link: "Discontinued",
+    link: "https://www.figma.com/design/ZHnlaW0cDSk8p3DtLkTw6B/REALMC-6716_-Schema-Revamp?node-id=0-8701&p=f&t=NHJZnhZsYLdwDjCg-0",
     metrics: [
       "Task completion rate from 0->100% in two weeks.",
       "P0 bugs from original product reduced by 100%",
@@ -364,6 +360,6 @@ const initialPortfolioItems: PortfolioItem[] = [
       { role: "Illustrator", name: "Juan Apéstegui", relationship: "collaborator" }
     ]
   }
-];
+] as PortfolioItem[];
 
 export const portfolioItems = writable<PortfolioItem[]>(initialPortfolioItems); 
