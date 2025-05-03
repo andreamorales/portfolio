@@ -663,33 +663,57 @@
 
     .hero-description {
       font-size: var(--font-size-base);
+      line-height: 1.6;
+      padding: 0 1.5rem;
     }
 
-    /* Remove highlight effect completely on mobile */
+    /* Simple mobile highlight effect */
     .highlight-line {
-      all: unset !important;
-      display: inline !important;
-      color: var(--text-color) !important;
-      font-family: var(--font-family) !important;
-      line-height: 1.4 !important;
-      background: none !important;
-      -webkit-mask-image: none !important;
-      mask-image: none !important;
-      padding: 0 !important;
+      display: inline;
+      color: var(--text-color);
+      font-family: var(--font-family);
+      line-height: 1.6;
+      background: none;
+      -webkit-mask-image: none;
+      mask-image: none;
+      position: relative;
+      padding: 0 0.1em;
+      box-decoration-break: clone;
+      -webkit-box-decoration-break: clone;
     }
 
-    .highlight-line:nth-child(3n + 1),
-    .highlight-line:nth-child(3n + 2),
-    .highlight-line:nth-child(3n + 3) {
-      all: unset !important;
-      display: inline !important;
-      color: var(--text-color) !important;
-      font-family: var(--font-family) !important;
-      line-height: 1.4 !important;
-      background: none !important;
-      -webkit-mask-image: none !important;
-      mask-image: none !important;
-      padding: 0 !important;
+    .highlight-line::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0.1em;
+      height: 0.4em;
+      background-color: rgba(93, 103, 233, 0.12);
+      z-index: -1;
+      transform: rotate(-1deg) translateZ(0);
+      border-radius: 1px;
+    }
+
+    .highlight-line:nth-child(3n + 1)::before {
+      transform: rotate(1deg) translateZ(0);
+      background-color: rgba(93, 103, 233, 0.15);
+      height: 0.45em;
+      bottom: 0.08em;
+    }
+
+    .highlight-line:nth-child(3n + 2)::before {
+      transform: rotate(-0.5deg) translateZ(0);
+      background-color: rgba(93, 103, 233, 0.13);
+      height: 0.42em;
+      bottom: 0.12em;
+    }
+
+    .highlight-line:nth-child(3n + 3)::before {
+      transform: rotate(0.5deg) translateZ(0);
+      background-color: rgba(93, 103, 233, 0.14);
+      height: 0.43em;
+      bottom: 0.09em;
     }
   }
   
