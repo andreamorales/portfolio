@@ -83,6 +83,12 @@
     }
   }
   
+  // Function to get image caption from images array
+  function getImageCaption(src: string): string | undefined {
+    const image = images.find(img => img.src === src);
+    return image?.caption;
+  }
+  
   onMount(() => {
     // Add keydown listener
     window.addEventListener('keydown', handleKeydown);
@@ -237,36 +243,36 @@
                     <div class="image-container">
                       <button 
                         class="image-button"
-                        on:click={() => openZoomImage({src: block.value, alt: block.caption || 'Project image', caption: block.caption})}
-                        on:keydown={(e) => e.key === 'Enter' && openZoomImage({src: block.value, alt: block.caption || 'Project image', caption: block.caption})}
+                        on:click={() => openZoomImage({src: block.value, alt: getImageCaption(block.value) || 'Project image', caption: getImageCaption(block.value)})}
+                        on:keydown={(e) => e.key === 'Enter' && openZoomImage({src: block.value, alt: getImageCaption(block.value) || 'Project image', caption: getImageCaption(block.value)})}
                         aria-label="Zoom image"
                       >
                         <img 
                           src={block.value} 
-                          alt={block.caption || 'Project image'} 
+                          alt={getImageCaption(block.value) || 'Project image'} 
                           class="clickable-image"
                         />
                       </button>
-                      {#if block.caption}
-                        <p class="image-caption">{block.caption}</p>
+                      {#if getImageCaption(block.value)}
+                        <p class="image-caption">{getImageCaption(block.value)}</p>
                       {/if}
                     </div>
                     {#if block.sideImage}
                       <div class="image-container">
                         <button 
                           class="image-button"
-                          on:click={() => openZoomImage({src: block.sideImage.value, alt: block.sideImage.caption || 'Project image', caption: block.sideImage.caption})}
-                          on:keydown={(e) => e.key === 'Enter' && openZoomImage({src: block.sideImage.value, alt: block.sideImage.caption || 'Project image', caption: block.sideImage.caption})}
+                          on:click={() => openZoomImage({src: block.sideImage.value, alt: getImageCaption(block.sideImage.value) || 'Project image', caption: getImageCaption(block.sideImage.value)})}
+                          on:keydown={(e) => e.key === 'Enter' && openZoomImage({src: block.sideImage.value, alt: getImageCaption(block.sideImage.value) || 'Project image', caption: getImageCaption(block.sideImage.value)})}
                           aria-label="Zoom image"
                         >
                           <img 
                             src={block.sideImage.value} 
-                            alt={block.sideImage.caption || 'Project image'} 
+                            alt={getImageCaption(block.sideImage.value) || 'Project image'} 
                             class="clickable-image"
                           />
                         </button>
-                        {#if block.sideImage.caption}
-                          <p class="image-caption">{block.sideImage.caption}</p>
+                        {#if getImageCaption(block.sideImage.value)}
+                          <p class="image-caption">{getImageCaption(block.sideImage.value)}</p>
                         {/if}
                       </div>
                     {/if}
@@ -274,18 +280,18 @@
                 {:else}
                   <button 
                     class="image-button"
-                    on:click={() => openZoomImage({src: block.value, alt: block.caption || 'Project image', caption: block.caption})}
-                    on:keydown={(e) => e.key === 'Enter' && openZoomImage({src: block.value, alt: block.caption || 'Project image', caption: block.caption})}
+                    on:click={() => openZoomImage({src: block.value, alt: getImageCaption(block.value) || 'Project image', caption: getImageCaption(block.value)})}
+                    on:keydown={(e) => e.key === 'Enter' && openZoomImage({src: block.value, alt: getImageCaption(block.value) || 'Project image', caption: getImageCaption(block.value)})}
                     aria-label="Zoom image"
                   >
                     <img 
                       src={block.value} 
-                      alt={block.caption || 'Project image'} 
+                      alt={getImageCaption(block.value) || 'Project image'} 
                       class="clickable-image"
                     />
                   </button>
-                  {#if block.caption}
-                    <p class="image-caption">{block.caption}</p>
+                  {#if getImageCaption(block.value)}
+                    <p class="image-caption">{getImageCaption(block.value)}</p>
                   {/if}
                 {/if}
               </div>
