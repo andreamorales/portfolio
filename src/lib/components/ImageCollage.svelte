@@ -178,32 +178,35 @@
       const isOrchid = img.src.includes('orchid.png');
       const isDahlia = img.src.includes('dahlia.png');
 
-      if (isMobile) {
-        // Mobile sizing - more conservative sizes to prevent overflow
-        if (isOrchid || isDahlia) {
-          width = windowWidth * 0.40; // Reduced from 0.55 to prevent overflow
-        } else if (index === womanIndex || index === knightIndex) {
-          width = windowWidth * 0.35; // Reduced from 0.45
+      // Force minimum sizes for orchid and dahlia
+      if (isOrchid) {
+        // Force orchid to be at least 400px wide on desktop
+        width = isMobile ? windowWidth * 0.40 : Math.max(400, windowWidth * 0.25);
+        console.warn('Orchid size:', { width, windowWidth });
+      } else if (isDahlia) {
+        // Force dahlia to be at least 450px wide on desktop
+        width = isMobile ? windowWidth * 0.40 : Math.max(450, windowWidth * 0.28);
+        console.warn('Dahlia size:', { width, windowWidth });
+      } else if (isMobile) {
+        // Mobile sizing for other images
+        if (index === womanIndex || index === knightIndex) {
+          width = windowWidth * 0.35;
         } else if (index === beetleIndex) {
-          width = windowWidth * 0.25; // Keep beetle small
+          width = windowWidth * 0.25;
         } else if (index === birdIndex) {
-          width = windowWidth * 0.25; // Keep birds small
+          width = windowWidth * 0.25;
         } else if (index === snakeIndex) {
-          width = windowWidth * 0.35; // Slightly reduced from 0.40
+          width = windowWidth * 0.35;
         } else if (index === rockIndex) {
-          width = windowWidth * 0.20; // Keep rock small
+          width = windowWidth * 0.20;
         } else {
           width = aspectRatio >= 1 ? 
-            windowWidth * 0.30 : // Landscape - reduced from 0.35
-            windowWidth * 0.25;  // Portrait - reduced from 0.30
+            windowWidth * 0.30 :
+            windowWidth * 0.25;
         }
-        } else {
-        // Desktop sizing
-        if (isOrchid) {
-          width = windowWidth * 0.25; // Increased from 0.18
-        } else if (isDahlia) {
-          width = windowWidth * 0.28; // Increased from 0.23
-        } else if (index === womanIndex) {
+      } else {
+        // Desktop sizing for other images
+        if (index === womanIndex) {
           width = windowWidth * 0.25;
         } else if (index === knightIndex) {
           width = windowWidth * 0.19;
@@ -219,23 +222,23 @@
           width = windowWidth * 0.1;
         } else {
           width = aspectRatio >= 1 ? 
-            windowWidth * 0.12 : // Landscape
-            windowWidth * 0.10;  // Portrait
+            windowWidth * 0.12 :
+            windowWidth * 0.10;
         }
       }
 
       height = width / aspectRatio;
         
-        return {
-          ...img,
+      return {
+        ...img,
         width,
         height,
         area: width * height,
         zIndex: 100,
         rotation: isMobile ? (Math.random() * 6 - 3) : 0,
         scale: 1
-        };
-      });
+      };
+    });
   
     // Sort by area (largest to smallest) for z-index layering
     const sortedBySize = [...sizedImages].sort((a, b) => b.area - a.area);
