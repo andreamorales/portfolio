@@ -220,36 +220,47 @@ const initialPortfolioItems = [
     quickNavThumbnail: "/images/portfolio/panto/thumbnail.png",
     images: [
       { src: "/images/portfolio/panto/hero.png", alt: "Panto Interface", caption: "Main Panto interface" },
-      { src: "/images/portfolio/panto/charts.png", alt: "Data Analysis", caption: "Data analysis view" },
-      { src: "/images/portfolio/panto/analysis.png", alt: "Model Training", caption: "Model training interface" },
-      { src: "/images/portfolio/panto/form.png", alt: "Results View", caption: "Results visualization" },
-      { src: "/images/portfolio/panto/menu.png", alt: "Settings", caption: "Settings configuration" },
-      { src: "/images/portfolio/panto/table.png", alt: "User Profile", caption: "User profile page" },
-      { src: "/images/portfolio/panto/charts_light.png", alt: "Dashboard", caption: "Analytics dashboard" }
+      { src: "/images/portfolio/panto/before.png", alt: "Original Landing", caption: "The original landing page" },
+      { src: "/images/portfolio/panto/landing.png", alt: "Landing Page", caption: "The second landing page of Panto, developed by me" },
+      { src: "/images/portfolio/panto/analysis.png", alt: "Analysis View", caption: "Data analysis visualization" },
+      { src: "/images/portfolio/panto/charts.png", alt: "Charts Dark", caption: "Data visualization in dark mode" },
+      { src: "/images/portfolio/panto/charts_light.png", alt: "Charts Light", caption: "Data visualization in light mode" },
+      { src: "/images/portfolio/panto/table.png", alt: "Data Table", caption: "Developer-friendly data table view" },
+      { src: "/images/portfolio/panto/form.png", alt: "Form Interface", caption: "Optimized form interface" }
     ],
     content: [
-      { type: "text", value: "Panto helps AI companies evaluate and improve their training data." },
-      { type: "image", value: "/images/portfolio/panto/hero.png", caption: "Main Panto interface" },
-      { type: "text", value: "[Describe the main interface and its key features]" },
-      { type: "image", value: "/images/portfolio/panto/charts.png", caption: "Data analysis view" },
-      { type: "text", value: "[Explain the data analysis capabilities]" },
-      { type: "image", value: "/images/portfolio/panto/analysis.png", caption: "Model training interface" },
-      { type: "text", value: "[Detail the model training process and interface]" },
-      { type: "image", value: "/images/portfolio/panto/form.png", caption: "Results visualization" },
-      { type: "text", value: "[Describe the results visualization system]" },
-      { type: "image", value: "/images/portfolio/panto/menu.png", caption: "Settings configuration" },
-      { type: "text", value: "[Explain the settings system and customization options]" },
-      { type: "image", value: "/images/portfolio/panto/table.png", caption: "Data table view" },
-      { type: "text", value: "[Describe the data organization and management]" },
-      { type: "image", value: "/images/portfolio/panto/charts_light.png", caption: "Analytics dashboard" },
-      { type: "text", value: "[Detail the analytics capabilities and insights]" }
+      { type: "text", value: "The release of DeepSeek R1 has proven that AI is not a \"winner takes all\" technology. Ultimately, there will be thousands, if not millions, of AI models used by everyone, made by smaller and smaller teams with less and less compute." },
+      { type: "text", value: "My cofounder and I predicted that this trend will only accelerate. Tools like Cursor will continue to make development accessible to everyone, and just as millions of developers around the world create apps, **millions** of people will create models to sell to others as products, or to use personally." },
+      { type: "text", value: "At first, people won't be able to pre-train models from scratch. Instead, they will post-train models that offer open weights. For that purpose, understanding how that data influences model behavior will be key." },
+      { type: "image", value: "/images/portfolio/panto/before.png", caption: "The original version of the project was aimed on IP licensing for AI" },
+      { type: "text", value: "Originally, this project was meant to focus on the licensing of IP for the age of AI. But as we did more research, my cofounder and I realized that the main problem was the evaluation of what IP was valuable to AI to begin with." },
+      { type: "image", value: "/images/portfolio/panto/landing.png", caption: "The second landing page of Panto, developed by me" },
+      { type: "text", value: "For that reason, we built a second version of Panto that consisted of data valuation tools that sample, analyze, and select data to make models 10x better. Our approach breaks the black-box of models and uncovers the true relevance of data to them." },
+      { type: "text", value: "Panto is made up of two features. The first one is data scoring. Data is live-streamed from the company into Panto. As the data trickles in, we compare it to a baseline of data and crack open the black-box of models to see how they react to the company's data. We give each data point a novelty score." },
+      { type: "image", value: "/images/portfolio/panto/analysis.png", caption: "Data analysis visualization" },
+      { type: "text", value: "The analysis is then visualized in charts. These charts help explain the complex inner workings of LLMs to users that are technical (developers), but not experienced in machine learning." },
+      { type: "image", value: "/images/portfolio/panto/charts.png", caption: "Data visualization in dark mode" },
+      { type: "text", value: "And of course, to keep the experience dev friendly, I implemented light mode and dark mode out of the gate." },
+      { type: "image", value: "/images/portfolio/panto/charts_light.png", caption: "Data visualization in light mode" },
+      { type: "text", value: "The whole design is meant to be developer friendly. Tables include zebra stripping and are mobile friendly, and forms and steppers are optimized for top-of-the-line UX." },
+      { 
+        type: "image", 
+        value: "/images/portfolio/panto/table.png", 
+        caption: "Developer-friendly data table view",
+        layout: "side-by-side",
+        sideImage: {
+          value: "/images/portfolio/panto/form.png",
+          caption: "Optimized form interface"
+        }
+      },
+      { type: "text", value: "Overall, this project was my \"build a technical tool\" dream. It landed us two design partners off the bat, and we raised a sizable pre-seed for it after trying many different iterations of the product until we reached this one. Unfortunately, my personal life suffered some setbacks and the project has slowed down its pace." }
     ],
     year: "2024-2025",
     role: "Design Lead & Frontend Engineer",
     link: "https://www.trypanto.com",
     metrics: [
-      "One design partner", 
-      "400k raised"
+      "Two design partners", 
+      "400k raised in pre-seed"
     ],
     team: [
       { role: "Backend Engineer", name: "Kenan O'Neal", relationship: "co-founder" }
