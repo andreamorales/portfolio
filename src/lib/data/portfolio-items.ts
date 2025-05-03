@@ -65,7 +65,10 @@ const initialPortfolioItems: PortfolioItem[] = [
     ],
     team: [
       { role: "Senior Designer", name: "Rashmi Srinivas", relationship: "direct report" },
-      { role: "UXR", name: "Braden Thuraisingham", relationship: "supervisor" }
+      { role: "UXR", name: "Braden Thuraisingham", relationship: "direct report" },
+      { role: "Junior Designer", name: "Kevin Pham", relationship: "direct report" },
+      { role: "Intern Designer", name: "Ighodalo I.", relationship: "direct report" },
+      { role: "Product Manager", name: "Drew DiPalma", relationship: "cross-functional partner" }
     ]
   },
   { 
@@ -90,6 +93,9 @@ const initialPortfolioItems: PortfolioItem[] = [
       "25% increase in sales",
       "2% decrease in UX problems",
       "Another metric"
+    ],
+    team: [
+      { role: "Backend Engineer", name: "Kenan O'Neal", relationship: "co-founder" }
     ]
   },
   { 
@@ -114,6 +120,10 @@ const initialPortfolioItems: PortfolioItem[] = [
       "40% reduction in dev time",
       "85% component adoption rate",
       "22% faster onboarding"
+    ],
+    team: [
+      { role: "Design Lead", name: "Bobby Tables", relationship: "supervisor" },
+      { role: "Frontend Engineer", name: "Sarah Chen", relationship: "collaborator" }
     ]
   },
   { 
@@ -138,6 +148,10 @@ const initialPortfolioItems: PortfolioItem[] = [
       "17% increase in creator retention",
       "42% more time in analytics tools",
       "4.8/5 average user satisfaction"
+    ],
+    team: [
+      { role: "Product Manager", name: "Josh Anon", relationship: "supervisor" },
+      { role: "Senior Engineer", name: "Dan Sturman", relationship: "collaborator" }
     ]
   },
   { 
@@ -162,6 +176,9 @@ const initialPortfolioItems: PortfolioItem[] = [
       "68% reduction in handoff issues", 
       "3.1x faster implementation time",
       "86% component reuse rate" 
+    ],
+    team: [
+      { role: "Backend Engineer", name: "Kenan O'Neal", relationship: "co-founder" }
     ]
   },
   { 

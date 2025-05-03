@@ -482,11 +482,26 @@
     align-items: center;
   }
   
-  .image-block img {
+  .image-block .image-button {
+    width: 100%;
+    max-width: 800px;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    display: block;
+    position: relative;
+  }
+  
+  .image-block .image-button img {
     width: 100%;
     max-height: 70vh;
-    border-radius: var(--border-radius);
     object-fit: contain;
+    display: block;
+    border-radius: var(--border-radius-sm);
+    transform: translateZ(0);
+    will-change: transform;
   }
   
   .image-caption {
@@ -513,7 +528,7 @@
   .gallery-item img {
     width: 100%;
     height: auto;
-    border-radius: var(--border-radius);
+    border-radius: var(--border-radius-sm);
     aspect-ratio: 16 / 9;
     object-fit: cover;
   }
@@ -570,7 +585,7 @@
     max-width: 100%;
     max-height: 80vh;
     object-fit: contain;
-    border-radius: var(--border-radius);
+    border-radius: var(--border-radius-sm);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   }
   
@@ -687,8 +702,7 @@
     cursor: pointer;
     display: block;
     width: 100%;
-    border-radius: var(--border-radius);
-    overflow: hidden;
+    overflow: visible;
   }
   
   .image-button:focus {
@@ -696,26 +710,39 @@
     outline-offset: 2px;
   }
   
+  .image-block .image-button {
+    border-radius: var(--border-radius-sm);
+  }
+  
+  .image-block img {
+    width: 100%;
+    max-height: 70vh;
+    border-radius: var(--border-radius-sm);
+    object-fit: contain;
+  }
+  
   /* Hero image styling */
   .hero-image-container {
     width: 100%;
     overflow: hidden;
-    display: flex;
-    justify-content: center;
   }
   
+  .hero-image-container .image-button {
+    width: 100%;
+    border: none;
+    padding: 0;
+    margin: 0;
+    background: none;
+    cursor: pointer;
+    display: block;
+  }
+  
+  /* Hero image */
   .hero-image {
     width: 100%;
     height: auto;
-    max-height: 70vh;
     display: block;
-    object-fit: contain;
-    border-radius: var(--border-radius-sm);
-  }
-
-  .hero-image-container .image-button {
-    width: 100%;
-    max-width: 1200px;
+    object-fit: cover;
   }
 
   /* Add padding to specific content areas instead */
