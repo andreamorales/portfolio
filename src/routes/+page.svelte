@@ -887,73 +887,48 @@
   let showToast = false;
   let toastMessage = '';
   
-  // Keep the showContactForm variable for backward compatibility
-  let showContactForm = false;
-  
-  // Replace the contact form toggle with the copy email function
-  function copyEmailToClipboard() {
+  // Email copy function
+  async function copyEmailToClipboard() {
     const email = 'andreamoralescoto@gmail.com';
     
-    // Create a temporary input element
-    const tempInput = document.createElement('input');
-    tempInput.value = email;
-    document.body.appendChild(tempInput);
-    
-    // For mobile devices, we need to try multiple approaches
     try {
-      // First try using clipboard API
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(email)
-          .then(() => {
-            showToastSuccess();
-          })
-          .catch(() => {
-            // If clipboard API fails, fall back to selection method
-            useSelectionMethod();
-          });
-      } else {
-        // If clipboard API is not available, use selection method
-        useSelectionMethod();
-      }
-    } catch (err) {
-      // Final fallback
-      console.error('Copy failed:', err);
-      showToastError();
-    }
-    
-    // Clean up the temp input
-    document.body.removeChild(tempInput);
-    
-    function useSelectionMethod() {
+      // Create a temporary input element
+      const tempInput = document.createElement('input');
+      tempInput.value = email;
+      document.body.appendChild(tempInput);
+      
+      // Select the text
+      tempInput.select();
+      tempInput.setSelectionRange(0, 99999);
+      
+      // Try the modern clipboard API first
       try {
-        // Select and copy using selection API (works on more browsers)
-        tempInput.select();
-        tempInput.setSelectionRange(0, 99999); // For mobile
+        await navigator.clipboard.writeText(email);
+        toastMessage = 'Email copied!';
+      } catch {
+        // Fallback to execCommand
         document.execCommand('copy');
-        showToastSuccess();
-      } catch (err) {
-        showToastError();
+        toastMessage = 'Email copied!';
       }
-    }
-    
-    function showToastSuccess() {
-      toastMessage = 'Email copied!';
+      
+      // Show the toast
       showToast = true;
-    }
-    
-    function showToastError() {
-      toastMessage = 'Tap to email: andreamoralescoto@gmail.com';
+      
+      // Clean up
+      document.body.removeChild(tempInput);
+    } catch (err) {
+      // If all else fails, show the email
+      toastMessage = 'Email: andreamoralescoto@gmail.com';
       showToast = true;
     }
   }
   
+  // Keep the showContactForm variable for backward compatibility
+  let showContactForm = false;
+  
   // Legacy function for backward compatibility - now copies email instead
   function toggleContactForm() {
-    // Just call our new function instead
     copyEmailToClipboard();
-    
-    // Toggle showContactForm for compatibility but don't actually show the form
-    showContactForm = false;
   }
 
   // Add fake cursor state with new properties
@@ -1112,7 +1087,7 @@
         </div>
 
         <div class="cta" in:fade={{ duration: 600, delay: 1200 }}>
-          <button class="button-secondary" on:click={toggleContactForm}>
+          <button class="button-secondary" on:click={copyEmailToClipboard}>
             <Mail size={18} class="icon" />
             <span>Email</span>
           </button>

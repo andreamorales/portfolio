@@ -34,25 +34,29 @@
 </script>
 
 {#if visible}
-  <button 
+  <div 
     class="toast"
-    on:click={() => visible = false}
+    transition:fade={{ duration: 200 }}
+    on:click={() => {
+      handleToastClick();
+      visible = false;
+    }}
     on:keydown={(e) => {
       if (e.key === 'Enter' || e.key === 'Space') {
+        handleToastClick();
         visible = false;
       }
     }}
-    type="button"
-    aria-label="Close notification"
+    role="alert"
   >
     {message}
-  </button>
+  </div>
 {/if}
 
 <style>
   .toast {
     position: fixed;
-    bottom: var(--spacing-xl);
+    top: var(--spacing-xl);
     left: 50%;
     transform: translateX(-50%);
     background-color: var(--text-color);
@@ -62,20 +66,8 @@
     font-size: var(--font-size-sm);
     font-family: var(--font-recursive);
     font-variation-settings: 'CASL' 0, 'wght' 400;
-    z-index: var(--z-100);
-    animation: slideUp 0.3s var(--easing-standard);
+    z-index: 9999;
     cursor: pointer;
-    border: none;
-  }
-  
-  @keyframes slideUp {
-    from {
-      transform: translate(-50%, 100%);
-      opacity: 0;
-    }
-    to {
-      transform: translate(-50%, 0);
-      opacity: 1;
-    }
+    pointer-events: auto;
   }
 </style> 
