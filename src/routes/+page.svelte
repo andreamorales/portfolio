@@ -1208,6 +1208,8 @@
     text-align: left;
     gap: var(--spacing-md);
     border-radius: 4px;
+    flex-wrap: nowrap;
+    min-width: 0; /* Add this to enable text truncation */
   }
 
   .portfolio-header:hover h2 {
@@ -1229,6 +1231,19 @@
     background-color: var(--bg-color);
     padding: var(--spacing-xxs) 0;
     border-radius: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 1;
+    min-width: 0; /* Enable text truncation */
+  }
+
+  .tags {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex-wrap: nowrap;
+    flex-shrink: 0; /* Prevent tags from shrinking */
   }
 
   .portfolio-item {
@@ -1323,22 +1338,19 @@
     }
 
     .portfolio-header {
-      flex-direction: row;
-      justify-content: flex-start;
-      align-items: center;
-      gap: var(--spacing-md);
+      padding-right: 0; /* Remove right padding on mobile */
+      gap: var(--spacing-sm); /* Reduce gap on mobile */
     }
 
     .portfolio-header h2 {
       font-size: 1rem;
       line-height: 1em;
       margin: 0;
+      min-width: 0; /* Enable text truncation */
     }
 
     .tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.25rem;
+      gap: 0.25rem; /* Smaller gap between tags on mobile */
     }
 
     .description {

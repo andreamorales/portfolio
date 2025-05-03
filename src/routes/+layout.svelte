@@ -16,6 +16,12 @@
 
 <svelte:head>
   <link rel="icon" href="/favicon.png" type="image/svg+xml">
+  <meta property="og:title" content="Andrea Morales | Product Design Leader">
+  <meta property="og:description" content="Produce Designer focused on creative and technical tools.">
+  <meta property="og:image" content="/images/og-preview.png">
+  <meta property="og:url" content="https://www.andreamoralescoto.com">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
 </svelte:head>
 
 <div class="app-container">
