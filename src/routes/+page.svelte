@@ -1351,46 +1351,44 @@
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      width: auto;
-      max-width: none;
+      width: 100%;
     }
 
+    /* Mobile-specific size adjustments */
     .company-logos :global(svg) {
-      height: 18px;
+      height: 16px;
     }
 
-    /* Maintain proportions in mobile */
     .company-logos :global(svg:first-child) {
-      height: 16.5px; /* ConsenSys: slightly smaller than mobile default */
+      height: 15px; /* ConsenSys */
     }
     
     .company-logos :global(svg:nth-child(2)) {
-      height: 19px; /* MongoDB: 5% bigger than mobile default */
+      height: 17px; /* MongoDB */
     }
 
     .company-logos :global(svg:nth-child(3)) {
-      height: 12px; /* Roblox: smaller than mobile default */
+      height: 12px; /* Roblox */
     }
 
     .company-logos :global(svg:last-child) {
-      height: 15px; /* Panto: slightly smaller for mobile */
+      height: 14px; /* Panto */
     }
 
     .cta {
+      width: 100%;
       flex-direction: row;
-      gap: 0.75rem;
+      gap: 0.5rem;
     }
 
     .button-secondary {
-      padding: 0.5rem 0.75rem;
+      flex: 1;
+      padding: 0.6rem 0.5rem;
       font-size: 0.875rem;
-      gap: 0.375rem;
+      justify-content: center;
+      gap: 0.25rem; /* Reduced gap between icon and text on mobile */
     }
 
-    .button-secondary :global(svg) {
-      width: 16px;
-      height: 16px;
-    }
   }
 
   @media (max-width: 548px) {
