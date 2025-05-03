@@ -75,7 +75,6 @@
   function getDebugBorderStyle(imageIndex: number): string {
     const lockOwnerId = imageLocks[imageIndex];
     if (!lockOwnerId || lockOwnerId === "human-user") {
-      // Clear any existing highlight
       const element = document.querySelector(`.collage-image-button:nth-child(${imageIndex + 1})`);
       if (element instanceof HTMLElement) {
         element.style.boxShadow = '';
@@ -87,7 +86,6 @@
     
     const cursor = cursors.find(c => c.id === lockOwnerId);
     if (!cursor) {
-      // Clear any existing highlight
       const element = document.querySelector(`.collage-image-button:nth-child(${imageIndex + 1})`);
       if (element instanceof HTMLElement) {
         element.style.boxShadow = '';
@@ -97,7 +95,6 @@
       return '';
     }
     
-    // Only show highlight if cursor is actively dragging this image
     if (cursor.isDragging && cursor.targetImage === imageIndex) {
       return `
         box-shadow: 0 0 0 4px ${cursor.color}, 0 0 0 6px rgba(255,255,255,0.8);
@@ -108,7 +105,6 @@
       `;
     }
     
-    // Clear highlight in all other cases
     const element = document.querySelector(`.collage-image-button:nth-child(${imageIndex + 1})`);
     if (element instanceof HTMLElement) {
       element.style.boxShadow = '';
@@ -449,37 +445,26 @@
   onMount(async () => {
     if (!browser) return;
     
-    console.log('ImageCollage mounting, loading images...');
-    console.log('Image dimensions available:', imageDimensions.length);
-    
     try {
         await preloadImages();
-      console.log('Images preloaded successfully');
-      
+        
       const images = getImages();
-      console.log(`Creating collage with ${images.length} images`);
       
-      if (images.length === 0) {
-        console.error('Error: No images available to create collage!');
-        return;
-      }
+      if (images.length === 0) return;
     
       collageImages = generateInitialPositions(images);
-      console.log(`Generated positions for ${collageImages.length} images`);
       
       // Enable images after a short delay
         setTimeout(() => {
           imagesReady = true;
-        console.log('Images ready set to true');
           
-        // Show images gradually
-        const delayTime = isDesktop ? 180 : 100;
+          // Show images gradually
+          const delayTime = isDesktop ? 180 : 100;
           collageImages.forEach((img, index) => {
             setTimeout(() => {
               visibleImages = [...visibleImages, index];
-            console.log(`Made image ${index} visible`);
-          }, 150 + index * delayTime);
-        });
+            }, 150 + index * delayTime);
+          });
       }, 200);
       
       // Add window resize listener to update device type
@@ -502,14 +487,13 @@
         if (wasDesktop !== isDesktop || 
             Math.abs(oldWidth - windowWidth) > 100 || 
             (Math.abs(oldHeight - windowHeight) > 100 && !isMobile)) {
-          console.log('Window size changed significantly, regenerating positions');
           collageImages = generateInitialPositions(images);
         }
       }, 250);
       window.addEventListener('resize', resizeListener);
       
       } catch (error) {
-        console.error('Error loading images:', error);
+        // Silently handle error
       }
   });
     
@@ -601,10 +585,7 @@
           {imageLocks}
           {visibleImages}
           onCursorsUpdate={(updatedCursors) => {
-            // Only log if cursors actually changed
-            if (JSON.stringify(cursors) !== JSON.stringify(updatedCursors)) {
-              cursors = updatedCursors;
-            }
+            cursors = updatedCursors;
           }}
         />
 
@@ -612,11 +593,9 @@
           {collageImages}
           {imageLocks}
           onCollageImagesUpdate={(images) => {
-            console.log('Images updated from drag');
             collageImages = images;
           }}
           onImageLocksUpdate={(locks) => {
-            console.log('Image locks updated:', locks);
             imageLocks = locks;
           }}
           bind:draggedImageIndex
@@ -651,10 +630,7 @@
         {imageLocks}
         {visibleImages}
         onCursorsUpdate={(updatedCursors) => {
-          // Only log if cursors actually changed
-          if (JSON.stringify(cursors) !== JSON.stringify(updatedCursors)) {
-            cursors = updatedCursors;
-          }
+          cursors = updatedCursors;
         }}
       />
 
@@ -662,11 +638,9 @@
         {collageImages}
         {imageLocks}
         onCollageImagesUpdate={(images) => {
-          console.log('Images updated from drag');
           collageImages = images;
         }}
         onImageLocksUpdate={(locks) => {
-          console.log('Image locks updated:', locks);
           imageLocks = locks;
         }}
         bind:draggedImageIndex
