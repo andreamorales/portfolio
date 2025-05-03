@@ -181,9 +181,9 @@
       // Desktop sizing
       if (!isMobile) {
         if (isOrchid) {
-          width = windowWidth * 0.25;
+          width = windowWidth * 0.20;
         } else if (isDahlia) {
-          width = windowWidth * 0.28;
+          width = windowWidth * 0.22;
         } else if (index === womanIndex) {
           width = windowWidth * 0.25;
         } else if (index === knightIndex) {
@@ -203,7 +203,7 @@
             windowWidth * 0.12 : // Landscape
             windowWidth * 0.10;  // Portrait
         }
-      } else {
+        } else {
         // Mobile sizing
         if (isOrchid || isDahlia) {
           width = windowWidth * 0.40;
@@ -217,7 +217,7 @@
           width = windowWidth * 0.35;
         } else if (index === rockIndex) {
           width = windowWidth * 0.20;
-        } else {
+          } else {
           width = aspectRatio >= 1 ? 
             windowWidth * 0.30 :
             windowWidth * 0.25;
@@ -238,16 +238,16 @@
         });
       }
         
-      return {
-        ...img,
+        return {
+          ...img,
         width,
         height,
         area: width * height,
         zIndex: 100,
         rotation: isMobile ? (Math.random() * 6 - 3) : 0,
         scale: 1
-      };
-    });
+        };
+      });
   
     // Sort by area (largest to smallest) for z-index layering
     const sortedBySize = [...sizedImages].sort((a, b) => b.area - a.area);
