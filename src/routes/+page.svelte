@@ -304,109 +304,11 @@
     } else if (viewportWidth < 768) {
       // Mobile layout logic (unchanged)
       scaleFactor = Math.max(0.4, viewportWidth / 1024); // Adjust scale for mobile
-      
-      // For mobile, create a layout that fills the playground space
-      const sizedImages = imagesToUse.map(img => ({
-        ...img,
-        width: img.width * scaleFactor,
-        height: img.height * scaleFactor,
-        area: img.width * img.height
-      }));
-
-      // Sort by area (descending) for z-index stacking
-      const sortedBySize = [...sizedImages].sort((a, b) => b.area - a.area);
-      
-      // Get container dimensions
-      const container = document.querySelector('.mobile-collage');
-      const containerWidth = container ? container.getBoundingClientRect().width : window.innerWidth;
-      const containerHeight = container ? container.getBoundingClientRect().height : window.innerHeight;
-      
-      // Define viewport margin for mobile
-      const mobileMargin = 3;
-      
-      // Create a layout that maximizes playground space usage while keeping images fully visible
-      return sortedBySize.map((img, i) => {
-        // Calculate the space needed for the image (accounting for rotation)
-        const maxRotation = 20; // Maximum rotation in degrees
-        const radians = Math.abs(maxRotation * Math.PI / 180);
-        const imageSpace = {
-          width: img.width * (Math.cos(radians) + Math.sin(radians)),
-          height: img.height * (Math.cos(radians) + Math.sin(radians))
-        };
-
-        // Calculate usable space (percentage) accounting for image dimensions
-        const imageWidthPercent = (imageSpace.width / containerWidth) * 100;
-        const imageHeightPercent = (imageSpace.height / containerHeight) * 100;
-        
-        // Calculate the available space for positioning
-        const usableWidth = 100 - imageWidthPercent;
-        const usableHeight = 100 - imageHeightPercent;
-        
-        // Use a grid-like layout with some randomness
-        const totalImages = sortedBySize.length;
-        const columns = 3; // Number of rough columns
-        const rows = Math.ceil(totalImages / columns);
-        
-        // Calculate base position with more spread
-        const col = i % columns;
-        const row = Math.floor(i / columns);
-        
-        // Calculate base positions within the usable space
-        const baseRight = (usableWidth * (col / (columns - 1)));
-        const baseBottom = (usableHeight * (row / (rows - 1)));
-        
-        // Add controlled randomness
-        const randomRight = (Math.random() * 15);
-        const randomBottom = (Math.random() * 15);
-        
-        // Check if this is one of our special images for custom positioning
-        const isOwl = img.alt === 'Owl' || (typeof img.alt === 'string' && img.alt.includes('owl'));
-        const isSnake = img.alt === 'Snake' || (typeof img.alt === 'string' && img.alt.includes('snake'));
-        
-        // Force special images to specific positions on mobile
-        if (isOwl) {
-          // Position owl lower in the container to ensure it's fully visible
-          return {
-            ...img,
-            right: 40, // Position from right (percentage)
-            bottom: 70, // INCREASED bottom value to position the owl lower on screen
-            rotation: Math.random() * 10 - 5, // Slight random rotation
-            zIndex: sortedBySize.length - i // Stack from back to front
-          };
-        }
-        
-        // Special positioning for snake
-        if (isSnake) {
-          // Position snake on the right side, ensuring it's fully visible
-          return {
-            ...img,
-            right: 70, // Position further right (percentage)
-            bottom: 50, // Position in the middle vertically
-            rotation: Math.random() * 8 - 4, // Slight random rotation
-            zIndex: sortedBySize.length - i // Stack from back to front
-          };
-        }
-        
-        // For all other images, use normal positioning
-        // Calculate final position ensuring images stay within bounds and respect margins
-        const mobileTopMargin = mobileMargin; // Standard margin for non-owl images
-        
-        const right = Math.min(usableWidth - mobileMargin, Math.max(mobileMargin, baseRight + randomRight));
-        const bottom = Math.min(usableHeight - mobileMargin, Math.max(mobileTopMargin + imageHeightPercent, baseBottom + randomBottom));
-        
-        // Add rotation
-        const rotation = (Math.random() * 40) - 20; // Random rotation between -20 and 20 degrees
-        
-        return {
-          ...img,
-          right,
-          bottom,
-          rotation,
-          zIndex: sortedBySize.length - i // Stack from back to front
-        };
-      });
+    } else {
+      // Desktop layout (between 768px and 1920px)
+      scaleFactor = Math.max(0.8, viewportWidth / 1440); // Scale based on a 1440px baseline
     }
-
+    
     // First, calculate area for each image and sort by size (largest to smallest)
     const sizedImages = imagesToUse.map(img => ({
       ...img,
