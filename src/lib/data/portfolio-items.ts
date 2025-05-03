@@ -107,56 +107,61 @@ const initialPortfolioItems = [
     quickNavThumbnail: "/images/portfolio/firehydrant/thumbnail.png",
     images: [
       { src: "/images/portfolio/firehydrant/hero.png", alt: "Design System Overview", caption: "Overview of the design system" },
-      { src: "/images/portfolio/firehydrant/before.png", alt: "Previous Design", caption: "Interface before the design system" },
-      { src: "/images/portfolio/firehydrant/system.png", alt: "System Architecture", caption: "Design system architecture" },
+      { src: "/images/portfolio/firehydrant/before.png", alt: "Previous Design", caption: "Interface before the design system changes" },
+      { src: "/images/portfolio/firehydrant/brief.png", alt: "Project Brief", caption: "Initial project brief" },
+      { src: "/images/portfolio/firehydrant/consultant.png", alt: "Consulting", caption: "Design system consulting" },
       { src: "/images/portfolio/firehydrant/cards.png", alt: "Component Cards", caption: "Component card designs" },
+      { src: "/images/portfolio/firehydrant/uxr.png", alt: "User Research", caption: "User research and testing" },
       { src: "/images/portfolio/firehydrant/planning.png", alt: "Planning Phase", caption: "Initial planning and strategy" },
       { src: "/images/portfolio/firehydrant/planning_2.png", alt: "Planning Details", caption: "Detailed planning process" },
-      { src: "/images/portfolio/firehydrant/uxr.png", alt: "User Research", caption: "User research and testing" },
-      { src: "/images/portfolio/firehydrant/results.png", alt: "Results", caption: "Project outcomes and metrics" },
       { src: "/images/portfolio/firehydrant/vision.png", alt: "Vision", caption: "System vision and goals" },
-      { src: "/images/portfolio/firehydrant/consultant.png", alt: "Consulting", caption: "Design system consulting" },
-      { src: "/images/portfolio/firehydrant/brief.png", alt: "Project Brief", caption: "Initial project brief" },
-      { src: "/images/portfolio/firehydrant/figma.png", alt: "Figma Setup", caption: "Figma component setup" }
+      { src: "/images/portfolio/firehydrant/figma.png", alt: "Figma Setup", caption: "Dev SaaS templates in Figma" },
+      { src: "/images/portfolio/firehydrant/results.png", alt: "Results", caption: "Project outcomes and metrics" },
+      { src: "/images/portfolio/firehydrant/system.png", alt: "System Architecture", caption: "Final design system architecture" }
     ],
     content: [
-      { type: "text", value: "The FireHydrant design system project addressed inconsistencies across their incident management platform." },
-      { type: "image", value: "/images/portfolio/firehydrant/hero.png", caption: "Overview of the design system" },
-      { type: "text", value: "[Describe the overall design system and its goals]" },
-      { type: "image", value: "/images/portfolio/firehydrant/before.png", caption: "Interface before the design system" },
-      { type: "text", value: "[Explain the inconsistencies and problems in the previous design]" },
-      { type: "image", value: "/images/portfolio/firehydrant/system.png", caption: "Design system architecture" },
-      { type: "text", value: "[Detail the system architecture and how it supports scalability]" },
+      { type: "text", value: "When I first came to FireHydrant as a Sr. Director of Design, a design system already existed. Unfortunately, it had been created with lots of CSS wrapping over OSS components, way too early into the product-market fit process.\n\nWe also had the issue that there were no guidelines for its usage, and no clear ownership of it on the eng side. This lead to poor performance of the system and of the design ICs.\n\nHow could we raise the bar of UX, while improving the design system, in a resource-efficient way?" },
+      { type: "image", value: "/images/portfolio/firehydrant/before.png", caption: "Interface before the design system changes" },
+      { type: "text", value: "At the beginning, we were just trying to stay afloat.\nDesign didn't have enough resources to quickly deliver designs for the features on the roadmap. My first task was to make sure we hired the right way, quickly, and that our designs were maintaining some sort of standard...\n\nWhile hiring, I made sure we started someone on work for guidelines..." },
+      { 
+        type: "image", 
+        value: "/images/portfolio/firehydrant/brief.png", 
+        caption: "Initial project brief",
+        layout: "side-by-side",
+        sideImage: {
+          value: "/images/portfolio/firehydrant/consultant.png",
+          caption: "Design system consulting"
+        }
+      },
+      { type: "text", value: "Still, we needed more cohesion. Even if I hired someone to make patterns, the process would take too long. In the mean time, I had to start finding a way to get all our partners to agree on a governance style for our design system..." },
       { type: "image", value: "/images/portfolio/firehydrant/cards.png", caption: "Component card designs" },
-      { type: "text", value: "[Describe the component card system and its benefits]" },
-      { type: "image", value: "/images/portfolio/firehydrant/planning.png", caption: "Initial planning and strategy" },
-      { type: "text", value: "[Explain the planning process and key decisions]" },
-      { type: "image", value: "/images/portfolio/firehydrant/planning_2.png", caption: "Detailed planning process" },
-      { type: "text", value: "[Detail specific planning steps and outcomes]" },
+      { type: "text", value: "I set out to listen to every partner. I gathered their requirements, attended FE Guild meetings, and listened to them. Consensus arose: ChakraUI, the OSS system, without embellishments, could probably do the trick." },
       { type: "image", value: "/images/portfolio/firehydrant/uxr.png", caption: "User research and testing" },
-      { type: "text", value: "[Share key research findings and how they influenced the system]" },
-      { type: "image", value: "/images/portfolio/firehydrant/results.png", caption: "Project outcomes and metrics" },
-      { type: "text", value: "[Detail specific metrics and success measures]" },
+      { type: "text", value: "Now I had to get the resources to make it happen...\nOkay, what is the actual plan to make that reversal to OSS happen? Since we had no FE Lead assigned to the project, I had to convince my CTO by speaking his language: memos and pro/con plans." },
+      { type: "image", value: "/images/portfolio/firehydrant/planning.png", caption: "Initial planning and strategy" },
+      { type: "text", value: "But it was hard to get resources without a visual guide. Even if in theory both the FE Guild, Design, the founders and the CTO agreed on the need to devolve to pure OSS, there was confusion around what that future could look like when it came down to the specifics.\n\nIn conjunction with my newly hired Staff and Sr Designer, we set out to build a tangible vision." },
+      { type: "image", value: "/images/portfolio/firehydrant/planning_2.png", caption: "Detailed planning process" },
+      { type: "text", value: "We started off with a really broad idea of the future\nI made sure my Sr Designer, who had the most experience with visual design, had at least a week to work on this with me..." },
       { type: "image", value: "/images/portfolio/firehydrant/vision.png", caption: "System vision and goals" },
-      { type: "text", value: "[Describe the vision and how it guided development]" },
-      { type: "image", value: "/images/portfolio/firehydrant/consultant.png", caption: "Design system consulting" },
-      { type: "text", value: "[Explain the consulting process and team collaboration]" },
-      { type: "image", value: "/images/portfolio/firehydrant/brief.png", caption: "Initial project brief" },
-      { type: "text", value: "[Share key points from the initial brief and how they evolved]" },
-      { type: "image", value: "/images/portfolio/firehydrant/figma.png", caption: "Figma component setup" },
-      { type: "text", value: "[Describe the Figma setup and component organization]" }
+      { type: "text", value: "From there, I took it on myself. Since all the designers were busy at work, and we needed a quick turnaround on the vision, I decided to work on this myself. I began creating what I called \"Dev SaaS templates\": a table template, an analytics template, a form template, a specific item template, and a settings template, plus a specific to FH dashboard template." },
+      { type: "image", value: "/images/portfolio/firehydrant/figma.png", caption: "Dev SaaS templates in Figma" },
+      { type: "text", value: "Our efforts influenced marketing heavily. As marketing began recruiting brand designers and FE engineers, they were onboarded unto our work and that quickly influenced the new landing page they were creating, which pushed our work further since everyone began to see the vision as integral to their own work." },
+      { type: "image", value: "/images/portfolio/firehydrant/results.png", caption: "Project outcomes and metrics" },
+      { type: "text", value: "Not only did we do a great job convincing all partners of the importance of this work, but we got approval for a Design System Eng, and we got 3 engineers internally assigned to work on the migration back to vanilla ChakraUI.\n\nBecause of that, we eliminated all P0 and P1 usability bugs in less than 2 weeks (after years of not working on them)." },
+      { type: "image", value: "/images/portfolio/firehydrant/system.png", caption: "Final design system architecture" },
+      { type: "text", value: "Work on the design system has affected our way of working with FE, got us to hiring a design systems engineer, and has already changed the color palette, reversed all components to vanilla ChakraUI, and reduced design and eng turnaround times by 30%." }
     ],
     year: "2022",
-    role: "Design Systems Architect",
+    role: "Design Director",
     link: "https://www.firehydrant.com",
     metrics: [
-      "40% reduction in dev time",
-      "85% component adoption rate",
-      "22% faster onboarding"
+      "Convinced exec team to hire a design systems engineer",
+      "Reduced design and eng turnaround times by 30%"
     ],
     team: [
-      { role: "Design Lead", name: "Bobby Tables", relationship: "supervisor" },
-      { role: "Frontend Engineer", name: "Sarah Chen", relationship: "collaborator" }
+      { role: "Principal Designer", name: "Kate Farrar", relationship: "direct report" },
+      { role: "Senior Designer", name: "Nick Tasato", relationship: "direct report" },
+      { role: "Engineering Manager", name: "Dylan Nielsen", relationship: "cross-functional partner" }
     ]
   },
   { 
@@ -194,16 +199,16 @@ const initialPortfolioItems = [
       { type: "image", value: "/images/portfolio/roblox/designsystems.png", caption: "Design system implementation" }
     ],
     year: "2021",
-    role: "Senior Product Designer",
+    role: "Principal Designer",
     link: "https://create.roblox.com/",
     metrics: [
-      "17% increase in creator retention",
-      "42% more time in analytics tools",
-      "4.8/5 average user satisfaction"
+      "10 new design system components",
+      "200% increase in API key usage"
     ],
     team: [
-      { role: "Product Manager", name: "Josh Anon", relationship: "supervisor" },
-      { role: "Senior Engineer", name: "Dan Sturman", relationship: "collaborator" }
+      { role: "Senior Designer", name: "Sony Verma", relationship: "teammate" },
+      { role: "Product Manager", name: "Eric Sun", relationship: "cross-functional partner" },
+      { role: "Engineering Manager", name: "Achint Verma", relationship: "cross-functional partner"}
     ]
   },
   { 
@@ -243,9 +248,8 @@ const initialPortfolioItems = [
     role: "Design Lead & Frontend Engineer",
     link: "https://www.trypanto.com",
     metrics: [
-      "68% reduction in handoff issues", 
-      "3.1x faster implementation time",
-      "86% component reuse rate" 
+      "One design partner", 
+      "400k raised"
     ],
     team: [
       { role: "Backend Engineer", name: "Kenan O'Neal", relationship: "co-founder" }
@@ -260,35 +264,37 @@ const initialPortfolioItems = [
     quickNavThumbnail: "/images/portfolio/laguila/thumbnail.png",
     images: [
       { src: "/images/portfolio/laguila/hero.png", alt: "Toy Collection", caption: "Complete toy collection" },
-      { src: "/images/portfolio/laguila/draft.png", alt: "Initial Drafts", caption: "Initial toy design drafts" },
-      { src: "/images/portfolio/laguila/sculpt.png", alt: "Sculpting Process", caption: "Toy sculpting process" },
-      { src: "/images/portfolio/laguila/pour.png", alt: "Mold Pouring", caption: "Mold pouring process" },
+      { src: "/images/portfolio/laguila/armadillos.png", alt: "Armadillos", caption: "The Armadillo toy series" },
+      { src: "/images/portfolio/laguila/draft.png", alt: "Initial Drafts", caption: "Initial toy design drafts from FIT class" },
+      { src: "/images/portfolio/laguila/sculpt.png", alt: "Sculpting Process", caption: "Self-taught toy sculpting process" },
+      { src: "/images/portfolio/laguila/pour.png", alt: "Mold Pouring", caption: "Self-taught mold pouring process" },
       { src: "/images/portfolio/laguila/stump.png", alt: "Stump Toy", caption: "The Stump toy design" },
       { src: "/images/portfolio/laguila/bigghost.png", alt: "Big Ghost", caption: "The Big Ghost toy" },
-      { src: "/images/portfolio/laguila/lilghost.png", alt: "Little Ghost", caption: "The Little Ghost toy" },
-      { src: "/images/portfolio/laguila/armadillos.png", alt: "Armadillos", caption: "The Armadillo toy series" }
+      { src: "/images/portfolio/laguila/lilghost.png", alt: "Little Ghost", caption: "The Little Ghost toy" }
     ],
     content: [
-      { type: "text", value: "La Güila Toys explores complex themes through playful design." },
-      { type: "image", value: "/images/portfolio/laguila/hero.png", caption: "Complete toy collection" },
-      { type: "text", value: "[Describe the overall toy collection and its themes]" },
-      { type: "image", value: "/images/portfolio/laguila/draft.png", caption: "Initial toy design drafts" },
-      { type: "text", value: "[Explain the design process and initial concepts]" },
-      { type: "image", value: "/images/portfolio/laguila/sculpt.png", caption: "Toy sculpting process" },
-      { type: "text", value: "[Detail the sculpting techniques and materials]" },
-      { type: "image", value: "/images/portfolio/laguila/pour.png", caption: "Mold pouring process" },
-      { type: "text", value: "[Describe the mold making and pouring process]" },
-      { type: "image", value: "/images/portfolio/laguila/stump.png", caption: "The Stump toy design" },
-      { type: "text", value: "[Explain the concept and design of the Stump toy]" },
-      { type: "image", value: "/images/portfolio/laguila/bigghost.png", caption: "The Big Ghost toy" },
-      { type: "text", value: "[Describe the Big Ghost toy and its meaning]" },
-      { type: "image", value: "/images/portfolio/laguila/lilghost.png", caption: "The Little Ghost toy" },
-      { type: "text", value: "[Explain the Little Ghost toy design]" },
+      { type: "text", value: "In 2023, in an effort to continue my exploration into designing playful interfaces and products, I became very interested in learning how to design resin toys." },
       { type: "image", value: "/images/portfolio/laguila/armadillos.png", caption: "The Armadillo toy series" },
-      { type: "text", value: "[Detail the Armadillo series concept and execution]" }
+      { type: "text", value: "I began by attending a toy design class at FIT, in Manhattan. I learned the basics of 3D drawn design focused on children toys." },
+      { type: "image", value: "/images/portfolio/laguila/draft.png", caption: "Initial toy design drafts from FIT class" },
+      { type: "text", value: "After that, I self-taught the basics of sculpting and resin pouring." },
+      { 
+        type: "image", 
+        value: "/images/portfolio/laguila/sculpt.png", 
+        caption: "Self-taught toy sculpting process",
+        layout: "side-by-side",
+        sideImage: {
+          value: "/images/portfolio/laguila/pour.png",
+          caption: "Self-taught mold pouring process"
+        }
+      },
+      { type: "text", value: "All of this resulted in 20+ toy designs, two of which have been featured in art galleries." },
+      { type: "image", value: "/images/portfolio/laguila/stump.png", caption: "The Stump toy design" },
+      { type: "image", value: "/images/portfolio/laguila/bigghost.png", caption: "The Big Ghost toy" },
+      { type: "image", value: "/images/portfolio/laguila/lilghost.png", caption: "The Little Ghost toy" }
     ],
     year: "2023-2025",
-    role: "Product Designer",
+    role: "Toy Designer",
     link: "https://www.instagram.com/laguila_toys",
     metrics: [
       "Featured in 2 art shows at Ghost Fox Toys Gallery.",
