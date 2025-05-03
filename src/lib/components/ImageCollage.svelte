@@ -174,39 +174,17 @@
       let width: number;
       let height: number;
 
-      // Check for orchid and dahlia specifically by filename
-      const isOrchid = img.src.includes('orchid.png');
-      const isDahlia = img.src.includes('dahlia.png');
+      // Check for orchid and dahlia by alt text
+      const isOrchid = img.alt === "Orchid";
+      const isDahlia = img.alt === "Dahlia";
 
-      // Force minimum sizes for orchid and dahlia
-      if (isOrchid) {
-        // Force orchid to be at least 400px wide on desktop
-        width = isMobile ? windowWidth * 0.40 : Math.max(400, windowWidth * 0.25);
-        console.warn('Orchid size:', { width, windowWidth });
-      } else if (isDahlia) {
-        // Force dahlia to be at least 450px wide on desktop
-        width = isMobile ? windowWidth * 0.40 : Math.max(450, windowWidth * 0.28);
-        console.warn('Dahlia size:', { width, windowWidth });
-      } else if (isMobile) {
-        // Mobile sizing for other images
-        if (index === womanIndex || index === knightIndex) {
-          width = windowWidth * 0.35;
-        } else if (index === beetleIndex) {
+      // Desktop sizing
+      if (!isMobile) {
+        if (isOrchid) {
           width = windowWidth * 0.25;
-        } else if (index === birdIndex) {
-          width = windowWidth * 0.25;
-        } else if (index === snakeIndex) {
-          width = windowWidth * 0.35;
-        } else if (index === rockIndex) {
-          width = windowWidth * 0.20;
-        } else {
-          width = aspectRatio >= 1 ? 
-            windowWidth * 0.30 :
-            windowWidth * 0.25;
-        }
-      } else {
-        // Desktop sizing for other images
-        if (index === womanIndex) {
+        } else if (isDahlia) {
+          width = windowWidth * 0.28;
+        } else if (index === womanIndex) {
           width = windowWidth * 0.25;
         } else if (index === knightIndex) {
           width = windowWidth * 0.19;
@@ -222,12 +200,43 @@
           width = windowWidth * 0.1;
         } else {
           width = aspectRatio >= 1 ? 
-            windowWidth * 0.12 :
-            windowWidth * 0.10;
+            windowWidth * 0.12 : // Landscape
+            windowWidth * 0.10;  // Portrait
+        }
+      } else {
+        // Mobile sizing
+        if (isOrchid || isDahlia) {
+          width = windowWidth * 0.40;
+        } else if (index === womanIndex || index === knightIndex) {
+          width = windowWidth * 0.35;
+        } else if (index === beetleIndex) {
+          width = windowWidth * 0.25;
+        } else if (index === birdIndex) {
+          width = windowWidth * 0.25;
+        } else if (index === snakeIndex) {
+          width = windowWidth * 0.35;
+        } else if (index === rockIndex) {
+          width = windowWidth * 0.20;
+        } else {
+          width = aspectRatio >= 1 ? 
+            windowWidth * 0.30 :
+            windowWidth * 0.25;
         }
       }
 
       height = width / aspectRatio;
+
+      // Add temporary debug for orchid and dahlia
+      if (isOrchid || isDahlia) {
+        console.warn(`${img.alt} dimensions:`, {
+          originalWidth: img.width,
+          originalHeight: img.height,
+          newWidth: width,
+          newHeight: height,
+          windowWidth,
+          isMobile
+        });
+      }
         
       return {
         ...img,
