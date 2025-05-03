@@ -403,7 +403,7 @@
     padding: 0 1.5rem;
   }
   
-  .view-toggle {
+  /* .view-toggle {
     display: flex;
     gap: 0;
     justify-content: center;
@@ -416,41 +416,7 @@
     width: 16px;
     height: 16px;
     margin-right: 4px;
-  }
-  
-  :global(.view-toggle .button-secondary) {
-    padding: var(--spacing-xs) var(--spacing-sm);
-    box-shadow: 4px 4px 0px 0px var(--grey-mid);
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-xs);
-    white-space: nowrap;
-    border-radius: 4px;
-  }
-  
-  :global(.view-toggle .button-secondary:first-child) {
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
-    border-right-width: 1px;
-  }
-  
-  :global(.view-toggle .button-secondary:last-child) {
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
-  }
-  
-  :global(.view-toggle .active-toggle) {
-    background-color: var(--black);
-    color: white;
-    border-color: var(--black);
-  }
-  
-  :global(.view-toggle .button-secondary:hover) {
-    /* Remove hover effects by explicitly setting the same properties */
-    background-color: inherit;
-    color: inherit;
-    transform: none;
-  }
+  } */
   
   video {
     width: 100%;
