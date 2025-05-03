@@ -16,7 +16,6 @@
   // Initialize on mount
   onMount(() => {
     if (!browser) return;
-    console.log(`DesktopCollage mounted with ${collageImages.length} images`);
   });
 </script>
 

@@ -1014,8 +1014,6 @@
       <ImageCollage 
         {imageDimensions}
         {largeScreenImages}
-        {fakeCursors}
-        onFakeCursorsUpdate={updateFakeCursors}
       >
         <svelte:fragment slot="drag-hint">
           <Pointer size={36} />

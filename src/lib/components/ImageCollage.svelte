@@ -49,27 +49,14 @@
 
   // Handler to update collageImages when children emit events
   function updateCollageImages(event: CustomEvent) {
-    // Only update if event comes from the active collage component
-    console.log('Got update event from collage component:', event.detail);
-    
-    // Check if event detail exists
-    if (!event.detail) {
-      console.error('Missing event detail in update event');
-        return;
-      }
+    if (!event.detail) return;
       
     const { name, collageImages: updatedImages } = event.detail;
     
-    if (!name || !updatedImages) {
-      console.error('Missing required data in collage update event:', event.detail);
-        return;
-      }
+    if (!name || !updatedImages) return;
       
     if ((isDesktop && name === 'desktop') || (!isDesktop && name === 'mobile')) {
-      console.log(`Updating collage images from ${name} component`, updatedImages.length);
       collageImages = updatedImages;
-      } else {
-      console.log(`Ignoring update from ${name} component (current mode: ${isDesktop ? 'desktop' : 'mobile'})`);
     }
   }
 
@@ -213,9 +200,9 @@
         } else {
         // Desktop sizing
         if (isOrchid) {
-          width = windowWidth * 0.18;
+          width = windowWidth * 0.25; // Increased from 0.18
         } else if (isDahlia) {
-          width = windowWidth * 0.23;
+          width = windowWidth * 0.28; // Increased from 0.23
         } else if (index === womanIndex) {
           width = windowWidth * 0.25;
         } else if (index === knightIndex) {
@@ -230,7 +217,7 @@
           width = windowWidth * 0.15;
         } else if (index === rockIndex) {
           width = windowWidth * 0.1;
-          } else {
+        } else {
           width = aspectRatio >= 1 ? 
             windowWidth * 0.12 : // Landscape
             windowWidth * 0.10;  // Portrait
@@ -602,12 +589,10 @@
           {imageLocks}
           {visibleImages}
           onCursorsUpdate={(updatedCursors) => {
-            console.log('Cursor update:', updatedCursors.map(c => ({
-              name: c.name,
-              isDragging: c.isDragging,
-              targetImage: c.targetImage
-            })));
-            cursors = updatedCursors;
+            // Only log if cursors actually changed
+            if (JSON.stringify(cursors) !== JSON.stringify(updatedCursors)) {
+              cursors = updatedCursors;
+            }
           }}
         />
 
@@ -654,12 +639,10 @@
         {imageLocks}
         {visibleImages}
         onCursorsUpdate={(updatedCursors) => {
-          console.log('Cursor update:', updatedCursors.map(c => ({
-            name: c.name,
-            isDragging: c.isDragging,
-            targetImage: c.targetImage
-          })));
-          cursors = updatedCursors;
+          // Only log if cursors actually changed
+          if (JSON.stringify(cursors) !== JSON.stringify(updatedCursors)) {
+            cursors = updatedCursors;
+          }
         }}
       />
 
