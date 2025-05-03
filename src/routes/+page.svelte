@@ -1347,6 +1347,14 @@
       letter-spacing: 0.22px;
     }
 
+    .company-logos {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      width: auto;
+      max-width: none;
+    }
+
     .company-logos :global(svg) {
       height: 18px;
     }
@@ -1361,15 +1369,11 @@
     }
 
     .company-logos :global(svg:nth-child(3)) {
-      height: 15px; /* Roblox: smaller than mobile default */
+      height: 12px; /* Roblox: smaller than mobile default */
     }
 
-    .company-logos {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 1rem;
-      width: 100%;
-      max-width: 200px;
+    .company-logos :global(svg:last-child) {
+      height: 15px; /* Panto: slightly smaller for mobile */
     }
 
     .cta {
@@ -1378,10 +1382,15 @@
     }
 
     .button-secondary {
+      padding: 0.5rem 0.75rem;
       font-size: 0.875rem;
-      padding: 0.6rem 1rem;
+      gap: 0.375rem;
     }
 
+    .button-secondary :global(svg) {
+      width: 16px;
+      height: 16px;
+    }
   }
 
   @media (max-width: 548px) {
