@@ -1,5 +1,4 @@
 import { mongodbProject } from './mongodb';
-import { duckyProject } from './ducky';
 import { firehydrantProject } from './firehydrant';
 import { laguilaProject } from './laguila';
 import { pantoProject } from './panto';
@@ -8,7 +7,6 @@ import { torchProject } from './torch';
 
 export const portfolioProjects = [
   mongodbProject,
-  duckyProject,
   firehydrantProject,
   laguilaProject,
   pantoProject,
@@ -16,4 +14,4 @@ export const portfolioProjects = [
   torchProject
 ];
 
-export { mongodbProject, duckyProject, firehydrantProject }; 
+export { mongodbProject, firehydrantProject }; 

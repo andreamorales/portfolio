@@ -99,33 +99,6 @@ const initialPortfolioItems = [
     ]
   },
   { 
-    title: 'Ducky: Full Product', 
-    tags: ['UX/UI', 'FRONTEND'],
-    expanded: false,
-    description: "Ducky is a micromentoring platform for product designers.",
-    videoUrl: "/videos/ducky-product-demo.mp4",
-    quickNavThumbnail: "/images/portfolio/ducky/thumbnail.png",
-    images: [
-      { src: "/images/portfolio/ducky/hero.png", alt: "Ducky Dashboard", caption: "Main dashboard interface" }
-    ],
-    content: [
-      { type: "text", value: "Ducky was designed to solve common project management pain points by combining the visual clarity of kanban with the structured approach of traditional PM tools." },
-      { type: "image", value: "/images/portfolio/ducky/hero.png", caption: "Main dashboard interface" },
-      { type: "text", value: "[Describe the dashboard design and its key features]" }
-    ],
-    year: "2024",
-    role: "Lead Designer & Frontend Dev",
-    link: "https://www.tryducky.com",
-    metrics: [
-      "25% increase in sales",
-      "2% decrease in UX problems",
-      "Another metric"
-    ],
-    team: [
-      { role: "Backend Engineer", name: "Kenan O'Neal", relationship: "co-founder" }
-    ]
-  },
-  { 
     title: 'FireHydrant: Design System', 
     tags: ['UX/UI'],
     expanded: false,
