@@ -10,6 +10,11 @@ interface ContentItem {
   type: string;
   value: string;
   caption?: string;
+  layout?: 'single' | 'side-by-side';
+  sideImage?: {
+    value: string;
+    caption?: string;
+  };
 }
 
 interface TeamMember {
@@ -43,17 +48,43 @@ const initialPortfolioItems: PortfolioItem[] = [
     videoUrl: "/videos/mongodb-realm-demo.mp4",
     quickNavThumbnail: "/images/portfolio/mongodb/thumbnail.png",
     images: [
-      { src: "/images/portfolio/mongodb/schema.png", alt: "Realm Schema Designer", caption: "Main interface showing relationship mapping" },
-      { src: "/images/portfolio/mongodb/hero.png", alt: "Schema details", caption: "Field type configuration with validation settings" }
+      { src: "/images/portfolio/mongodb/hero.png", alt: "Schema Designer Interface", caption: "The redesigned schema designer interface" },
+      { src: "/images/portfolio/mongodb/before.png", alt: "Previous Interface", caption: "The previous interface before redesign" },
+      { src: "/images/portfolio/mongodb/before2.png", alt: "Legacy Interface", caption: "Another view of the legacy interface" },
+      { src: "/images/portfolio/mongodb/schema.png", alt: "Schema Visualization", caption: "New schema visualization system" },
+      { src: "/images/portfolio/mongodb/workshop.png", alt: "Design Workshop", caption: "Collaborative design workshop with the team" },
+      { src: "/images/portfolio/mongodb/uxr.png", alt: "User Research", caption: "User research findings and insights" },
+      { src: "/images/portfolio/mongodb/results.png", alt: "Results Dashboard", caption: "Project results and metrics" },
+      { src: "/images/portfolio/mongodb/handoff.png", alt: "Design Handoff", caption: "Design to development handoff process" },
+      { src: "/images/portfolio/mongodb/figma.png", alt: "Figma Components", caption: "Component library in Figma" }
     ],
     content: [
-      { type: "text", 
-        value: "The MongoDB Realm Schema project involved redesigning the database schema interface to make it more intuitive for developers. I focused on streamlining the workflow for creating data models and relationships." },
-      { type: "image", 
-        value: "/images/portfolio/mongodb/schema.png", 
-        caption: "Early wireframe explorations of the interface" },
-      { type: "text", 
-        value: "A key challenge was balancing technical functionality with visual clarity. The final design introduced a visual relationship map that dynamically updates as schemas evolve." }
+      { type: "text", value: "The MongoDB Realm Schema project involved redesigning the database schema interface to make it more intuitive for developers." },
+      { type: "image", value: "/images/portfolio/mongodb/hero.png", caption: "The redesigned schema designer interface" },
+      { type: "text", value: "[Add description of the redesigned interface and its key features]" },
+      { 
+        type: "image", 
+        value: "/images/portfolio/mongodb/before.png", 
+        caption: "The previous interface before redesign",
+        layout: "side-by-side",
+        sideImage: {
+          value: "/images/portfolio/mongodb/before2.png",
+          caption: "Another view of the legacy interface"
+        }
+      },
+      { type: "text", value: "[Compare and contrast the two legacy views and their limitations]" },
+      { type: "image", value: "/images/portfolio/mongodb/schema.png", caption: "New schema visualization system" },
+      { type: "text", value: "[Detail the new visualization system and how it improves understanding]" },
+      { type: "image", value: "/images/portfolio/mongodb/workshop.png", caption: "Collaborative design workshop with the team" },
+      { type: "text", value: "[Describe the workshop process and key insights gathered]" },
+      { type: "image", value: "/images/portfolio/mongodb/uxr.png", caption: "User research findings and insights" },
+      { type: "text", value: "[Summarize the key research findings and how they informed the design]" },
+      { type: "image", value: "/images/portfolio/mongodb/results.png", caption: "Project results and metrics" },
+      { type: "text", value: "[Share specific metrics and outcomes from the project]" },
+      { type: "image", value: "/images/portfolio/mongodb/handoff.png", caption: "Design to development handoff process" },
+      { type: "text", value: "[Explain the handoff process and how it ensured quality implementation]" },
+      { type: "image", value: "/images/portfolio/mongodb/figma.png", caption: "Component library in Figma" },
+      { type: "text", value: "[Describe the component system and how it supports the design]" }
     ],
     year: "2020",
     role: "Lead Designer",
@@ -79,12 +110,12 @@ const initialPortfolioItems: PortfolioItem[] = [
     videoUrl: "/videos/ducky-product-demo.mp4",
     quickNavThumbnail: "/images/portfolio/ducky/thumbnail.png",
     images: [
-      { src: "/images/portfolio/ducky/hero.png", alt: "Ducky Dashboard", caption: "Team dashboard showing active projects" }
+      { src: "/images/portfolio/ducky/hero.png", alt: "Ducky Dashboard", caption: "Main dashboard interface" }
     ],
     content: [
       { type: "text", value: "Ducky was designed to solve common project management pain points by combining the visual clarity of kanban with the structured approach of traditional PM tools." },
-      { type: "image", value: "/images/portfolio/ducky/hero.png", caption: "User journey map highlighting key touchpoints" },
-      { type: "text", value: "I led both design and frontend development, implementing the UI with React and handling real-time updates via WebSockets. The design system was built to accommodate future scaling with consistent components." }
+      { type: "image", value: "/images/portfolio/ducky/hero.png", caption: "Main dashboard interface" },
+      { type: "text", value: "[Describe the dashboard design and its key features]" }
     ],
     year: "2024",
     role: "Lead Designer & Frontend Dev",
@@ -106,12 +137,45 @@ const initialPortfolioItems: PortfolioItem[] = [
     videoUrl: "/videos/firehydrant-design-system.mp4",
     quickNavThumbnail: "/images/portfolio/firehydrant/thumbnail.png",
     images: [
-      { src: "/images/portfolio/firehydrant/hero.png", alt: "Component Library", caption: "Core component library overview" }
+      { src: "/images/portfolio/firehydrant/hero.png", alt: "Design System Overview", caption: "Overview of the design system" },
+      { src: "/images/portfolio/firehydrant/before.png", alt: "Previous Design", caption: "Interface before the design system" },
+      { src: "/images/portfolio/firehydrant/system.png", alt: "System Architecture", caption: "Design system architecture" },
+      { src: "/images/portfolio/firehydrant/cards.png", alt: "Component Cards", caption: "Component card designs" },
+      { src: "/images/portfolio/firehydrant/planning.png", alt: "Planning Phase", caption: "Initial planning and strategy" },
+      { src: "/images/portfolio/firehydrant/planning_2.png", alt: "Planning Details", caption: "Detailed planning process" },
+      { src: "/images/portfolio/firehydrant/uxr.png", alt: "User Research", caption: "User research and testing" },
+      { src: "/images/portfolio/firehydrant/results.png", alt: "Results", caption: "Project outcomes and metrics" },
+      { src: "/images/portfolio/firehydrant/vision.png", alt: "Vision", caption: "System vision and goals" },
+      { src: "/images/portfolio/firehydrant/consultant.png", alt: "Consulting", caption: "Design system consulting" },
+      { src: "/images/portfolio/firehydrant/brief.png", alt: "Project Brief", caption: "Initial project brief" },
+      { src: "/images/portfolio/firehydrant/figma.png", alt: "Figma Setup", caption: "Figma component setup" }
     ],
     content: [
-      { type: "text", value: "The FireHydrant design system project addressed inconsistencies across their incident management platform by establishing a unified component library and design guidelines." },
-      { type: "image", value: "/images/portfolio/firehydrant/hero.png", caption: "Before and after comparison showing UI improvements" },
-      { type: "text", value: "The system included comprehensive documentation, Figma component libraries, and coded components that reduced development time by 40% for new features." }
+      { type: "text", value: "The FireHydrant design system project addressed inconsistencies across their incident management platform." },
+      { type: "image", value: "/images/portfolio/firehydrant/hero.png", caption: "Overview of the design system" },
+      { type: "text", value: "[Describe the overall design system and its goals]" },
+      { type: "image", value: "/images/portfolio/firehydrant/before.png", caption: "Interface before the design system" },
+      { type: "text", value: "[Explain the inconsistencies and problems in the previous design]" },
+      { type: "image", value: "/images/portfolio/firehydrant/system.png", caption: "Design system architecture" },
+      { type: "text", value: "[Detail the system architecture and how it supports scalability]" },
+      { type: "image", value: "/images/portfolio/firehydrant/cards.png", caption: "Component card designs" },
+      { type: "text", value: "[Describe the component card system and its benefits]" },
+      { type: "image", value: "/images/portfolio/firehydrant/planning.png", caption: "Initial planning and strategy" },
+      { type: "text", value: "[Explain the planning process and key decisions]" },
+      { type: "image", value: "/images/portfolio/firehydrant/planning_2.png", caption: "Detailed planning process" },
+      { type: "text", value: "[Detail specific planning steps and outcomes]" },
+      { type: "image", value: "/images/portfolio/firehydrant/uxr.png", caption: "User research and testing" },
+      { type: "text", value: "[Share key research findings and how they influenced the system]" },
+      { type: "image", value: "/images/portfolio/firehydrant/results.png", caption: "Project outcomes and metrics" },
+      { type: "text", value: "[Detail specific metrics and success measures]" },
+      { type: "image", value: "/images/portfolio/firehydrant/vision.png", caption: "System vision and goals" },
+      { type: "text", value: "[Describe the vision and how it guided development]" },
+      { type: "image", value: "/images/portfolio/firehydrant/consultant.png", caption: "Design system consulting" },
+      { type: "text", value: "[Explain the consulting process and team collaboration]" },
+      { type: "image", value: "/images/portfolio/firehydrant/brief.png", caption: "Initial project brief" },
+      { type: "text", value: "[Share key points from the initial brief and how they evolved]" },
+      { type: "image", value: "/images/portfolio/firehydrant/figma.png", caption: "Figma component setup" },
+      { type: "text", value: "[Describe the Figma setup and component organization]" }
     ],
     year: "2022",
     role: "Design Systems Architect",
@@ -134,12 +198,36 @@ const initialPortfolioItems: PortfolioItem[] = [
     videoUrl: "/videos/roblox-creator-hub.mp4",
     quickNavThumbnail: "/images/portfolio/roblox/thumbnail.png",
     images: [
-      { src: "/images/portfolio/roblox/hero.png", alt: "Analytics Dashboard", caption: "Game performance analytics" }
+      { src: "/images/portfolio/roblox/hero.png", alt: "Creator Hub Interface", caption: "The new Creator Hub interface" },
+      { src: "/images/portfolio/roblox/before.png", alt: "Previous Interface", caption: "Previous Creator Hub interface" },
+      { src: "/images/portfolio/roblox/before2.png", alt: "Legacy Interface", caption: "Legacy interface design" },
+      { src: "/images/portfolio/roblox/scopes.png", alt: "API Scopes", caption: "API scope management interface" },
+      { src: "/images/portfolio/roblox/scopesfinal.png", alt: "Final Scopes", caption: "Final API scope design" },
+      { src: "/images/portfolio/roblox/oauth.png", alt: "OAuth Flow", caption: "OAuth authentication flow" },
+      { src: "/images/portfolio/roblox/designsystems.png", alt: "Design Systems", caption: "Design system implementation" },
+      { src: "/images/portfolio/roblox/uxr.png", alt: "User Research", caption: "User research findings" },
+      { src: "/images/portfolio/roblox/figma.png", alt: "Figma Components", caption: "Figma component library" }
     ],
     content: [
-      { type: "text", value: "The Roblox Creator Hub redesign focused on giving developers deeper insights into their games and better tools to engage with their communities." },
-      { type: "image", value: "/images/portfolio/roblox/hero.png", caption: "User testing session analyzing key painpoints" },
-      { type: "text", value: "Through extensive user research with Roblox developers, we identified key pain points and opportunities. The new design centralizes the most-used features while providing powerful new tools for monetization and community management." }
+      { type: "text", value: "The Roblox Creator Hub redesign focused on making API keys more accessible to developers." },
+      { type: "image", value: "/images/portfolio/roblox/hero.png", caption: "The new Creator Hub interface" },
+      { type: "text", value: "[Describe the new interface and its improvements]" },
+      { type: "image", value: "/images/portfolio/roblox/before.png", caption: "Previous Creator Hub interface" },
+      { type: "text", value: "[Explain the problems with the previous interface]" },
+      { type: "image", value: "/images/portfolio/roblox/before2.png", caption: "Legacy interface design" },
+      { type: "text", value: "[Detail specific issues addressed in the redesign]" },
+      { type: "image", value: "/images/portfolio/roblox/scopes.png", caption: "API scope management interface" },
+      { type: "text", value: "[Explain the scope management system and its benefits]" },
+      { type: "image", value: "/images/portfolio/roblox/scopesfinal.png", caption: "Final API scope design" },
+      { type: "text", value: "[Describe the final scope design and improvements]" },
+      { type: "image", value: "/images/portfolio/roblox/oauth.png", caption: "OAuth authentication flow" },
+      { type: "text", value: "[Detail the OAuth implementation and user experience]" },
+      { type: "image", value: "/images/portfolio/roblox/designsystems.png", caption: "Design system implementation" },
+      { type: "text", value: "[Explain how the design system was implemented]" },
+      { type: "image", value: "/images/portfolio/roblox/uxr.png", caption: "User research findings" },
+      { type: "text", value: "[Share key research findings and their impact]" },
+      { type: "image", value: "/images/portfolio/roblox/figma.png", caption: "Figma component library" },
+      { type: "text", value: "[Describe the component library and its organization]" }
     ],
     year: "2021",
     role: "Senior Product Designer",
@@ -162,12 +250,30 @@ const initialPortfolioItems: PortfolioItem[] = [
     videoUrl: "/videos/panto-demo.mp4",
     quickNavThumbnail: "/images/portfolio/panto/thumbnail.png",
     images: [
-      { src: "/images/portfolio/panto/hero.png", alt: "Design Interface", caption: "Main collaborative design interface" }
+      { src: "/images/portfolio/panto/hero.png", alt: "Panto Interface", caption: "Main Panto interface" },
+      { src: "/images/portfolio/panto/charts.png", alt: "Data Analysis", caption: "Data analysis view" },
+      { src: "/images/portfolio/panto/analysis.png", alt: "Model Training", caption: "Model training interface" },
+      { src: "/images/portfolio/panto/form.png", alt: "Results View", caption: "Results visualization" },
+      { src: "/images/portfolio/panto/menu.png", alt: "Settings", caption: "Settings configuration" },
+      { src: "/images/portfolio/panto/table.png", alt: "User Profile", caption: "User profile page" },
+      { src: "/images/portfolio/panto/charts_light.png", alt: "Dashboard", caption: "Analytics dashboard" }
     ],
     content: [
-      { type: "text", value: "Panto was built to solve the designer-developer handoff problem by creating a collaborative environment where designs automatically generate usable code components." },
-      { type: "image", value: "/images/portfolio/panto/hero.png", caption: "System architecture diagram" },
-      { type: "text", value: "I was responsible for the full product lifecycle, from initial concept through design, development and launch. The platform uses a component-based approach that maintains design fidelity while producing clean, maintainable code." }
+      { type: "text", value: "Panto helps AI companies evaluate and improve their training data." },
+      { type: "image", value: "/images/portfolio/panto/hero.png", caption: "Main Panto interface" },
+      { type: "text", value: "[Describe the main interface and its key features]" },
+      { type: "image", value: "/images/portfolio/panto/charts.png", caption: "Data analysis view" },
+      { type: "text", value: "[Explain the data analysis capabilities]" },
+      { type: "image", value: "/images/portfolio/panto/analysis.png", caption: "Model training interface" },
+      { type: "text", value: "[Detail the model training process and interface]" },
+      { type: "image", value: "/images/portfolio/panto/form.png", caption: "Results visualization" },
+      { type: "text", value: "[Describe the results visualization system]" },
+      { type: "image", value: "/images/portfolio/panto/menu.png", caption: "Settings configuration" },
+      { type: "text", value: "[Explain the settings system and customization options]" },
+      { type: "image", value: "/images/portfolio/panto/table.png", caption: "Data table view" },
+      { type: "text", value: "[Describe the data organization and management]" },
+      { type: "image", value: "/images/portfolio/panto/charts_light.png", caption: "Analytics dashboard" },
+      { type: "text", value: "[Detail the analytics capabilities and insights]" }
     ],
     year: "2024-2025",
     role: "Design Lead & Frontend Engineer",
@@ -189,12 +295,33 @@ const initialPortfolioItems: PortfolioItem[] = [
     videoUrl: "/videos/laguila-product-showcase.mp4",
     quickNavThumbnail: "/images/portfolio/laguila/thumbnail.png",
     images: [
-      { src: "/images/portfolio/laguila/hero.png", alt: "Toy Collection", caption: "Complete product line overview" }
+      { src: "/images/portfolio/laguila/hero.png", alt: "Toy Collection", caption: "Complete toy collection" },
+      { src: "/images/portfolio/laguila/draft.png", alt: "Initial Drafts", caption: "Initial toy design drafts" },
+      { src: "/images/portfolio/laguila/sculpt.png", alt: "Sculpting Process", caption: "Toy sculpting process" },
+      { src: "/images/portfolio/laguila/pour.png", alt: "Mold Pouring", caption: "Mold pouring process" },
+      { src: "/images/portfolio/laguila/stump.png", alt: "Stump Toy", caption: "The Stump toy design" },
+      { src: "/images/portfolio/laguila/bigghost.png", alt: "Big Ghost", caption: "The Big Ghost toy" },
+      { src: "/images/portfolio/laguila/lilghost.png", alt: "Little Ghost", caption: "The Little Ghost toy" },
+      { src: "/images/portfolio/laguila/armadillos.png", alt: "Armadillos", caption: "The Armadillo toy series" }
     ],
     content: [
-      { type: "text", value: "La Güila Toys focuses on eco-friendly materials and designs that teach environmental concepts in an engaging way. Each toy is made from sustainable materials and designed to spark curiosity about the natural world." },
-      { type: "image", value: "/images/portfolio/laguila/hero.png", caption: "Initial sketches and prototypes" },
-      { type: "text", value: "The design process involved extensive research into sustainable materials, child development principles, and creating engaging ways to introduce complex ecological concepts through play." }
+      { type: "text", value: "La Güila Toys explores complex themes through playful design." },
+      { type: "image", value: "/images/portfolio/laguila/hero.png", caption: "Complete toy collection" },
+      { type: "text", value: "[Describe the overall toy collection and its themes]" },
+      { type: "image", value: "/images/portfolio/laguila/draft.png", caption: "Initial toy design drafts" },
+      { type: "text", value: "[Explain the design process and initial concepts]" },
+      { type: "image", value: "/images/portfolio/laguila/sculpt.png", caption: "Toy sculpting process" },
+      { type: "text", value: "[Detail the sculpting techniques and materials]" },
+      { type: "image", value: "/images/portfolio/laguila/pour.png", caption: "Mold pouring process" },
+      { type: "text", value: "[Describe the mold making and pouring process]" },
+      { type: "image", value: "/images/portfolio/laguila/stump.png", caption: "The Stump toy design" },
+      { type: "text", value: "[Explain the concept and design of the Stump toy]" },
+      { type: "image", value: "/images/portfolio/laguila/bigghost.png", caption: "The Big Ghost toy" },
+      { type: "text", value: "[Describe the Big Ghost toy and its meaning]" },
+      { type: "image", value: "/images/portfolio/laguila/lilghost.png", caption: "The Little Ghost toy" },
+      { type: "text", value: "[Explain the Little Ghost toy design]" },
+      { type: "image", value: "/images/portfolio/laguila/armadillos.png", caption: "The Armadillo toy series" },
+      { type: "text", value: "[Detail the Armadillo series concept and execution]" }
     ],
     year: "2023-2025",
     role: "Product Designer",

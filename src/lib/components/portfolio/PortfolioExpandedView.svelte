@@ -6,7 +6,7 @@
   export let description: string;
   export let videoUrl: string;
   export let images: Array<{src: string, alt: string, caption?: string}> = [];
-  export let content: Array<{type: string, value: string, caption?: string}> = [];
+  export let content: Array<{type: string, value: string, caption?: string, layout?: string, sideImage?: {value: string, caption?: string}}> = [];
   // Remove heroImage prop since we'll use images array
   export let year: string = '';
   export let role: string = '';
@@ -231,21 +231,62 @@
                 <p>{block.value}</p>
               </div>
             {:else if block.type === 'image'}
-              <div class="image-block">
-                <button 
-                  class="image-button"
-                  on:click={() => openZoomImage({src: block.value, alt: block.caption || 'Project image', caption: block.caption})}
-                  on:keydown={(e) => e.key === 'Enter' && openZoomImage({src: block.value, alt: block.caption || 'Project image', caption: block.caption})}
-                  aria-label="Zoom image"
-                >
-                  <img 
-                    src={block.value} 
-                    alt={block.caption || 'Project image'} 
-                    class="clickable-image"
-                  />
-                </button>
-                {#if block.caption}
-                  <p class="image-caption">{block.caption}</p>
+              <div class="image-block {block.layout === 'side-by-side' ? 'side-by-side' : ''}">
+                {#if block.layout === 'side-by-side'}
+                  <div class="image-pair">
+                    <div class="image-container">
+                      <button 
+                        class="image-button"
+                        on:click={() => openZoomImage({src: block.value, alt: block.caption || 'Project image', caption: block.caption})}
+                        on:keydown={(e) => e.key === 'Enter' && openZoomImage({src: block.value, alt: block.caption || 'Project image', caption: block.caption})}
+                        aria-label="Zoom image"
+                      >
+                        <img 
+                          src={block.value} 
+                          alt={block.caption || 'Project image'} 
+                          class="clickable-image"
+                        />
+                      </button>
+                      {#if block.caption}
+                        <p class="image-caption">{block.caption}</p>
+                      {/if}
+                    </div>
+                    {#if block.sideImage}
+                      <div class="image-container">
+                        <button 
+                          class="image-button"
+                          on:click={() => openZoomImage({src: block.sideImage.value, alt: block.sideImage.caption || 'Project image', caption: block.sideImage.caption})}
+                          on:keydown={(e) => e.key === 'Enter' && openZoomImage({src: block.sideImage.value, alt: block.sideImage.caption || 'Project image', caption: block.sideImage.caption})}
+                          aria-label="Zoom image"
+                        >
+                          <img 
+                            src={block.sideImage.value} 
+                            alt={block.sideImage.caption || 'Project image'} 
+                            class="clickable-image"
+                          />
+                        </button>
+                        {#if block.sideImage.caption}
+                          <p class="image-caption">{block.sideImage.caption}</p>
+                        {/if}
+                      </div>
+                    {/if}
+                  </div>
+                {:else}
+                  <button 
+                    class="image-button"
+                    on:click={() => openZoomImage({src: block.value, alt: block.caption || 'Project image', caption: block.caption})}
+                    on:keydown={(e) => e.key === 'Enter' && openZoomImage({src: block.value, alt: block.caption || 'Project image', caption: block.caption})}
+                    aria-label="Zoom image"
+                  >
+                    <img 
+                      src={block.value} 
+                      alt={block.caption || 'Project image'} 
+                      class="clickable-image"
+                    />
+                  </button>
+                  {#if block.caption}
+                    <p class="image-caption">{block.caption}</p>
+                  {/if}
                 {/if}
               </div>
             {/if}
@@ -1004,5 +1045,29 @@
   .relationship {
     color: var(--muted-text);
     font-style: italic;
+  }
+
+  .image-pair {
+    display: flex;
+    gap: var(--spacing-md);
+    width: 100%;
+    justify-content: center;
+  }
+
+  .side-by-side .image-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .side-by-side .image-button {
+    width: 100%;
+  }
+
+  .side-by-side .image-button img {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
   }
 </style> 
