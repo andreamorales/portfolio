@@ -656,6 +656,41 @@
       top: -30px;
       right: 0;
     }
+
+    .hero-description-container {
+      padding: var(--spacing-md) 0;
+    }
+
+    .hero-description {
+      font-size: var(--font-size-base);
+    }
+
+    /* Remove highlight effect completely on mobile */
+    .highlight-line {
+      all: unset !important;
+      display: inline !important;
+      color: var(--text-color) !important;
+      font-family: var(--font-family) !important;
+      line-height: 1.4 !important;
+      background: none !important;
+      -webkit-mask-image: none !important;
+      mask-image: none !important;
+      padding: 0 !important;
+    }
+
+    .highlight-line:nth-child(3n + 1),
+    .highlight-line:nth-child(3n + 2),
+    .highlight-line:nth-child(3n + 3) {
+      all: unset !important;
+      display: inline !important;
+      color: var(--text-color) !important;
+      font-family: var(--font-family) !important;
+      line-height: 1.4 !important;
+      background: none !important;
+      -webkit-mask-image: none !important;
+      mask-image: none !important;
+      padding: 0 !important;
+    }
   }
   
   /* Add direct styling to the video container */
@@ -975,16 +1010,6 @@
       radial-gradient(3px at 8% 64%, transparent 94%, #000 100%),
       radial-gradient(7px at 2% 66%, transparent 91%, #000 100%),
       linear-gradient(#000 0 0);
-  }
-
-  @media (max-width: 768px) {
-    .hero-description-container {
-      padding: var(--spacing-md) 0;
-    }
-
-    .hero-description {
-      font-size: var(--font-size-base);
-    }
   }
 
   .team-list {
