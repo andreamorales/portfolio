@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  
   // Props
   export const title: string = '';
   export let description: string;
@@ -13,6 +11,7 @@
   export let link: string = '';
   export let metrics: Array<string> = [];
   export let team: Array<{role: string, name: string, relationship: string}> = [];
+  export let immersive = false;
   
   // Initialize the featuredImage variable
   let featuredImage: string = '';
@@ -30,9 +29,6 @@
   let activeView: 'video' | 'content' = 'content';
   let videoElement: HTMLVideoElement;
   let isVideoLoaded = false;
-  // Add state for image zoom
-  let zoomedImage: {src: string, alt: string, caption?: string} | null = null;
-  
   // Function to switch between views
   function toggleView(view: 'video' | 'content') {
     // If switching to video, play it
@@ -57,23 +53,6 @@
     isVideoLoaded = true;
   }
   
-  // Function to open zoomed image
-  function openZoomImage(img: {src: string, alt: string, caption?: string}) {
-    zoomedImage = img;
-  }
-  
-  // Function to close zoomed image
-  function closeZoomImage() {
-    zoomedImage = null;
-  }
-  
-  // Handle escape key to close image
-  function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Escape' && zoomedImage) {
-      closeZoomImage();
-    }
-  }
-  
   // Add a function to handle image error
   function handleImageError(event: Event) {
     const imgElement = event.target as HTMLImageElement;
@@ -89,24 +68,9 @@
     return image?.caption;
   }
   
-  onMount(() => {
-    // Add keydown listener
-    window.addEventListener('keydown', handleKeydown);
-    
-    // Clean up video on component unmount
-    return () => {
-      if (videoElement) {
-        videoElement.pause();
-        videoElement.removeAttribute('src');
-        videoElement.load();
-      }
-      // Remove keydown listener
-      window.removeEventListener('keydown', handleKeydown);
-    };
-  });
 </script>
 
-<div class="portfolio-expanded-view flex-column">
+<div class="portfolio-expanded-view flex-column" class:immersive>
   <!-- Project details grid -->
   <div class="project-details-grid">
     <div class="details-row">
@@ -176,19 +140,14 @@
   <!-- Featured hero image -->
   {#if featuredImage}
     <div class="hero-image-container">
-      <button 
-        class="image-button"
-        on:click={() => openZoomImage({src: featuredImage, alt: title})}
-        on:keydown={(e) => e.key === 'Enter' && openZoomImage({src: featuredImage, alt: title})}
-        aria-label="Zoom hero image"
-      >
+      <div class="image-frame">
         <img 
           src={featuredImage} 
           alt={title} 
-          class="hero-image clickable-image" 
+          class="hero-image"
           on:error={handleImageError}
         />
-      </button>
+      </div>
     </div>
   {/if}
 
@@ -241,55 +200,38 @@
                 {#if block.layout === 'side-by-side'}
                   <div class="image-pair">
                     <div class="image-container">
-                      <button 
-                        class="image-button"
-                        on:click={() => openZoomImage({src: block.value, alt: getImageCaption(block.value) || 'Project image', caption: getImageCaption(block.value)})}
-                        on:keydown={(e) => e.key === 'Enter' && openZoomImage({src: block.value, alt: getImageCaption(block.value) || 'Project image', caption: getImageCaption(block.value)})}
-                        aria-label="Zoom image"
-                      >
+                      <div class="image-frame">
                         <img 
                           src={block.value} 
                           alt={getImageCaption(block.value) || 'Project image'} 
-                          class="clickable-image"
                         />
-                      </button>
+                      </div>
                       {#if getImageCaption(block.value)}
                         <p class="image-caption">{getImageCaption(block.value)}</p>
                       {/if}
                     </div>
                     {#if block.sideImage}
+                      {@const sideImage = block.sideImage}
                       <div class="image-container">
-                        <button 
-                          class="image-button"
-                          on:click={() => openZoomImage({src: block.sideImage.value, alt: getImageCaption(block.sideImage.value) || 'Project image', caption: getImageCaption(block.sideImage.value)})}
-                          on:keydown={(e) => e.key === 'Enter' && openZoomImage({src: block.sideImage.value, alt: getImageCaption(block.sideImage.value) || 'Project image', caption: getImageCaption(block.sideImage.value)})}
-                          aria-label="Zoom image"
-                        >
+                        <div class="image-frame">
                           <img 
-                            src={block.sideImage.value} 
-                            alt={getImageCaption(block.sideImage.value) || 'Project image'} 
-                            class="clickable-image"
+                            src={sideImage.value} 
+                            alt={getImageCaption(sideImage.value) || 'Project image'} 
                           />
-                        </button>
-                        {#if getImageCaption(block.sideImage.value)}
-                          <p class="image-caption">{getImageCaption(block.sideImage.value)}</p>
+                        </div>
+                        {#if getImageCaption(sideImage.value)}
+                          <p class="image-caption">{getImageCaption(sideImage.value)}</p>
                         {/if}
                       </div>
                     {/if}
                   </div>
                 {:else}
-                  <button 
-                    class="image-button"
-                    on:click={() => openZoomImage({src: block.value, alt: getImageCaption(block.value) || 'Project image', caption: getImageCaption(block.value)})}
-                    on:keydown={(e) => e.key === 'Enter' && openZoomImage({src: block.value, alt: getImageCaption(block.value) || 'Project image', caption: getImageCaption(block.value)})}
-                    aria-label="Zoom image"
-                  >
+                  <div class="image-frame">
                     <img 
                       src={block.value} 
                       alt={getImageCaption(block.value) || 'Project image'} 
-                      class="clickable-image"
                     />
-                  </button>
+                  </div>
                   {#if getImageCaption(block.value)}
                     <p class="image-caption">{getImageCaption(block.value)}</p>
                   {/if}
@@ -318,18 +260,12 @@
             <div class="image-gallery">
               {#each unusedImages as image}
                 <div class="gallery-item">
-                  <button 
-                    class="image-button"
-                    on:click={() => openZoomImage(image)}
-                    on:keydown={(e) => e.key === 'Enter' && openZoomImage(image)}
-                    aria-label="Zoom image"
-                  >
+                  <div class="image-frame">
                     <img 
                       src={image.src} 
                       alt={image.alt}
-                      class="clickable-image"
                     />
-                  </button>
+                  </div>
                   {#if image.caption}
                     <p class="image-caption">{image.caption}</p>
                   {/if}
@@ -343,34 +279,9 @@
   </div>
 </div>
 
-<!-- Image zoom overlay -->
-{#if zoomedImage}
-  <div class="image-zoom-overlay-wrapper">
-    <!-- Use button as the overlay background since it needs click events -->
-    <button 
-      class="image-zoom-overlay-background"
-      on:click={closeZoomImage}
-      aria-label="Close image preview"
-    ></button>
-    <div 
-      class="image-zoom-container"
-      role="dialog" 
-      aria-modal="true"
-      aria-label="Image zoom view"
-      tabindex="-1"
-    >
-      <button class="close-button" on:click={closeZoomImage}>×</button>
-      <img src={zoomedImage.src} alt={zoomedImage.alt} />
-      {#if zoomedImage.caption}
-        <p class="image-caption">{zoomedImage.caption}</p>
-      {/if}
-    </div>
-  </div>
-{/if}
-
 <style>
   .portfolio-expanded-view {
-    width: 800px;
+    width: 100%;
     max-width: 800px;
     height: 100%;
     position: relative;
@@ -384,7 +295,7 @@
   }
   
   .content-container {
-    width: 800px;
+    width: 100%;
     max-width: 800px;
     display: flex;
     flex-direction: column;
@@ -392,8 +303,8 @@
   
   /* Force video and content views to have identical width */
   .video-container, .content-view {
-    width: 800px;
-    min-width: 800px;
+    width: 100%;
+    min-width: 100%;
     box-sizing: border-box;
     flex: 1;
     flex-grow: 1;
@@ -402,8 +313,8 @@
   /* If inside .portfolio-content, apply more specific style */
   :global(.portfolio-content) .video-container,
   :global(.portfolio-content) .content-view {
-    width: 800px;
-    min-width: 800px;
+    width: 100%;
+    min-width: 100%;
   }
   
   .video-container {
@@ -413,6 +324,17 @@
     border-radius: var(--border-radius);
     overflow: hidden;
     padding: 0 1.5rem;
+  }
+
+  .portfolio-expanded-view.immersive,
+  .portfolio-expanded-view.immersive .content-container,
+  .portfolio-expanded-view.immersive .video-container,
+  .portfolio-expanded-view.immersive .content-view,
+  :global(.portfolio-content.immersive) .portfolio-expanded-view,
+  :global(.portfolio-content.immersive) .content-container,
+  :global(.portfolio-content.immersive) .video-container,
+  :global(.portfolio-content.immersive) .content-view {
+    max-width: 100%;
   }
   
   /* .view-toggle {
@@ -501,19 +423,14 @@
     align-items: center;
   }
   
-  .image-block .image-button {
+  .image-block .image-frame {
     width: 100%;
     max-width: 800px;
-    background: none;
-    border: none;
-    padding: 0;
-    margin: 0;
-    cursor: pointer;
     display: block;
     position: relative;
   }
   
-  .image-block .image-button img {
+  .image-block .image-frame img {
     width: 100%;
     max-height: 70vh;
     object-fit: contain;
@@ -552,86 +469,6 @@
     object-fit: cover;
   }
   
-  /* Clickable image styling */
-  .clickable-image {
-    cursor: pointer;
-    transition: transform 0.2s ease;
-  }
-  
-  .clickable-image:hover {
-    transform: scale(1.02);
-  }
-  
-  /* Image zoom overlay styling */
-  .image-zoom-overlay-wrapper {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--spacing-xl);
-    box-sizing: border-box;
-  }
-  
-  .image-zoom-overlay-background {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.8);
-    border: none;
-    padding: 0;
-    margin: 0;
-    cursor: pointer;
-  }
-  
-  .image-zoom-container {
-    position: relative;
-    max-width: 90%;
-    max-height: 90%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    z-index: 1001;
-  }
-  
-  .image-zoom-container img {
-    max-width: 100%;
-    max-height: 80vh;
-    object-fit: contain;
-    border-radius: var(--border-radius-sm);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  }
-  
-  .image-zoom-container .image-caption {
-    color: white;
-    max-width: 700px;
-    text-align: center;
-    margin-top: var(--spacing-md);
-  }
-  
-  .close-button {
-    position: absolute;
-    top: -40px;
-    right: -40px;
-    width: 40px;
-    height: 40px;
-    background-color: transparent;
-    border: none;
-    color: white;
-    font-size: 32px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1001;
-  }
-  
   @media (max-width: 768px) {
     .text-block {
       font-size: 15px;
@@ -652,11 +489,6 @@
       max-width: 100%;
     }
     
-    .close-button {
-      top: -30px;
-      right: 0;
-    }
-
     .hero-description-container {
       padding: var(--spacing-md) 0;
     }
@@ -772,23 +604,13 @@
     }
   }
   
-  .image-button {
-    background: none;
-    border: none;
-    padding: 0;
-    margin: 0;
-    cursor: pointer;
+  .image-frame {
     display: block;
     width: 100%;
     overflow: visible;
   }
-  
-  .image-button:focus {
-    outline: 2px solid var(--cursor-indigo);
-    outline-offset: 2px;
-  }
-  
-  .image-block .image-button {
+
+  .image-block .image-frame {
     border-radius: var(--border-radius-sm);
   }
   
@@ -805,13 +627,8 @@
     overflow: hidden;
   }
   
-  .hero-image-container .image-button {
+  .hero-image-container .image-frame {
     width: 100%;
-    border: none;
-    padding: 0;
-    margin: 0;
-    background: none;
-    cursor: pointer;
     display: block;
   }
   
@@ -1089,14 +906,14 @@
     align-items: center;
   }
 
-  .side-by-side .image-button {
+  .side-by-side .image-frame {
     width: 100%;
     height: 100%;
     display: flex;
     align-items: center;
   }
 
-  .side-by-side .image-button img {
+  .side-by-side .image-frame img {
     width: 100%;
     height: 100%;
     object-fit: cover;

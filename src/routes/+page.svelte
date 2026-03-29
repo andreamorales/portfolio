@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { fade } from 'svelte/transition';
   import Label from '$lib/components/ui/input/Label.svelte';
   import colibri from '$lib/images/colibri.png';
@@ -24,13 +24,10 @@
   import Roblox from '$lib/images/Roblox.svg?raw';
 
   // Import Lucide pointer icon
-  import { Pointer, Mail, Linkedin } from 'lucide-svelte';
+  import { Pointer, Mail, Linkedin, Github, ArrowDown } from 'lucide-svelte';
 
   // Import the new PortfolioExpandedView component
   import PortfolioExpandedView from '$lib/components/portfolio/PortfolioExpandedView.svelte';
-
-  // Import QuickNav component
-  import QuickNav from '$lib/components/portfolio/QuickNav.svelte';
 
   // Import the new Toast component
   import Toast from '$lib/components/ui/Toast.svelte';
@@ -66,6 +63,136 @@
     title: item.title,
     thumbnail: item.quickNavThumbnail
   }));
+
+  let immersiveMode = false;
+  let isActivatingImmersive = false;
+  let allowScrollToOpen = true;
+  let canCloseImmersiveAtTop = false;
+  let navMenuOpen = false;
+  let activePortfolioIndex = 0;
+  let nextPortfolioIndex: number | null = null;
+  let showNextPieceBanner = false;
+  let overviewPortfolioListElement: HTMLElement | null = null;
+
+  async function enterImmersiveMode(targetIndex: number = 0) {
+    if (immersiveMode || isActivatingImmersive) {
+      if (immersiveMode) {
+        scrollToImmersiveSection(targetIndex);
+      }
+      return;
+    }
+
+    isActivatingImmersive = true;
+    allowScrollToOpen = false;
+    canCloseImmersiveAtTop = false;
+    immersiveMode = true;
+    navMenuOpen = false;
+    activePortfolioIndex = targetIndex;
+
+    await tick();
+    scrollToImmersiveSection(targetIndex);
+    isActivatingImmersive = false;
+  }
+
+  async function closeImmersiveMode(scrollTarget: 'top' | 'list' = 'list') {
+    if (!immersiveMode || typeof window === 'undefined') return;
+
+    immersiveMode = false;
+    navMenuOpen = false;
+    showNextPieceBanner = false;
+    nextPortfolioIndex = null;
+    canCloseImmersiveAtTop = false;
+
+    if (scrollTarget === 'top') {
+      allowScrollToOpen = true;
+    } else {
+      allowScrollToOpen = false;
+    }
+
+    await tick();
+
+    if (scrollTarget === 'top') {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+      return;
+    }
+
+    overviewPortfolioListElement?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
+  }
+
+  function scrollToImmersiveSection(index: number) {
+    const element = document.getElementById(`immersive-piece-${index}`);
+    if (element) {
+      element.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  }
+
+  function openPortfolioPiece(index: number) {
+    if (!immersiveMode) {
+      enterImmersiveMode(index);
+      return;
+    }
+
+    scrollToImmersiveSection(index);
+  }
+
+  function splitTitle(title: string) {
+    const parts = title.split(':');
+    if (parts.length > 1) {
+      return {
+        main: parts[0].trim(),
+        descriptor: parts.slice(1).join(':').trim()
+      };
+    }
+
+    return {
+      main: title,
+      descriptor: ''
+    };
+  }
+
+  function updateImmersiveProgress() {
+    if (!immersiveMode || typeof window === 'undefined') return;
+
+    const viewportMidpoint = window.innerHeight * 0.45;
+    let closestIndex = 0;
+    let closestDistance = Number.POSITIVE_INFINITY;
+
+    sortedPortfolioItems.forEach((_, index) => {
+      const section = document.getElementById(`immersive-piece-${index}`);
+      if (!section) return;
+
+      const rect = section.getBoundingClientRect();
+      const sectionMidpoint = rect.top + rect.height / 2;
+      const distance = Math.abs(sectionMidpoint - viewportMidpoint);
+
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestIndex = index;
+      }
+    });
+
+    activePortfolioIndex = closestIndex;
+    nextPortfolioIndex = closestIndex < sortedPortfolioItems.length - 1 ? closestIndex + 1 : null;
+
+    const activeSection = document.getElementById(`immersive-piece-${closestIndex}`);
+    if (!activeSection || nextPortfolioIndex === null) {
+      showNextPieceBanner = false;
+      return;
+    }
+
+    const rect = activeSection.getBoundingClientRect();
+    const progress = (window.innerHeight - rect.top) / rect.height;
+    showNextPieceBanner = progress > 0.72 && rect.bottom > window.innerHeight * 0.4;
+  }
 
   // Function to toggle expansion of portfolio items
   function toggleExpand(index: number, fromQuickNav: boolean = false) {
@@ -599,8 +726,52 @@
       draggedImageIndex = null;
     };
 
+    const handleScroll = () => {
+      if (isActivatingImmersive) {
+        return;
+      }
+
+      if (!immersiveMode && window.scrollY <= 16) {
+        allowScrollToOpen = true;
+      }
+
+      if (immersiveMode && !canCloseImmersiveAtTop && window.scrollY > 48) {
+        canCloseImmersiveAtTop = true;
+      }
+
+      if (immersiveMode && canCloseImmersiveAtTop && window.scrollY <= 16) {
+        closeImmersiveMode('top');
+        return;
+      }
+
+      if (!immersiveMode && allowScrollToOpen && window.scrollY > 72) {
+        enterImmersiveMode(0);
+        return;
+      }
+
+      updateImmersiveProgress();
+    };
+
+    const handleDocumentClick = (event: MouseEvent) => {
+      if (!immersiveMode || isActivatingImmersive) return;
+
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+
+      if (target.closest('.overview-portfolio-list')) return;
+
+      const clickedInsidePortfolio = target.closest('.piece-shell');
+      const clickedInsideControls = target.closest('.immersive-topbar, .next-piece-banner');
+
+      if (!clickedInsidePortfolio && !clickedInsideControls) {
+        closeImmersiveMode('list');
+      }
+    };
+
     // Add resize and touch event handlers
     window.addEventListener('resize', handleResize);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    document.addEventListener('click', handleDocumentClick);
     window.addEventListener('touchmove', handleTouchMove, { passive: false });
     window.addEventListener('touchend', handleTouchEnd);
     
@@ -636,6 +807,8 @@
     // Cleanup event listeners and timer
     return () => {
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleScroll);
+      document.removeEventListener('click', handleDocumentClick);
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleTouchEnd);
       clearTimeout(resizeTimer);
@@ -945,6 +1118,10 @@
     window.open('https://www.linkedin.com/in/andreasmorales/', '_blank');
   }
 
+  function openGithubProfile() {
+    window.open('https://github.com/andymorales', '_blank');
+  }
+
   function openResume() {
     window.open('https://docs.google.com/document/d/1ijo9LmsUPb_SLiEYfes1xed5VwAhEuv2r6gR_GqMz1s/edit?usp=sharing', '_blank');
   }
@@ -959,58 +1136,109 @@
 <Toast message={toastMessage} bind:visible={showToast} />
 
 <div class="landing-page">
-  <main class="container flex-column-left">
+  {#if immersiveMode}
+    <div class="immersive-topbar" in:fade={{ duration: 250 }}>
+      <button
+        class="immersive-brand"
+        on:click={() => navMenuOpen = !navMenuOpen}
+        aria-expanded={navMenuOpen}
+        aria-controls="portfolio-menu"
+        aria-label="Toggle portfolio navigation"
+      >
+        <span class="brand-button">
+          Andy Morales
+        </span>
+        <span class="bird-menu-button">
+          <img src={colibri} alt="" class="topbar-colibri-image">
+        </span>
+      </button>
+
+      {#if navMenuOpen}
+        <div id="portfolio-menu" class="immersive-nav-menu" transition:fade={{ duration: 150 }}>
+          {#each sortedPortfolioItems as item, index (item.title)}
+            {@const titleParts = splitTitle(item.title)}
+            <button
+              class="immersive-nav-item {activePortfolioIndex === index ? 'active' : ''}"
+              on:click={() => {
+                navMenuOpen = false;
+                openPortfolioPiece(index);
+              }}
+            >
+              <div class="immersive-preview-title">
+                <div class="immersive-title-main">{titleParts.main}</div>
+                {#if titleParts.descriptor}
+                  <div class="immersive-title-descriptor">{titleParts.descriptor}</div>
+                {/if}
+              </div>
+              <div class="immersive-preview-thumbnail">
+                {#if item.quickNavThumbnail}
+                  <img src={item.quickNavThumbnail} alt={item.title} />
+                {/if}
+              </div>
+            </button>
+          {/each}
+        </div>
+      {/if}
+    </div>
+  {/if}
+
+  <main class="container flex-column-left" class:immersive-mode={immersiveMode}>
     {#if mounted}
-      <div class="header flex-column-left gap-large">
-        <div class="title-container" in:fade={{ duration: 600, delay: 200 }}>
-          <h1 class="title">Andy<br>Morales</h1>
-          <div class="colibri-container">
-            <img src={colibri} alt="Colibri" class="colibri-image">
+      {#if !immersiveMode}
+        <div class="header flex-column-left gap-large">
+          <div class="title-container" in:fade={{ duration: 600, delay: 200 }}>
+            <h1 class="title">Andy<br>Morales</h1>
+            <div class="colibri-container">
+              <img src={colibri} alt="Colibri" class="colibri-image">
+            </div>
+          </div>
+          <div class="flex-column-left gap-small" in:fade={{ duration: 600, delay: 400 }}>
+            <div class="description">
+              I lead the design of creative and technical products.
+            </div>
+            <div class="company-logos">
+              <span in:fade={{ duration: 400, delay: 600 }}>
+                {@html Consensys}
+              </span>
+              <span in:fade={{ duration: 400, delay: 750 }}>
+                {@html MongoDB}
+              </span>
+              <span in:fade={{ duration: 400, delay: 900 }}>
+                {@html Roblox}
+              </span>
+              <span in:fade={{ duration: 400, delay: 1050 }}>
+                {@html panto}
+              </span>
+            </div>
+          </div>
+  
+          <div class="cta" in:fade={{ duration: 600, delay: 1200 }}>
+            <button class="button-secondary" on:click={copyEmailToClipboard}>
+              <Mail size={18} class="icon" />
+              <span>Email</span>
+            </button>
+            <button class="button-secondary" on:click={openLinkedInProfile}>
+              <Linkedin size={18} class="icon" />
+              <span>LinkedIn</span>
+            </button>
+            <button class="button-secondary" on:click={openResume}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+              <span>CV</span>
+            </button>
+            <button class="button-secondary" on:click={openGithubProfile}>
+              <Github size={18} class="icon" />
+              <span>GitHub</span>
+            </button>
           </div>
         </div>
-        <div class="flex-column-left gap-small" in:fade={{ duration: 600, delay: 400 }}>
-          <div class="description">
-            I lead the design of creative and technical products.
-          </div>
-          <div class="company-logos">
-            <span in:fade={{ duration: 400, delay: 600 }}>
-              {@html Consensys}
-            </span>
-            <span in:fade={{ duration: 400, delay: 750 }}>
-              {@html MongoDB}
-            </span>
-            <span in:fade={{ duration: 400, delay: 900 }}>
-              {@html Roblox}
-            </span>
-            <span in:fade={{ duration: 400, delay: 1050 }}>
-              {@html panto}
-            </span>
-          </div>
-        </div>
+      {/if}
 
-        <div class="cta" in:fade={{ duration: 600, delay: 1200 }}>
-          <button class="button-secondary" on:click={copyEmailToClipboard}>
-            <Mail size={18} class="icon" />
-            <span>Email</span>
-          </button>
-          <button class="button-secondary" on:click={openLinkedInProfile}>
-            <Linkedin size={18} class="icon" />
-            <span>LinkedIn</span>
-          </button>
-          <button class="button-secondary" on:click={openResume}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-              <polyline points="10 9 9 9 8 9"></polyline>
-            </svg>
-            <span>Resume</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Replace the desktop and mobile collage sections with our new component -->
       <ImageCollage 
         {imageDimensions}
         {largeScreenImages}
@@ -1020,34 +1248,50 @@
         </svelte:fragment>
       </ImageCollage>
 
-      <div class="portfolio-list" in:fade={{ duration: 600, delay: 1400 }}>
-        {#each sortedPortfolioItems as item, index (item.title)}
-          {#if mounted}
+      {#if !immersiveMode}
+        <div
+          class="portfolio-list overview-portfolio-list"
+          bind:this={overviewPortfolioListElement}
+          in:fade={{ duration: 600, delay: 1400 }}
+        >
+          {#each sortedPortfolioItems as item, index (item.title)}
             <div class="portfolio-item" in:fade={{ duration: 300, delay: 1400 + (index * 150) }}>
-              <button 
-                class="portfolio-header flex-row gap-medium" 
-                on:click={() => toggleExpand(index)} 
-                on:keydown={(e) => e.key === 'Enter' && toggleExpand(index)}
-                aria-expanded={item.expanded}
-                aria-controls={`portfolio-content-${index}`}
+              <button
+                class="portfolio-header flex-row gap-medium"
+                on:click|stopPropagation={() => openPortfolioPiece(index)}
+                on:keydown={(e) => e.key === 'Enter' && openPortfolioPiece(index)}
               >
                 <h2>{item.title}</h2>
                 <div class="tags flex-row gap-small">
                   {#each item.tags as tag}
-                    <Label 
-                      text={tag} 
-                      variant="semisolid" 
-                      color="default" 
-                    />
+                    <Label text={tag} variant="semisolid" color="default" />
                   {/each}
                 </div>
               </button>
-              {#if item.expanded}
-                <div 
-                  id={`portfolio-content-${index}`} 
-                  class="portfolio-content"
-                  transition:fade={{ duration: 300 }}
-                >
+            </div>
+          {/each}
+        </div>
+      {:else}
+        <div class="immersive-portfolio-list" in:fade={{ duration: 250 }}>
+          {#each sortedPortfolioItems as item, index (item.title)}
+            <section
+              id={`immersive-piece-${index}`}
+              class="immersive-piece"
+              aria-labelledby={`immersive-piece-title-${index}`}
+            >
+              <div class="piece-shell">
+                <div class="piece-header">
+                  <div class="piece-header-row">
+                    <h2 id={`immersive-piece-title-${index}`} class="piece-title">{item.title}</h2>
+                    <div class="tags flex-row gap-small">
+                      {#each item.tags as tag}
+                        <Label text={tag} variant="semisolid" color="default" />
+                      {/each}
+                    </div>
+                  </div>
+                </div>
+
+                <div id={`portfolio-content-${index}`} class="portfolio-content immersive">
                   <PortfolioExpandedView
                     title={item.title}
                     description={item.description}
@@ -1059,15 +1303,14 @@
                     link={item.link}
                     metrics={item.metrics}
                     team={item.team}
-                    heroImage={item.title === 'La Güila Toys: Full Product' ? 
-                      '/images/portfolio/laguila/hero.png' : `/images/portfolio/${item.title.toLowerCase().replace(/[^a-z0-9]+/g, '')}/hero.png`}
+                    immersive={true}
                   />
                 </div>
-              {/if}
-            </div>
-          {/if}
-        {/each}
-      </div>
+              </div>
+            </section>
+          {/each}
+        </div>
+      {/if}
     {/if}
   </main>
 </div>
@@ -1077,12 +1320,17 @@
   <!-- Empty block, doesn't render anything -->
 {/if}
 
-<!-- Add QuickNav component at the end of the template -->
-<QuickNav 
-  items={allNavigationItems} 
-  hasExpandedItem={expandedItems.length > 0} 
-  onExpandItem={toggleExpand}
-/>
+{#if immersiveMode && showNextPieceBanner && nextPortfolioIndex !== null}
+  {@const upcomingIndex = nextPortfolioIndex}
+  <button
+    class="next-piece-banner"
+    on:click={() => scrollToImmersiveSection(upcomingIndex)}
+    in:fade={{ duration: 150 }}
+  >
+    <span>next piece: {sortedPortfolioItems[upcomingIndex].title}</span>
+    <ArrowDown size={16} />
+  </button>
+{/if}
 
 <style>
   .landing-page {
@@ -1090,6 +1338,9 @@
     background-color: var(--bg-color);
     color: var(--text-color);
     padding: 4.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .container {
@@ -1099,6 +1350,165 @@
     position: relative;
     z-index: 2;
     gap: var(--spacing-xxl);
+  }
+
+  .container.immersive-mode {
+    gap: 0;
+  }
+
+  .immersive-topbar {
+    position: sticky;
+    top: 1.5rem;
+    z-index: 12;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    width: fit-content;
+    margin-bottom: 1.5rem;
+  }
+
+  .immersive-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 40px;
+    padding: 0.75rem 1rem;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    border: 2px solid var(--text-color);
+    border-radius: 4px;
+    box-shadow: 4px 4px 0px 0px var(--grey-mid);
+    font-family: var(--font-recursive);
+    font-variation-settings: 'CASL' 0, 'wght' 600;
+  }
+
+  .brand-button,
+  .bird-menu-button,
+  .immersive-nav-item,
+  .next-piece-banner {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .brand-button {
+    font-family: var(--font-refract);
+    font-size: 1.35rem;
+    font-weight: 400;
+    line-height: 0.9;
+    letter-spacing: -0.02em;
+    font-feature-settings: 'dlig' on, 'ss01' on;
+    color: var(--text-color);
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .topbar-colibri-image {
+    width: 44px;
+    height: auto;
+    display: block;
+  }
+
+  .bird-menu-button {
+    cursor: pointer;
+    transform: translateY(-0.05rem);
+  }
+
+  .immersive-nav-menu {
+    min-width: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    border: 2px solid var(--text-color);
+    border-radius: 4px;
+    box-shadow: 4px 4px 0px 0px var(--grey-mid);
+    overflow: hidden;
+  }
+
+  .immersive-nav-item {
+    width: 100%;
+    padding: var(--spacing-xs) 0.75rem;
+    border-radius: 0;
+    color: var(--text-color);
+    font-family: var(--font-recursive);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    cursor: pointer;
+    text-align: left;
+    transition: all var(--transition-fast) var(--easing-standard);
+    margin: 0;
+  }
+
+  .immersive-nav-item:hover,
+  .immersive-nav-item.active {
+    background-color: var(--text-color);
+    color: var(--bg-color);
+  }
+
+  .immersive-preview-title {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    flex: 0 1 220px;
+    width: 220px;
+    margin-right: 0;
+    overflow: hidden;
+    padding-left: 0.5rem;
+  }
+
+  .immersive-title-main {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: inherit;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+    text-align: left;
+  }
+
+  .immersive-title-descriptor {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-normal);
+    color: var(--muted-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+    text-align: left;
+  }
+
+  .immersive-nav-item:hover .immersive-title-descriptor,
+  .immersive-nav-item.active .immersive-title-descriptor {
+    color: var(--bg-color);
+  }
+
+  .immersive-preview-thumbnail {
+    width: 70px;
+    height: 55px;
+    flex-shrink: 0;
+    border-radius: 4px;
+    overflow: hidden;
+    background-color: var(--grey-lighter);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--grey-light);
+    margin-right: 0.5rem;
+  }
+
+  .immersive-preview-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 
   .title-container {
@@ -1194,6 +1604,11 @@
     z-index: 5;
   }
 
+  .overview-portfolio-list {
+    max-width: 720px;
+    padding-bottom: 6rem;
+  }
+
   .portfolio-header {
     display: flex;
     justify-content: flex-start;
@@ -1251,6 +1666,51 @@
     z-index: 5;
   }
 
+  .immersive-portfolio-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+    padding-bottom: 8rem;
+    position: relative;
+    z-index: 6;
+  }
+
+  .immersive-piece {
+    min-height: calc(100vh - 7rem);
+    scroll-margin-top: 6rem;
+    display: flex;
+    align-items: stretch;
+  }
+
+  .piece-shell {
+    width: 100%;
+    background-color: var(--bg-color);
+    border: 1px solid var(--grey-darker);
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+  }
+
+  .piece-header {
+    padding: 1.5rem 1.5rem 0;
+  }
+
+  .piece-header-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .piece-title {
+    margin: 0;
+    font-family: var(--font-family);
+    font-size: clamp(1.5rem, 2vw, 2rem);
+    line-height: 1;
+    font-variation-settings: 'CASL' 0, 'wght' 420;
+  }
+
   .portfolio-content {
     font-family: var(--font-recursive);
     font-weight: 400;
@@ -1264,6 +1724,11 @@
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
+  }
+
+  .portfolio-content.immersive {
+    border: none;
+    border-radius: 0;
   }
   
   /* Ensure the PortfolioExpandedView has consistent width in both views */
@@ -1302,6 +1767,29 @@
     background-color: var(--text-color);
     color: var(--bg-color);
   }
+
+  .next-piece-banner {
+    position: fixed;
+    left: 50%;
+    bottom: 2rem;
+    transform: translateX(-50%);
+    z-index: 12;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 40px;
+    padding: 0.75rem 1.5rem;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    border: 2px solid var(--text-color);
+    border-radius: 4px;
+    box-shadow: 4px 4px 0px 0px var(--grey-mid);
+    font-family: var(--font-recursive);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
   
   @keyframes fadeIn {
     from {
@@ -1319,8 +1807,99 @@
       gap: var(--spacing-md);
     }
 
+    .container.immersive-mode {
+      padding-top: 0;
+    }
+
     .landing-page {
       padding: 2rem;
+    }
+
+    .immersive-topbar {
+      position: fixed;
+      top: auto;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      margin-bottom: 0;
+      display: flex;
+      flex-direction: column-reverse;
+      align-items: center;
+      gap: 0;
+    }
+
+    .brand-button {
+      font-size: 1.05rem;
+    }
+
+    .topbar-colibri-image {
+      width: 34px;
+    }
+
+    .immersive-nav-menu {
+      width: 100%;
+      min-width: 100%;
+      max-width: 100%;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      overflow-y: hidden;
+      border: 1px solid var(--grey-darker);
+      border-bottom: none;
+      border-radius: 0;
+      box-shadow: none;
+      margin-bottom: -1px;
+      background-color: var(--bg-color);
+      scrollbar-width: thin;
+      scrollbar-color: var(--grey-light) transparent;
+    }
+
+    .immersive-nav-menu::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .immersive-nav-menu::-webkit-scrollbar-thumb {
+      background-color: var(--grey-light);
+      border-radius: var(--border-radius);
+    }
+
+    .immersive-brand {
+      width: 200px;
+      justify-content: center;
+      border-radius: 4px 4px 0 0;
+      box-shadow: none;
+      position: relative;
+      z-index: 10;
+    }
+
+    .immersive-nav-item {
+      width: 130px;
+      flex-shrink: 0;
+      flex-direction: column-reverse;
+      justify-content: flex-start;
+      gap: var(--spacing-xxs);
+      padding: var(--spacing-xs);
+    }
+
+    .immersive-preview-title {
+      width: 100%;
+      flex: 0 0 auto;
+      padding-left: 0;
+      margin-right: 0;
+      text-align: center;
+    }
+
+    .immersive-title-main,
+    .immersive-title-descriptor {
+      text-align: center;
+    }
+
+    .immersive-preview-thumbnail {
+      width: 100%;
+      height: 80px;
+      margin-right: 0;
+      margin-bottom: var(--spacing-xxs);
     }
 
     .title-container {
@@ -1340,6 +1919,8 @@
     .portfolio-header {
       padding-right: 0; /* Remove right padding on mobile */
       gap: var(--spacing-sm); /* Reduce gap on mobile */
+      align-items: flex-start;
+      flex-direction: column;
     }
 
     .portfolio-header h2 {
@@ -1351,6 +1932,8 @@
 
     .tags {
       gap: 0.25rem; /* Smaller gap between tags on mobile */
+      flex-wrap: wrap;
+      flex-shrink: 1;
     }
 
     .description {
@@ -1399,6 +1982,36 @@
       font-size: 0.875rem;
       justify-content: center;
       gap: 0.25rem; /* Reduced gap between icon and text on mobile */
+    }
+
+    .overview-portfolio-list {
+      padding-bottom: 4rem;
+    }
+
+    .immersive-portfolio-list {
+      gap: 1.5rem;
+      padding-bottom: 10rem;
+    }
+
+    .immersive-piece {
+      min-height: auto;
+    }
+
+    .piece-shell {
+      border-radius: 8px;
+    }
+
+    .piece-header {
+      padding: 1rem 1rem 0;
+    }
+
+    .next-piece-banner {
+      bottom: 5.25rem;
+      width: calc(100vw - 4rem);
+      max-width: 100%;
+      justify-content: center;
+      white-space: normal;
+      text-align: center;
     }
 
   }
