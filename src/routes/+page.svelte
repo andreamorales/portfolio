@@ -28,6 +28,7 @@
 
   // Import the new PortfolioExpandedView component
   import PortfolioExpandedView from '$lib/components/portfolio/PortfolioExpandedView.svelte';
+  import QuickNav from '$lib/components/portfolio/QuickNav.svelte';
 
   // Import the new Toast component
   import Toast from '$lib/components/ui/Toast.svelte';
@@ -761,7 +762,7 @@
       if (target.closest('.overview-portfolio-list')) return;
 
       const clickedInsidePortfolio = target.closest('.piece-shell');
-      const clickedInsideControls = target.closest('.immersive-topbar, .next-piece-banner');
+      const clickedInsideControls = target.closest('.immersive-topbar, .next-piece-banner, .mobile-immersive-nav');
 
       if (!clickedInsidePortfolio && !clickedInsideControls) {
         closeImmersiveMode('list');
@@ -1332,6 +1333,16 @@
   </button>
 {/if}
 
+{#if immersiveMode}
+  <div class="mobile-immersive-nav">
+    <QuickNav
+      items={allNavigationItems}
+      hasExpandedItem={true}
+      onExpandItem={openPortfolioPiece}
+    />
+  </div>
+{/if}
+
 <style>
   .landing-page {
     min-height: 100vh;
@@ -1790,6 +1801,10 @@
     cursor: pointer;
     white-space: nowrap;
   }
+
+  .mobile-immersive-nav {
+    display: none;
+  }
   
   @keyframes fadeIn {
     from {
@@ -1816,17 +1831,7 @@
     }
 
     .immersive-topbar {
-      position: fixed;
-      top: auto;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      width: 100%;
-      margin-bottom: 0;
-      display: flex;
-      flex-direction: column-reverse;
-      align-items: center;
-      gap: 0;
+      display: none;
     }
 
     .brand-button {
@@ -1837,69 +1842,8 @@
       width: 34px;
     }
 
-    .immersive-nav-menu {
-      width: 100%;
-      min-width: 100%;
-      max-width: 100%;
-      flex-direction: row;
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      overflow-y: hidden;
-      border: 1px solid var(--grey-darker);
-      border-bottom: none;
-      border-radius: 0;
-      box-shadow: none;
-      margin-bottom: -1px;
-      background-color: var(--bg-color);
-      scrollbar-width: thin;
-      scrollbar-color: var(--grey-light) transparent;
-    }
-
-    .immersive-nav-menu::-webkit-scrollbar {
-      height: 6px;
-    }
-
-    .immersive-nav-menu::-webkit-scrollbar-thumb {
-      background-color: var(--grey-light);
-      border-radius: var(--border-radius);
-    }
-
-    .immersive-brand {
-      width: 200px;
-      justify-content: center;
-      border-radius: 4px 4px 0 0;
-      box-shadow: none;
-      position: relative;
-      z-index: 10;
-    }
-
-    .immersive-nav-item {
-      width: 130px;
-      flex-shrink: 0;
-      flex-direction: column-reverse;
-      justify-content: flex-start;
-      gap: var(--spacing-xxs);
-      padding: var(--spacing-xs);
-    }
-
-    .immersive-preview-title {
-      width: 100%;
-      flex: 0 0 auto;
-      padding-left: 0;
-      margin-right: 0;
-      text-align: center;
-    }
-
-    .immersive-title-main,
-    .immersive-title-descriptor {
-      text-align: center;
-    }
-
-    .immersive-preview-thumbnail {
-      width: 100%;
-      height: 80px;
-      margin-right: 0;
-      margin-bottom: var(--spacing-xxs);
+    .mobile-immersive-nav {
+      display: block;
     }
 
     .title-container {

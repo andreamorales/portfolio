@@ -24,6 +24,8 @@
   let isCollapsed = false;
   let isMobile = false;
   let activeItemId: number | null = null;
+  let activeItemLockUntil = 0;
+  let activeItemLockTimer: ReturnType<typeof setTimeout> | null = null;
   
   // Update collapsed state based on mobile
   $: {
@@ -38,6 +40,7 @@
   // Function to check which item is in view
   function updateActiveItem() {
     if (!browser) return;
+    if (Date.now() < activeItemLockUntil) return;
     
     const scrollPosition = window.scrollY + window.innerHeight / 2; // Use middle of viewport
     
@@ -118,6 +121,16 @@
   
   // Function to scroll to a specific portfolio item and expand it
   function scrollToAndExpandItem(id: number) {
+    activeItemId = id;
+    activeItemLockUntil = Date.now() + 900;
+    if (activeItemLockTimer) {
+      clearTimeout(activeItemLockTimer);
+    }
+    activeItemLockTimer = setTimeout(() => {
+      activeItemLockUntil = 0;
+      updateActiveItem();
+    }, 950);
+
     // Call onExpandItem with fromQuickNav=true
     onExpandItem(id, true);
   }
@@ -139,6 +152,9 @@
     return () => {
       window.removeEventListener('resize', updateMobileState);
       window.removeEventListener('scroll', updateActiveItem);
+      if (activeItemLockTimer) {
+        clearTimeout(activeItemLockTimer);
+      }
     };
   });
 
@@ -160,7 +176,7 @@
     transition:slide={{ duration: 200 }}
   >
     <div class="nav-header" transition:fade={{ duration: 150 }}>
-      <span>{isMobile ? 'Portfolio' : 'Jump to'}</span>
+      <span>{isMobile ? 'Navigation' : 'Jump to'}</span>
       <button 
         class="button-clear collapse-toggle" 
         on:click={toggleCollapse} 
