@@ -1,72 +1,69 @@
 .chart-wrapper {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  margin: 0;
-  padding: 0;
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	margin: 0;
+	padding: 0;
 }
 
 /* Chart color variables - light theme only */
-:root, :root.light {
-  --chart-baseline: var(--white);
-  --chart-baseline-opacity: rgba(255, 255, 255, 0.4);
-  --chart-baseline-opacity-zero: rgba(255, 255, 255, 0);
-  
-  /* Status colors - lighter versions */
-  --chart-success: var(--green-light);
-  --chart-warning: var(--yellow-light);
-  --chart-error: var(--red-light);
-  
-  /* Status colors with opacity - lighter versions */
-  --chart-success-opacity: rgba(200, 255, 150, 0.15);
-  --chart-warning-opacity: rgba(255, 230, 150, 0.15);
-  --chart-error-opacity: rgba(255, 150, 150, 0.15);
-  
-  /* Information Flow background colors */
-  --chart-flow-bg: rgba(200, 200, 200, 0.15);
-  --chart-flow-bg-zero: rgba(200, 200, 200, 0);
-  
-  /* Gradient directions - same in both modes */
-  --chart-gradient-start: var(--chart-success);
-  --chart-gradient-mid: var(--chart-warning);
-  --chart-gradient-end: var(--chart-error);
-  
-  /* Gradient with opacity - lighter for light mode */
-  --chart-gradient-start-opacity: rgba(200, 255, 150, 0.15);
-  --chart-gradient-mid-opacity: rgba(255, 230, 150, 0.15);
-  --chart-gradient-end-opacity: rgba(255, 150, 150, 0.15);
-  
-  /* Interactive elements */
-  --chart-interactive: var(--interactive-color-light);
-  --chart-interactive-opacity: rgba(var(--interactive-color-light-rgb), 0.15);
-  
-  /* Point colors - lighter versions */
-  --chart-point-bg: var(--pink-lighter);
-  --chart-point-border: var(--pink-light);
-  --chart-point-hover-bg: var(--pink-light);
-  --chart-point-hover-border: var(--pink-lighter);
+:root,
+:root.light {
+	--chart-baseline: var(--white);
+	--chart-baseline-opacity: rgba(255, 255, 255, 0.4);
+	--chart-baseline-opacity-zero: rgba(255, 255, 255, 0);
+
+	/* Status colors - lighter versions */
+	--chart-success: var(--green-light);
+	--chart-warning: var(--yellow-light);
+	--chart-error: var(--red-light);
+
+	/* Status colors with opacity - lighter versions */
+	--chart-success-opacity: rgba(200, 255, 150, 0.15);
+	--chart-warning-opacity: rgba(255, 230, 150, 0.15);
+	--chart-error-opacity: rgba(255, 150, 150, 0.15);
+
+	/* Information Flow background colors */
+	--chart-flow-bg: rgba(200, 200, 200, 0.15);
+	--chart-flow-bg-zero: rgba(200, 200, 200, 0);
+
+	/* Gradient directions - same in both modes */
+	--chart-gradient-start: var(--chart-success);
+	--chart-gradient-mid: var(--chart-warning);
+	--chart-gradient-end: var(--chart-error);
+
+	/* Gradient with opacity - lighter for light mode */
+	--chart-gradient-start-opacity: rgba(200, 255, 150, 0.15);
+	--chart-gradient-mid-opacity: rgba(255, 230, 150, 0.15);
+	--chart-gradient-end-opacity: rgba(255, 150, 150, 0.15);
+
+	/* Interactive elements */
+	--chart-interactive: var(--interactive-color-light);
+	--chart-interactive-opacity: rgba(var(--interactive-color-light-rgb), 0.15);
+
+	/* Point colors - lighter versions */
+	--chart-point-bg: var(--pink-lighter);
+	--chart-point-border: var(--pink-light);
+	--chart-point-hover-bg: var(--pink-light);
+	--chart-point-hover-border: var(--pink-lighter);
 }
 
 /* Dark theme removed */
 
 .gradient-overlay {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 35px;
-  background: linear-gradient(
-    to top,
-    var(--inverse-bg) 25%,
-    transparent 100%
-  );
-  pointer-events: none;
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	height: 35px;
+	background: linear-gradient(to top, var(--inverse-bg) 25%, transparent 100%);
+	pointer-events: none;
 }
 
 canvas {
-  position: absolute;
-  inset: 0;
-  margin: 0;
-  padding: 0;
-  display: block;
-} 
+	position: absolute;
+	inset: 0;
+	margin: 0;
+	padding: 0;
+	display: block;
+}

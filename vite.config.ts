@@ -12,7 +12,7 @@ const config: UserConfig = {
 	server: {
 		host: '0.0.0.0', // listen on all interfaces
 		port: 5173,
-		strictPort: true,
+		strictPort: true
 		// HMR will automatically infer the host; set explicitly if needed.
 	}
 };
