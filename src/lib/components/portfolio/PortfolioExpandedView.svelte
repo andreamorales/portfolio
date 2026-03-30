@@ -1,6 +1,10 @@
 <script lang="ts">
+	import Label from '$lib/components/ui/input/Label.svelte';
+
 	// Props
-	export const title: string = '';
+	export let projectTitle: string = '';
+	export let titleId: string | undefined = undefined;
+	export let tags: string[] = [];
 	export let description: string;
 	export let images: Array<{ src: string; alt: string; caption?: string }> = [];
 	export let content: Array<{
@@ -17,9 +21,18 @@
 	export let metrics: Array<string> = [];
 	export let team: Array<{ role: string; name: string; relationship: string }> = [];
 	export let immersive = false;
+	export let locked = false;
+	export let unlockPassword: string = '';
 
 	// Initialize the featuredImage variable
 	let featuredImage: string = '';
+	let enteredPassword = '';
+	let passwordError = '';
+	let isUnlocked = false;
+
+	$: if (!locked) {
+		isUnlocked = true;
+	}
 
 	// Computed prop for featured image - use first image from images array
 	$: {
@@ -44,78 +57,35 @@
 		const image = images.find((img) => img.src === src);
 		return image?.caption;
 	}
+
+	function unlockCaseStudy() {
+		if (!locked) {
+			return;
+		}
+
+		if (enteredPassword.trim() === unlockPassword) {
+			isUnlocked = true;
+			passwordError = '';
+			return;
+		}
+
+		passwordError = 'That password does not match.';
+	}
 </script>
 
 <div class="portfolio-expanded-view flex-column" class:immersive>
-	<!-- Project details grid -->
-	<div class="project-details-grid">
-		<div class="details-row">
-			<div class="details-cell">
-				<div class="details-label">Year</div>
-				<div class="details-value">{year}</div>
-			</div>
-			<div class="details-cell">
-				<div class="details-label">Role</div>
-				<div class="details-value">{role}</div>
-			</div>
-			<div class="details-cell">
-				<div class="details-label">Link</div>
-				<div class="details-value">
-					{#if link === 'Discontinued'}
-						<span class="discontinued-text">Discontinued</span>
-					{:else if link}
-						<a href={link} target="_blank" rel="noopener noreferrer" class="project-link">
-							View Project
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="14"
-								height="14"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-							>
-								<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-								<polyline points="15 3 21 3 21 9"></polyline>
-								<line x1="10" y1="14" x2="21" y2="3"></line>
-							</svg>
-						</a>
-					{:else}
-						<span class="muted-text">Not Available</span>
-					{/if}
+	<div class="project-intro">
+		<div class="project-title-row">
+			<h2 id={titleId} class="project-title">{projectTitle}</h2>
+			{#if tags.length > 0}
+				<div class="project-tags">
+					{#each tags as tag (`${projectTitle}-${tag}`)}
+						<Label text={tag} variant="semisolid" color="default" />
+					{/each}
 				</div>
-			</div>
+			{/if}
 		</div>
-		<div class="details-row metrics-row">
-			{#each metrics.slice(0, 2) as metric, index (`${metric}-${index}`)}
-				<div class="details-cell">
-					<div class="details-label">Impact</div>
-					<div class="details-value">{metric}</div>
-				</div>
-			{/each}
-			<div class="details-cell">
-				<div class="details-label">Team</div>
-				<div class="details-value team-list">
-					{#if team && team.length > 0}
-						{#each team as member (`${member.role}-${member.name}`)}
-							<div class="team-member">
-								<span class="role">{member.role}:</span>
-								<span class="name">{member.name}</span>
-								<span class="relationship">({member.relationship})</span>
-							</div>
-						{/each}
-					{:else}
-						<span class="muted-text">Solo project</span>
-					{/if}
-				</div>
-			</div>
-		</div>
-	</div>
 
-	<!-- Description now between grid and hero -->
-	<div class="hero-description-container">
 		<div class="hero-description">
 			{#each description.split('. ') as line, index (`${line}-${index}`)}
 				<span class="highlight-line">{line}{line.endsWith('.') ? '' : '.'} </span>
@@ -123,100 +93,199 @@
 		</div>
 	</div>
 
-	<!-- Featured hero image -->
-	{#if featuredImage}
-		<div class="hero-image-container">
-			<div class="image-frame">
-				<img src={featuredImage} alt={title} class="hero-image" on:error={handleImageError} />
+	{#if locked && !isUnlocked}
+		<div class="locked-gate">
+			<div class="locked-gate-card">
+				<div class="locked-gate-label">Password Protected</div>
+				<p class="locked-gate-copy">
+					This is my most recent case study. Enter the password to unlock the full piece.
+				</p>
+				<div class="locked-gate-controls">
+					<input
+						class="locked-gate-input"
+						type="password"
+						bind:value={enteredPassword}
+						placeholder="Enter password"
+						aria-label="Portfolio password"
+						on:keydown={(event) => event.key === 'Enter' && unlockCaseStudy()}
+					/>
+					<button class="locked-gate-button" type="button" on:click={unlockCaseStudy}>
+						Unlock
+					</button>
+				</div>
+				{#if passwordError}
+					<p class="locked-gate-error">{passwordError}</p>
+				{/if}
 			</div>
 		</div>
-	{/if}
+	{:else}
+		<!-- Project details grid -->
+		<div class="project-details-grid">
+			<div class="details-row">
+				<div class="details-cell">
+					<div class="details-label">Year</div>
+					<div class="details-value">{year}</div>
+				</div>
+				<div class="details-cell">
+					<div class="details-label">Role</div>
+					<div class="details-value">{role}</div>
+				</div>
+				<div class="details-cell">
+					<div class="details-label">Link</div>
+					<div class="details-value">
+						{#if link === 'Discontinued'}
+							<span class="discontinued-text">Discontinued</span>
+						{:else if link}
+							<a href={link} target="_blank" rel="noopener noreferrer" class="project-link">
+								View Project
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="14"
+									height="14"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+								>
+									<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+									<polyline points="15 3 21 3 21 9"></polyline>
+									<line x1="10" y1="14" x2="21" y2="3"></line>
+								</svg>
+							</a>
+						{:else}
+							<span class="muted-text">Not Available</span>
+						{/if}
+					</div>
+				</div>
+			</div>
+			<div class="details-row metrics-row">
+				{#each metrics.slice(0, 2) as metric, index (`${metric}-${index}`)}
+					<div class="details-cell">
+						<div class="details-label">Impact</div>
+						<div class="details-value">{metric}</div>
+					</div>
+				{/each}
+				<div class="details-cell">
+					<div class="details-label">Team</div>
+					<div class="details-value team-list">
+						{#if team && team.length > 0}
+							{#each team as member (`${member.role}-${member.name}`)}
+								<div class="team-member">
+									<span class="role">{member.role}:</span>
+									<span class="name">{member.name}</span>
+									<span class="relationship">({member.relationship})</span>
+								</div>
+							{/each}
+						{:else}
+							<span class="muted-text">Solo project</span>
+						{/if}
+					</div>
+				</div>
+			</div>
+		</div>
 
-	<!-- Content sections -->
-	<div class="content-container flex-column">
-		<div class="content-view width-100">
-			<!-- Content blocks (text and images) -->
-			<div class="content-blocks">
-				{#each content as block, index (`${block.type}-${block.value}-${index}`)}
-					{#if block.type === 'text'}
-						<div class="text-block">
-							<p>{block.value}</p>
-						</div>
-					{:else if block.type === 'image'}
-						<div class="image-block {block.layout === 'side-by-side' ? 'side-by-side' : ''}">
-							{#if block.layout === 'side-by-side'}
-								<div class="image-pair">
-									<div class="image-container">
-										<div class="image-frame">
-											<img
-												src={block.value}
-												alt={getImageCaption(block.value) || 'Project image'}
-											/>
-										</div>
-										{#if getImageCaption(block.value)}
-											<p class="image-caption">{getImageCaption(block.value)}</p>
-										{/if}
-									</div>
-									{#if block.sideImage}
-										{@const sideImage = block.sideImage}
+		<!-- Featured hero image -->
+		{#if featuredImage}
+			<div class="hero-image-container">
+				<div class="image-frame">
+					<img
+						src={featuredImage}
+						alt={projectTitle}
+						class="hero-image"
+						on:error={handleImageError}
+					/>
+				</div>
+			</div>
+		{/if}
+
+		<!-- Content sections -->
+		<div class="content-container flex-column">
+			<div class="content-view width-100">
+				<!-- Content blocks (text and images) -->
+				<div class="content-blocks">
+					{#each content as block, index (`${block.type}-${block.value}-${index}`)}
+						{#if block.type === 'text'}
+							<div class="text-block">
+								<p>{block.value}</p>
+							</div>
+						{:else if block.type === 'image'}
+							<div class="image-block {block.layout === 'side-by-side' ? 'side-by-side' : ''}">
+								{#if block.layout === 'side-by-side'}
+									<div class="image-pair">
 										<div class="image-container">
 											<div class="image-frame">
 												<img
-													src={sideImage.value}
-													alt={getImageCaption(sideImage.value) || 'Project image'}
+													src={block.value}
+													alt={getImageCaption(block.value) || 'Project image'}
 												/>
 											</div>
-											{#if getImageCaption(sideImage.value)}
-												<p class="image-caption">{getImageCaption(sideImage.value)}</p>
+											{#if getImageCaption(block.value)}
+												<p class="image-caption">{getImageCaption(block.value)}</p>
 											{/if}
 										</div>
+										{#if block.sideImage}
+											{@const sideImage = block.sideImage}
+											<div class="image-container">
+												<div class="image-frame">
+													<img
+														src={sideImage.value}
+														alt={getImageCaption(sideImage.value) || 'Project image'}
+													/>
+												</div>
+												{#if getImageCaption(sideImage.value)}
+													<p class="image-caption">{getImageCaption(sideImage.value)}</p>
+												{/if}
+											</div>
+										{/if}
+									</div>
+								{:else}
+									<div class="image-frame">
+										<img src={block.value} alt={getImageCaption(block.value) || 'Project image'} />
+									</div>
+									{#if getImageCaption(block.value)}
+										<p class="image-caption">{getImageCaption(block.value)}</p>
 									{/if}
-								</div>
-							{:else}
-								<div class="image-frame">
-									<img src={block.value} alt={getImageCaption(block.value) || 'Project image'} />
-								</div>
-								{#if getImageCaption(block.value)}
-									<p class="image-caption">{getImageCaption(block.value)}</p>
-								{/if}
-							{/if}
-						</div>
-					{/if}
-				{/each}
-			</div>
-
-			<!-- Image gallery - only show unused images -->
-			{#if images.length > 0}
-				{@const usedImages = new Set([
-					featuredImage,
-					...content
-						.filter((block) => block.type === 'image')
-						.flatMap((block) => {
-							const blockImages = [block.value];
-							if (block.layout === 'side-by-side' && block.sideImage) {
-								blockImages.push(block.sideImage.value);
-							}
-							return blockImages;
-						})
-				])}
-				{@const unusedImages = images.filter((img) => !usedImages.has(img.src))}
-				{#if unusedImages.length > 0}
-					<div class="image-gallery">
-						{#each unusedImages as image (image.src)}
-							<div class="gallery-item">
-								<div class="image-frame">
-									<img src={image.src} alt={image.alt} />
-								</div>
-								{#if image.caption}
-									<p class="image-caption">{image.caption}</p>
 								{/if}
 							</div>
-						{/each}
-					</div>
+						{/if}
+					{/each}
+				</div>
+
+				<!-- Image gallery - only show unused images -->
+				{#if images.length > 0}
+					{@const usedImages = new Set([
+						featuredImage,
+						...content
+							.filter((block) => block.type === 'image')
+							.flatMap((block) => {
+								const blockImages = [block.value];
+								if (block.layout === 'side-by-side' && block.sideImage) {
+									blockImages.push(block.sideImage.value);
+								}
+								return blockImages;
+							})
+					])}
+					{@const unusedImages = images.filter((img) => !usedImages.has(img.src))}
+					{#if unusedImages.length > 0}
+						<div class="image-gallery">
+							{#each unusedImages as image (image.src)}
+								<div class="gallery-item">
+									<div class="image-frame">
+										<img src={image.src} alt={image.alt} />
+									</div>
+									{#if image.caption}
+										<p class="image-caption">{image.caption}</p>
+									{/if}
+								</div>
+							{/each}
+						</div>
+					{/if}
 				{/if}
-			{/if}
+			</div>
 		</div>
-	</div>
+	{/if}
 </div>
 
 <style>
@@ -362,14 +431,10 @@
 			max-width: 100%;
 		}
 
-		.hero-description-container {
-			padding: var(--spacing-md) 0;
-		}
-
 		.hero-description {
 			font-size: var(--font-size-base);
 			line-height: 1.6;
-			padding: 0 1.5rem;
+			padding: 0;
 		}
 
 		/* Simple mobile highlight effect */
@@ -382,7 +447,7 @@
 			-webkit-mask-image: none;
 			mask-image: none;
 			position: relative;
-			padding: 0 0.1em;
+			padding: 0 0.1em 0 0;
 			box-decoration-break: clone;
 			-webkit-box-decoration-break: clone;
 		}
@@ -422,17 +487,138 @@
 		}
 	}
 
+	.project-intro {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-md);
+		padding: var(--spacing-lg) 1.5rem 0;
+	}
+
+	.project-title-row {
+		display: flex;
+		align-items: flex-start;
+		justify-content: flex-start;
+		gap: var(--spacing-md);
+		flex-wrap: wrap;
+	}
+
+	.project-title {
+		margin: 0;
+		font-family: var(--font-family);
+		font-size: clamp(1.5rem, 2vw, 2rem);
+		line-height: 1;
+		letter-spacing: -0.08em;
+		color: var(--text-color);
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 420;
+	}
+
+	.project-tags {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm);
+		flex-wrap: wrap;
+		justify-content: flex-start;
+	}
+
+	.locked-gate {
+		padding: 0 1.5rem var(--spacing-xl);
+	}
+
+	.locked-gate-card {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-sm);
+		padding: var(--spacing-lg);
+		border: 1px solid var(--black);
+		border-radius: var(--border-radius-sm);
+		background: rgba(0, 0, 0, 0.02);
+	}
+
+	.locked-gate-label {
+		font-size: var(--font-size-xs);
+		color: var(--muted-text);
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+	}
+
+	.locked-gate-copy {
+		margin: 0;
+		font-family: var(--font-family);
+		font-size: var(--font-size-sm);
+		line-height: 1.5;
+		color: var(--text-color);
+	}
+
+	.locked-gate-controls {
+		display: flex;
+		gap: var(--spacing-sm);
+		flex-wrap: wrap;
+	}
+
+	.locked-gate-input {
+		flex: 1 1 16rem;
+		min-width: 0;
+		padding: 0.75rem 0.9rem;
+		border: 1px solid var(--black);
+		border-radius: 4px;
+		background: var(--bg-color);
+		color: var(--text-color);
+		font: inherit;
+	}
+
+	.locked-gate-button {
+		padding: 0.75rem 1rem;
+		border: 1px solid var(--black);
+		border-radius: 4px;
+		background: var(--text-color);
+		color: var(--bg-color);
+		font: inherit;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.locked-gate-error {
+		margin: 0;
+		font-size: var(--font-size-xs);
+		color: #8b2d2d;
+	}
+
+	.hero-description,
+	.text-block,
+	.image-caption,
+	.details-label,
+	.details-value,
+	.project-link,
+	.muted-text,
+	.discontinued-text,
+	.role,
+	.name,
+	.relationship {
+		letter-spacing: -0.01em;
+	}
+
 	/* Project details grid */
 	.project-details-grid {
 		width: 100%;
 		background-color: transparent;
 		font-family: var(--font-family);
+		border-top: 1px solid var(--black);
 	}
 
 	.details-row {
 		display: grid;
 		grid-template-columns: repeat(3, 1fr);
 		border-bottom: 1px solid var(--black);
+	}
+
+	.details-row:first-child {
+		border-bottom: none;
+	}
+
+	.metrics-row {
+		border-top: 1px solid var(--black);
 	}
 
 	.details-cell {
@@ -465,6 +651,29 @@
 
 	/* Make sure the grid is responsive */
 	@media (max-width: 600px) {
+		.project-intro {
+			padding: 1rem 1rem 0;
+		}
+
+		.content-view {
+			padding-left: 0;
+			padding-right: 0;
+		}
+
+		.content-blocks,
+		.image-gallery {
+			padding-left: 0;
+			padding-right: 0;
+		}
+
+		.project-title-row {
+			flex-direction: column;
+		}
+
+		.project-tags {
+			justify-content: flex-start;
+		}
+
 		.details-row {
 			grid-template-columns: 1fr;
 		}
@@ -472,6 +681,23 @@
 		.details-cell:not(:last-child) {
 			border-right: none;
 			border-bottom: 1px solid var(--black);
+		}
+
+		.metrics-row .details-cell:nth-last-child(2) {
+			border-bottom: none;
+		}
+
+		.metrics-row .details-cell:last-child {
+			border-top: 1px solid var(--black);
+		}
+
+		.locked-gate {
+			padding-left: 1rem;
+			padding-right: 1rem;
+		}
+
+		.locked-gate-card {
+			padding: 1rem;
 		}
 	}
 
@@ -495,12 +721,38 @@
 	/* Hero image styling */
 	.hero-image-container {
 		width: 100%;
+		display: flex;
+		justify-content: center;
 		overflow: hidden;
 	}
 
 	.hero-image-container .image-frame {
 		width: 100%;
+		max-width: 800px;
 		display: block;
+	}
+
+	@media (max-width: 1024px) {
+		.hero-image-container {
+			padding-left: 1.5rem;
+			padding-right: 1.5rem;
+			box-sizing: border-box;
+		}
+
+		.hero-image-container .image-frame {
+			max-width: 720px;
+		}
+	}
+
+	@media (max-width: 600px) {
+		.hero-image-container {
+			padding-left: 0;
+			padding-right: 0;
+		}
+
+		.hero-image-container .image-frame {
+			max-width: 100%;
+		}
 	}
 
 	/* Hero image */
@@ -515,6 +767,14 @@
 	.content-blocks,
 	.image-gallery {
 		padding: 0 1.5rem;
+	}
+
+	@media (max-width: 768px) {
+		.content-blocks,
+		.image-gallery {
+			padding-left: 0;
+			padding-right: 0;
+		}
 	}
 
 	.project-link {
@@ -543,17 +803,9 @@
 			'wght' 400;
 	}
 
-	/* Hero description styling */
-	.hero-description-container {
-		width: 100%;
-		display: flex;
-		justify-content: center;
-	}
-
 	.hero-description {
 		width: 100%;
 		max-width: 65ch;
-		padding: 0 1.5rem;
 		font-family: var(--font-family);
 		font-size: var(--font-size-lg);
 		line-height: 1.3;
@@ -567,6 +819,7 @@
 	.highlight-line {
 		display: inline;
 		line-height: 1.3;
+		letter-spacing: -0.03em;
 		padding: 0 0.4em;
 		background-repeat: no-repeat;
 		background-image:

@@ -161,7 +161,7 @@
 	.immersive-nav-item-content {
 		display: flex;
 		align-items: center;
-		gap: var(--spacing-xl);
+		gap: var(--spacing-xxl);
 		width: 100%;
 	}
 

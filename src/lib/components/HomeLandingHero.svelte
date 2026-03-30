@@ -84,9 +84,9 @@
 		position: absolute;
 		top: 0;
 		right: 0;
-		width: 276px;
+		width: 236px;
 		height: auto;
-		transform: translate(31%, -9.5%) scale(0.9);
+		transform: translate(29%, -4.5%) scale(0.86);
 		transform-origin: top right;
 		z-index: 3;
 		pointer-events: none;
@@ -100,11 +100,11 @@
 
 	.title {
 		font-family: var(--font-refract);
-		font-size: 128px;
+		font-size: 112px;
 		font-style: normal;
 		font-weight: 400;
-		line-height: 102px;
-		letter-spacing: -1.28px;
+		line-height: 90px;
+		letter-spacing: -1.12px;
 		font-feature-settings:
 			'dlig' on,
 			'ss01' on;

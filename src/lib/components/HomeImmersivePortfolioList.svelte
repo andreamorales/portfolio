@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
-	import Label from '$lib/components/ui/input/Label.svelte';
 	import PortfolioExpandedView from '$lib/components/portfolio/PortfolioExpandedView.svelte';
 	import type { PortfolioItem } from '$lib/data/portfolio-items.js';
 
@@ -15,20 +14,11 @@
 			aria-labelledby={`immersive-piece-title-${index}`}
 		>
 			<div class="piece-shell">
-				<div class="piece-header">
-					<div class="piece-header-row">
-						<h2 id={`immersive-piece-title-${index}`} class="piece-title">{item.title}</h2>
-						<div class="tags">
-							{#each item.tags as tag (`${item.title}-${tag}`)}
-								<Label text={tag} variant="semisolid" color="default" />
-							{/each}
-						</div>
-					</div>
-				</div>
-
 				<div id={`portfolio-content-${index}`} class="portfolio-content immersive">
 					<PortfolioExpandedView
-						title={item.title}
+						projectTitle={item.title}
+						titleId={`immersive-piece-title-${index}`}
+						tags={item.tags}
 						description={item.description}
 						images={item.images}
 						content={item.content}
@@ -37,6 +27,8 @@
 						link={item.link}
 						metrics={item.metrics}
 						team={item.team}
+						locked={item.locked}
+						unlockPassword={item.unlockPassword}
 						immersive={true}
 					/>
 				</div>
@@ -69,36 +61,6 @@
 		border-radius: 12px;
 		box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
 		overflow: hidden;
-	}
-
-	.piece-header {
-		padding: 1.5rem 1.5rem 0;
-	}
-
-	.piece-header-row {
-		display: flex;
-		align-items: flex-start;
-		justify-content: space-between;
-		gap: 1rem;
-		flex-wrap: wrap;
-	}
-
-	.piece-title {
-		margin: 0;
-		font-family: var(--font-family);
-		font-size: clamp(1.5rem, 2vw, 2rem);
-		line-height: 1;
-		font-variation-settings:
-			'CASL' 0,
-			'wght' 420;
-	}
-
-	.tags {
-		display: flex;
-		align-items: center;
-		gap: var(--spacing-sm);
-		flex-wrap: nowrap;
-		flex-shrink: 0;
 	}
 
 	.portfolio-content {
@@ -140,10 +102,6 @@
 
 		.piece-shell {
 			border-radius: 8px;
-		}
-
-		.piece-header {
-			padding: 1rem 1rem 0;
 		}
 	}
 </style>

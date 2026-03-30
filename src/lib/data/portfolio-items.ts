@@ -37,9 +37,46 @@ export interface PortfolioItem {
 	link: string;
 	metrics: string[];
 	team?: TeamMember[];
+	locked?: boolean;
+	unlockPassword?: string;
 }
 
 const initialPortfolioItems = [
+	{
+		title: 'Layer Health: Full Product',
+		tags: ['UX/UI', 'Frontend'],
+		expanded: false,
+		description:
+			'A password-protected case study for my most recent end-to-end product work across UX/UI and frontend engineering.',
+		videoUrl: '',
+		quickNavThumbnail: '/images/portfolio/layer-health/thumbnail.png',
+		images: [
+			{
+				src: '/images/portfolio/layer-health/hero.png',
+				alt: 'Layer Health product interface',
+				caption: 'A recent Layer Health product screen.'
+			}
+		],
+		content: [
+			{
+				type: 'text',
+				value:
+					'This case study covers recent product work I designed and implemented across the full experience, from concept framing to high-fidelity interface details.'
+			},
+			{
+				type: 'text',
+				value:
+					'It includes product strategy, interaction design, systems thinking, and frontend implementation details, and is intentionally password protected while the work is still recent.'
+			}
+		],
+		year: '2026',
+		role: 'UX/UI Designer & Frontend Engineer',
+		link: '',
+		metrics: ['End-to-end product ownership', 'Design and frontend implementation'],
+		team: [{ role: 'Status', name: 'Password protected', relationship: 'recent work' }],
+		locked: true,
+		unlockPassword: 'mostrecent2026'
+	},
 	{
 		title: 'MongoDB: Realm Schema',
 		tags: ['UX/UI'],
