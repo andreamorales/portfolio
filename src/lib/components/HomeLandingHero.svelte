@@ -204,7 +204,7 @@
 		}
 
 		.colibri-container {
-			transform: translate(17.5%, -3%) scale(0.5);
+			transform: translate(17.5%, 4%) scale(0.5);
 		}
 
 		.description {
@@ -257,7 +257,7 @@
 
 	@media (max-width: 548px) {
 		.colibri-container {
-			transform: translate(17.5%, -3.1%) scale(0.5);
+			transform: translate(17.5%, 4%) scale(0.5);
 		}
 	}
 </style>
