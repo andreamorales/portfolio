@@ -262,7 +262,7 @@
 		max-height: 70%;
 		background-color: var(--bg-color);
 		border: 1px solid var(--grey-darker);
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		box-shadow: 4px 4px 0px 0px var(--grey-mid);
 		padding: 0;
 		z-index: var(--z-50);
@@ -399,7 +399,7 @@
 		width: 70px;
 		height: 55px;
 		flex-shrink: 0;
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		overflow: hidden;
 		background-color: var(--grey-lighter);
 		display: flex;
@@ -476,7 +476,7 @@
 
 		.nav-header {
 			width: 200px;
-			border-radius: 4px 4px 0 0;
+			border-radius: var(--radius-xs) var(--radius-xs) 0 0;
 			box-shadow: none;
 			z-index: 10;
 			position: relative;

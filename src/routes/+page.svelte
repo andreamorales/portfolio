@@ -1,22 +1,13 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
-	import { Pointer } from 'lucide-svelte';
-	import ImageCollage from '$lib/components/ImageCollage.svelte';
 	import QuickNav from '$lib/components/portfolio/QuickNav.svelte';
-	import Toast from '$lib/components/ui/Toast.svelte';
 	import HomeImmersiveTopbar from '$lib/components/HomeImmersiveTopbar.svelte';
 	import HomeLandingHero from '$lib/components/HomeLandingHero.svelte';
-	import HomePortfolioOverviewList from '$lib/components/HomePortfolioOverviewList.svelte';
 	import HomeImmersivePortfolioList from '$lib/components/HomeImmersivePortfolioList.svelte';
 	import HomeNextPieceBanner from '$lib/components/HomeNextPieceBanner.svelte';
 	import { portfolioItems } from '$lib/data/portfolio-items.js';
 	import type { PortfolioItem } from '$lib/data/portfolio-items.js';
-	import {
-		colibri,
-		companyLogos,
-		homeCollageImageDimensions,
-		homeCollageLargeScreenImages
-	} from '$lib/data/home-page-assets';
+	import { colibri } from '$lib/data/home-page-assets';
 
 	const getLatestYear = (year: string) => {
 		const years = year.split('-').map((value) => parseInt(value.trim(), 10));
@@ -41,9 +32,49 @@
 	let activePortfolioIndex = 0;
 	let nextPortfolioIndex: number | null = null;
 	let showNextPieceBanner = false;
-	let overviewPortfolioListElement: HTMLElement | null = null;
-	let showToast = false;
-	let toastMessage = '';
+	let landingHeroElement: HTMLElement | null = null;
+	let frameBottomLineEl: HTMLDivElement | null = null;
+	let frameRightLineEl: HTMLDivElement | null = null;
+
+	const FRAME_BOTTOM_REST = '0% 50%';
+	const FRAME_RIGHT_REST = '50% 0%';
+
+	function clearFrameLineInline(el: HTMLDivElement | null) {
+		if (!el) return;
+		el.style.removeProperty('animation');
+		el.style.removeProperty('animation-name');
+		el.style.removeProperty('background-position');
+		el.style.removeProperty('transition');
+	}
+
+	function settleFrameGradient(el: HTMLDivElement | null, restPosition: string) {
+		if (!el) return;
+		const current = getComputedStyle(el).backgroundPosition;
+		el.style.animation = 'none';
+		el.style.backgroundPosition = current;
+		void el.offsetWidth;
+		el.style.transition = 'background-position 1.05s cubic-bezier(0.22, 1, 0.36, 1)';
+		requestAnimationFrame(() => {
+			el.style.backgroundPosition = restPosition;
+		});
+	}
+
+	function onFrameBottomLeave() {
+		settleFrameGradient(frameBottomLineEl, FRAME_BOTTOM_REST);
+	}
+
+	function onFrameRightLeave() {
+		settleFrameGradient(frameRightLineEl, FRAME_RIGHT_REST);
+	}
+
+	function onFrameLineTransitionEnd(event: TransitionEvent) {
+		if (event.propertyName !== 'background-position') return;
+		const el = event.currentTarget as HTMLDivElement;
+		el.style.removeProperty('transition');
+		el.style.removeProperty('background-position');
+		el.style.removeProperty('animation');
+	}
+
 	let mounted = false;
 
 	async function enterImmersiveMode(targetIndex: number = 0) {
@@ -83,7 +114,7 @@
 			return;
 		}
 
-		overviewPortfolioListElement?.scrollIntoView({
+		landingHeroElement?.scrollIntoView({
 			behavior: 'smooth',
 			block: 'start'
 		});
@@ -141,47 +172,6 @@
 		showNextPieceBanner = progress > 0.72 && rect.bottom > window.innerHeight * 0.4;
 	}
 
-	async function copyEmailToClipboard() {
-		const email = 'andreamoralescoto@gmail.com';
-
-		try {
-			const tempInput = document.createElement('input');
-			tempInput.value = email;
-			document.body.appendChild(tempInput);
-			tempInput.select();
-			tempInput.setSelectionRange(0, 99999);
-
-			try {
-				await navigator.clipboard.writeText(email);
-				toastMessage = 'Email copied!';
-			} catch {
-				document.execCommand('copy');
-				toastMessage = 'Email copied!';
-			}
-
-			showToast = true;
-			document.body.removeChild(tempInput);
-		} catch {
-			toastMessage = 'Email: andreamoralescoto@gmail.com';
-			showToast = true;
-		}
-	}
-
-	function openLinkedInProfile() {
-		window.open('https://www.linkedin.com/in/andreasmorales/', '_blank');
-	}
-
-	function openGithubProfile() {
-		window.open('https://www.github.com/andreamoralescoto', '_blank');
-	}
-
-	function openResume() {
-		window.open(
-			'https://docs.google.com/document/d/1ijo9LmsUPb_SLiEYfes1xed5VwAhEuv2r6gR_GqMz1s/edit?usp=sharing',
-			'_blank'
-		);
-	}
-
 	onMount(() => {
 		mounted = true;
 
@@ -214,11 +204,9 @@
 
 			const target = event.target;
 			if (!(target instanceof Element)) return;
-			if (target.closest('.overview-portfolio-list')) return;
-
 			const clickedInsidePortfolio = target.closest('.piece-shell');
 			const clickedInsideControls = target.closest(
-				'.immersive-topbar, .next-piece-banner, .mobile-immersive-nav'
+				'.immersive-topbar, .next-piece-banner, .mobile-immersive-nav, .cli-terminal-window'
 			);
 
 			if (!clickedInsidePortfolio && !clickedInsideControls) {
@@ -244,9 +232,33 @@
 	<meta name="description" content="Andy Morales - Product designer for creative tools." />
 </svelte:head>
 
-<Toast message={toastMessage} bind:visible={showToast} />
-
 <div class="landing-page">
+	<div class="viewport-frame-lines" aria-hidden="true">
+		<div
+			class="viewport-frame-hit viewport-frame-hit--bottom"
+			role="presentation"
+			on:mouseenter={() => clearFrameLineInline(frameBottomLineEl)}
+			on:mouseleave={onFrameBottomLeave}
+		>
+			<div
+				class="viewport-frame-line viewport-frame-line--bottom"
+				bind:this={frameBottomLineEl}
+				on:transitionend={onFrameLineTransitionEnd}
+			></div>
+		</div>
+		<div
+			class="viewport-frame-hit viewport-frame-hit--right"
+			role="presentation"
+			on:mouseenter={() => clearFrameLineInline(frameRightLineEl)}
+			on:mouseleave={onFrameRightLeave}
+		>
+			<div
+				class="viewport-frame-line viewport-frame-line--right"
+				bind:this={frameRightLineEl}
+				on:transitionend={onFrameLineTransitionEnd}
+			></div>
+		</div>
+	</div>
 	{#if immersiveMode}
 		<HomeImmersiveTopbar
 			isOpen={navMenuOpen}
@@ -264,34 +276,12 @@
 	<main class="container flex-column-left" class:immersive-mode={immersiveMode}>
 		{#if mounted}
 			{#if !immersiveMode}
-				<HomeLandingHero
-					{colibri}
-					consensysLogo={companyLogos.consensys}
-					mongodbLogo={companyLogos.mongodb}
-					robloxLogo={companyLogos.roblox}
-					pantoLogo={companyLogos.panto}
-					onCopyEmail={copyEmailToClipboard}
-					onOpenLinkedIn={openLinkedInProfile}
-					onOpenResume={openResume}
-					onOpenGithub={openGithubProfile}
-				/>
-			{/if}
-
-			<ImageCollage
-				imageDimensions={homeCollageImageDimensions}
-				largeScreenImages={homeCollageLargeScreenImages}
-			>
-				<svelte:fragment slot="drag-hint">
-					<Pointer size={36} />
-				</svelte:fragment>
-			</ImageCollage>
-
-			{#if !immersiveMode}
-				<HomePortfolioOverviewList
-					items={sortedPortfolioItems}
-					bind:containerElement={overviewPortfolioListElement}
-					onOpen={openPortfolioPiece}
-				/>
+				<div class="landing-hero-anchor" bind:this={landingHeroElement}>
+					<HomeLandingHero
+						portfolioItems={sortedPortfolioItems}
+						onOpenPortfolio={openPortfolioPiece}
+					/>
+				</div>
 			{:else}
 				<HomeImmersivePortfolioList items={sortedPortfolioItems} />
 			{/if}
@@ -315,13 +305,105 @@
 
 <style>
 	.landing-page {
+		--landing-inset: 2rem;
+		/* Pull frame lines inward so they end before the corner on the left / top */
+		--frame-line-trim: 1.5rem;
 		min-height: 100vh;
 		background-color: var(--bg-color);
 		color: var(--text-color);
-		padding: 4.5rem;
+		padding: var(--landing-inset);
 		display: flex;
 		flex-direction: column;
 		align-items: stretch;
+		position: relative;
+	}
+
+	.viewport-frame-lines {
+		pointer-events: none;
+	}
+
+	.viewport-frame-hit {
+		pointer-events: auto;
+		z-index: 1;
+	}
+
+	.viewport-frame-hit--bottom {
+		position: fixed;
+		left: calc(max(var(--landing-inset), env(safe-area-inset-left)) + var(--frame-line-trim));
+		right: max(var(--landing-inset), env(safe-area-inset-right));
+		bottom: max(var(--landing-inset), env(safe-area-inset-bottom));
+		display: flex;
+		align-items: flex-end;
+		height: 14px;
+	}
+
+	.viewport-frame-hit--right {
+		position: fixed;
+		top: calc(max(var(--landing-inset), env(safe-area-inset-top)) + var(--frame-line-trim));
+		bottom: max(var(--landing-inset), env(safe-area-inset-bottom));
+		right: max(var(--landing-inset), env(safe-area-inset-right));
+		display: flex;
+		justify-content: flex-end;
+		width: 14px;
+	}
+
+	.viewport-frame-line {
+		opacity: 0.92;
+		will-change: background-position;
+		transition: background-position 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+	}
+
+	.viewport-frame-line--bottom {
+		width: 100%;
+		height: 1px;
+		flex-shrink: 0;
+		background-image: var(--palette-rainbow-gradient-h);
+		background-size: 240% 100%;
+		background-position: 0% 50%;
+	}
+
+	.viewport-frame-line--right {
+		width: 1px;
+		height: 100%;
+		flex-shrink: 0;
+		background-image: var(--palette-rainbow-gradient-v);
+		background-size: 100% 240%;
+		background-position: 50% 0%;
+	}
+
+	.viewport-frame-hit--bottom:hover .viewport-frame-line--bottom {
+		animation: rainbow-dance-bottom 22s linear infinite;
+		transition: none;
+	}
+
+	.viewport-frame-hit--right:hover .viewport-frame-line--right {
+		animation: rainbow-dance-right 22s linear infinite;
+		transition: none;
+	}
+
+	@keyframes rainbow-dance-bottom {
+		0% {
+			background-position: 0% 50%;
+		}
+		100% {
+			background-position: 100% 50%;
+		}
+	}
+
+	@keyframes rainbow-dance-right {
+		0% {
+			background-position: 50% 0%;
+		}
+		100% {
+			background-position: 50% 100%;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.viewport-frame-hit--bottom:hover .viewport-frame-line--bottom,
+		.viewport-frame-hit--right:hover .viewport-frame-line--right {
+			animation: none;
+		}
 	}
 
 	.container {
@@ -330,7 +412,11 @@
 		padding: 0;
 		position: relative;
 		z-index: 2;
-		gap: var(--spacing-xxl);
+		gap: 0;
+	}
+
+	.landing-hero-anchor {
+		width: 100%;
 	}
 
 	.container.immersive-mode {
@@ -346,12 +432,14 @@
 			gap: var(--spacing-md);
 		}
 
+
 		.container.immersive-mode {
 			padding-top: 0;
 		}
 
 		.landing-page {
-			padding: 2rem;
+			--landing-inset: 2rem;
+			padding: var(--landing-inset);
 		}
 
 		.mobile-immersive-nav {

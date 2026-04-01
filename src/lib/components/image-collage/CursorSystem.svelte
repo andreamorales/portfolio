@@ -685,7 +685,7 @@
 		width: 8px;
 		height: 8px;
 		background-color: var(--cursor-color);
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		position: relative;
 	}
 
@@ -697,7 +697,7 @@
 		right: -4px;
 		bottom: -4px;
 		border: 2px solid var(--cursor-color);
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		opacity: 0.5;
 	}
 
@@ -708,7 +708,7 @@
 		background-color: var(--cursor-color);
 		color: white;
 		padding: 2px 6px;
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		font-size: 12px;
 		white-space: nowrap;
 	}

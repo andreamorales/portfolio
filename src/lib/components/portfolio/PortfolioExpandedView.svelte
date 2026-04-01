@@ -437,7 +437,6 @@
 			padding: 0;
 		}
 
-		/* Simple mobile highlight effect */
 		.highlight-line {
 			display: inline;
 			color: var(--text-color);
@@ -446,44 +445,7 @@
 			background: none;
 			-webkit-mask-image: none;
 			mask-image: none;
-			position: relative;
-			padding: 0 0.1em 0 0;
-			box-decoration-break: clone;
-			-webkit-box-decoration-break: clone;
-		}
-
-		.highlight-line::before {
-			content: '';
-			position: absolute;
-			left: 0;
-			right: 0;
-			bottom: 0.1em;
-			height: 0.4em;
-			background-color: rgba(93, 103, 233, 0.12);
-			z-index: -1;
-			transform: rotate(-1deg) translateZ(0);
-			border-radius: 1px;
-		}
-
-		.highlight-line:nth-child(3n + 1)::before {
-			transform: rotate(1deg) translateZ(0);
-			background-color: rgba(93, 103, 233, 0.15);
-			height: 0.45em;
-			bottom: 0.08em;
-		}
-
-		.highlight-line:nth-child(3n + 2)::before {
-			transform: rotate(-0.5deg) translateZ(0);
-			background-color: rgba(93, 103, 233, 0.13);
-			height: 0.42em;
-			bottom: 0.12em;
-		}
-
-		.highlight-line:nth-child(3n + 3)::before {
-			transform: rotate(0.5deg) translateZ(0);
-			background-color: rgba(93, 103, 233, 0.14);
-			height: 0.43em;
-			bottom: 0.09em;
+			padding: 0;
 		}
 	}
 
@@ -562,7 +524,7 @@
 		min-width: 0;
 		padding: 0.75rem 0.9rem;
 		border: 1px solid var(--black);
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		background: var(--bg-color);
 		color: var(--text-color);
 		font: inherit;
@@ -571,7 +533,7 @@
 	.locked-gate-button {
 		padding: 0.75rem 1rem;
 		border: 1px solid var(--black);
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		background: var(--text-color);
 		color: var(--bg-color);
 		font: inherit;
@@ -820,160 +782,7 @@
 		display: inline;
 		line-height: 1.3;
 		letter-spacing: -0.03em;
-		padding: 0 0.4em;
-		background-repeat: no-repeat;
-		background-image:
-			linear-gradient(var(--random-angle), rgba(93, 103, 233, 0.15), rgba(93, 103, 233, 0.18)),
-			linear-gradient(
-				calc(var(--random-angle) - 0.5deg),
-				rgba(93, 103, 233, 0.12),
-				rgba(93, 103, 233, 0.15)
-			);
-		background-position:
-			0 62%,
-			0 66%;
-		background-size:
-			100% 0.5em,
-			98% 0.45em;
-		-webkit-mask-image:
-			radial-gradient(7px at 92% 65%, transparent 92%, #000 100%),
-			radial-gradient(3px at 88% 63%, transparent 93%, #000 100%),
-			radial-gradient(5px at 82% 67%, transparent 91%, #000 100%),
-			radial-gradient(4px at 75% 64%, transparent 94%, #000 100%),
-			radial-gradient(6px at 68% 66%, transparent 92%, #000 100%),
-			radial-gradient(3px at 60% 63%, transparent 93%, #000 100%),
-			radial-gradient(7px at 52% 67%, transparent 91%, #000 100%),
-			radial-gradient(4px at 45% 64%, transparent 94%, #000 100%),
-			radial-gradient(5px at 38% 66%, transparent 92%, #000 100%),
-			radial-gradient(3px at 30% 63%, transparent 93%, #000 100%),
-			radial-gradient(6px at 22% 67%, transparent 91%, #000 100%),
-			radial-gradient(4px at 15% 64%, transparent 94%, #000 100%),
-			radial-gradient(7px at 8% 66%, transparent 92%, #000 100%),
-			radial-gradient(3px at 2% 63%, transparent 93%, #000 100%), linear-gradient(#000 0 0);
-		mask-image:
-			radial-gradient(7px at 92% 65%, transparent 92%, #000 100%),
-			radial-gradient(3px at 88% 63%, transparent 93%, #000 100%),
-			radial-gradient(5px at 82% 67%, transparent 91%, #000 100%),
-			radial-gradient(4px at 75% 64%, transparent 94%, #000 100%),
-			radial-gradient(6px at 68% 66%, transparent 92%, #000 100%),
-			radial-gradient(3px at 60% 63%, transparent 93%, #000 100%),
-			radial-gradient(7px at 52% 67%, transparent 91%, #000 100%),
-			radial-gradient(4px at 45% 64%, transparent 94%, #000 100%),
-			radial-gradient(5px at 38% 66%, transparent 92%, #000 100%),
-			radial-gradient(3px at 30% 63%, transparent 93%, #000 100%),
-			radial-gradient(6px at 22% 67%, transparent 91%, #000 100%),
-			radial-gradient(4px at 15% 64%, transparent 94%, #000 100%),
-			radial-gradient(7px at 8% 66%, transparent 92%, #000 100%),
-			radial-gradient(3px at 2% 63%, transparent 93%, #000 100%), linear-gradient(#000 0 0);
-	}
-
-	.highlight-line:nth-child(3n + 1) {
-		--random-angle: 2.5deg;
-		background-size:
-			100% 0.52em,
-			97% 0.48em;
-		-webkit-mask-image:
-			radial-gradient(8px at 95% 64%, transparent 91%, #000 100%),
-			radial-gradient(4px at 90% 66%, transparent 93%, #000 100%),
-			radial-gradient(6px at 85% 63%, transparent 92%, #000 100%),
-			radial-gradient(3px at 78% 67%, transparent 94%, #000 100%),
-			radial-gradient(7px at 70% 64%, transparent 91%, #000 100%),
-			radial-gradient(4px at 62% 66%, transparent 93%, #000 100%),
-			radial-gradient(6px at 55% 63%, transparent 92%, #000 100%),
-			radial-gradient(3px at 48% 67%, transparent 94%, #000 100%),
-			radial-gradient(8px at 40% 64%, transparent 91%, #000 100%),
-			radial-gradient(4px at 32% 66%, transparent 93%, #000 100%),
-			radial-gradient(6px at 25% 63%, transparent 92%, #000 100%),
-			radial-gradient(3px at 18% 67%, transparent 94%, #000 100%),
-			radial-gradient(7px at 10% 64%, transparent 91%, #000 100%),
-			radial-gradient(4px at 5% 66%, transparent 93%, #000 100%), linear-gradient(#000 0 0);
-		mask-image:
-			radial-gradient(8px at 95% 64%, transparent 91%, #000 100%),
-			radial-gradient(4px at 90% 66%, transparent 93%, #000 100%),
-			radial-gradient(6px at 85% 63%, transparent 92%, #000 100%),
-			radial-gradient(3px at 78% 67%, transparent 94%, #000 100%),
-			radial-gradient(7px at 70% 64%, transparent 91%, #000 100%),
-			radial-gradient(4px at 62% 66%, transparent 93%, #000 100%),
-			radial-gradient(6px at 55% 63%, transparent 92%, #000 100%),
-			radial-gradient(3px at 48% 67%, transparent 94%, #000 100%),
-			radial-gradient(8px at 40% 64%, transparent 91%, #000 100%),
-			radial-gradient(4px at 32% 66%, transparent 93%, #000 100%),
-			radial-gradient(6px at 25% 63%, transparent 92%, #000 100%),
-			radial-gradient(3px at 18% 67%, transparent 94%, #000 100%),
-			radial-gradient(7px at 10% 64%, transparent 91%, #000 100%),
-			radial-gradient(4px at 5% 66%, transparent 93%, #000 100%), linear-gradient(#000 0 0);
-	}
-
-	.highlight-line:nth-child(3n + 2) {
-		--random-angle: -1.5deg;
-		background-size:
-			99% 0.48em,
-			100% 0.5em;
-		-webkit-mask-image:
-			radial-gradient(7px at 98% 65%, transparent 92%, #000 100%),
-			radial-gradient(4px at 92% 63%, transparent 93%, #000 100%),
-			radial-gradient(6px at 85% 67%, transparent 91%, #000 100%),
-			radial-gradient(3px at 77% 64%, transparent 94%, #000 100%),
-			radial-gradient(8px at 68% 66%, transparent 92%, #000 100%),
-			radial-gradient(4px at 60% 63%, transparent 93%, #000 100%),
-			radial-gradient(6px at 52% 67%, transparent 91%, #000 100%),
-			radial-gradient(3px at 45% 64%, transparent 94%, #000 100%),
-			radial-gradient(7px at 38% 66%, transparent 92%, #000 100%),
-			radial-gradient(4px at 30% 63%, transparent 93%, #000 100%),
-			radial-gradient(6px at 22% 67%, transparent 91%, #000 100%),
-			radial-gradient(3px at 15% 64%, transparent 94%, #000 100%),
-			radial-gradient(8px at 8% 66%, transparent 92%, #000 100%),
-			radial-gradient(4px at 2% 63%, transparent 93%, #000 100%), linear-gradient(#000 0 0);
-		mask-image:
-			radial-gradient(7px at 98% 65%, transparent 92%, #000 100%),
-			radial-gradient(4px at 92% 63%, transparent 93%, #000 100%),
-			radial-gradient(6px at 85% 67%, transparent 91%, #000 100%),
-			radial-gradient(3px at 77% 64%, transparent 94%, #000 100%),
-			radial-gradient(8px at 68% 66%, transparent 92%, #000 100%),
-			radial-gradient(4px at 60% 63%, transparent 93%, #000 100%),
-			radial-gradient(6px at 52% 67%, transparent 91%, #000 100%),
-			radial-gradient(3px at 45% 64%, transparent 94%, #000 100%),
-			radial-gradient(7px at 38% 66%, transparent 92%, #000 100%),
-			radial-gradient(4px at 30% 63%, transparent 93%, #000 100%),
-			radial-gradient(6px at 22% 67%, transparent 91%, #000 100%),
-			radial-gradient(3px at 15% 64%, transparent 94%, #000 100%),
-			radial-gradient(8px at 8% 66%, transparent 92%, #000 100%),
-			radial-gradient(4px at 2% 63%, transparent 93%, #000 100%), linear-gradient(#000 0 0);
-	}
-
-	.highlight-line:nth-child(3n + 3) {
-		--random-angle: 1.8deg;
-		background-size:
-			98% 0.5em,
-			100% 0.45em;
-		-webkit-mask-image:
-			radial-gradient(8px at 96% 66%, transparent 91%, #000 100%),
-			radial-gradient(4px at 88% 63%, transparent 93%, #000 100%),
-			radial-gradient(6px at 80% 67%, transparent 92%, #000 100%),
-			radial-gradient(3px at 72% 64%, transparent 94%, #000 100%),
-			radial-gradient(7px at 64% 66%, transparent 91%, #000 100%),
-			radial-gradient(4px at 56% 63%, transparent 93%, #000 100%),
-			radial-gradient(6px at 48% 67%, transparent 92%, #000 100%),
-			radial-gradient(3px at 40% 64%, transparent 94%, #000 100%),
-			radial-gradient(8px at 32% 66%, transparent 91%, #000 100%),
-			radial-gradient(4px at 24% 63%, transparent 93%, #000 100%),
-			radial-gradient(6px at 16% 67%, transparent 92%, #000 100%),
-			radial-gradient(3px at 8% 64%, transparent 94%, #000 100%),
-			radial-gradient(7px at 2% 66%, transparent 91%, #000 100%), linear-gradient(#000 0 0);
-		mask-image:
-			radial-gradient(8px at 96% 66%, transparent 91%, #000 100%),
-			radial-gradient(4px at 88% 63%, transparent 93%, #000 100%),
-			radial-gradient(6px at 80% 67%, transparent 92%, #000 100%),
-			radial-gradient(3px at 72% 64%, transparent 94%, #000 100%),
-			radial-gradient(7px at 64% 66%, transparent 91%, #000 100%),
-			radial-gradient(4px at 56% 63%, transparent 93%, #000 100%),
-			radial-gradient(6px at 48% 67%, transparent 92%, #000 100%),
-			radial-gradient(3px at 40% 64%, transparent 94%, #000 100%),
-			radial-gradient(8px at 32% 66%, transparent 91%, #000 100%),
-			radial-gradient(4px at 24% 63%, transparent 93%, #000 100%),
-			radial-gradient(6px at 16% 67%, transparent 92%, #000 100%),
-			radial-gradient(3px at 8% 64%, transparent 94%, #000 100%),
-			radial-gradient(7px at 2% 66%, transparent 91%, #000 100%), linear-gradient(#000 0 0);
+		padding: 0;
 	}
 
 	.team-list {

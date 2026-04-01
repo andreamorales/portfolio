@@ -5,7 +5,7 @@
 
 <div class="social-icons">
 	<a
-		href="https://www.github.com/andreamoralescoto"
+		href="https://www.github.com/andreamorales"
 		target="_blank"
 		rel="noopener noreferrer"
 		class="social-icon"
@@ -111,7 +111,7 @@
 		justify-content: center;
 		width: 40px;
 		height: 40px;
-		border-radius: 50%;
+		border-radius: var(--radius-full);
 		background-color: color-mix(in srgb, var(--text-color) 5%, transparent);
 		transition: all var(--transition-fast) ease;
 	}

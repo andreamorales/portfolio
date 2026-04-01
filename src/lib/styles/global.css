@@ -2,6 +2,29 @@
 @import './animations.css';
 @import './variables.css';
 
+/* ------------------------------------------------------------------
+   Border radius — site-wide tokens (overrides variables.css aliases)
+   Use --radius-* for new work; --border-radius* stay for compatibility.
+   ------------------------------------------------------------------ */
+:root {
+	--radius-hairline: 1px;
+	--radius-2xs: 0.125rem;
+	--radius-xs: 0.25rem;
+	--radius-sm: 0.5rem;
+	--radius-md: 0.625rem;
+	--radius-lg: 0.75rem;
+	--radius-xl: 1rem;
+	--radius-2xl: 1.5rem;
+	--radius-pill: 2.125rem;
+	--radius-full: 9999px;
+	--border-radius-sm: var(--radius-2xs);
+	--border-radius: var(--radius-md);
+	--border-radius-md: var(--radius-sm);
+	--border-radius-lg: var(--radius-md);
+	--border-radius-xl: var(--radius-xl);
+	--border-radius-full: var(--radius-full);
+}
+
 /* Base element styles */
 *,
 *::before,
@@ -342,11 +365,11 @@ input:checked + .slider:before {
 }
 
 .slider.round {
-	border-radius: 34px;
+	border-radius: var(--radius-pill);
 }
 
 .slider.round:before {
-	border-radius: 50%;
+	border-radius: var(--radius-full);
 }
 
 /* Utility classes */
@@ -380,7 +403,7 @@ input:checked + .slider:before {
 	color: var(--text-color) !important;
 	text-align: center;
 	padding: 8px;
-	border-radius: 8px;
+	border-radius: var(--radius-sm);
 	position: absolute;
 	z-index: 1;
 	bottom: 125%;
@@ -434,7 +457,7 @@ input:checked + .slider:before {
 	width: 16px;
 	background-color: transparent;
 	border: 1px solid color-mix(in srgb, var(--text-color) 20%, transparent);
-	border-radius: 3px;
+	border-radius: var(--radius-xs);
 	box-sizing: border-box;
 	display: flex;
 	align-items: center;
@@ -504,7 +527,7 @@ button {
 	--font-size-9xl: 8rem;
 
 	/* Typography */
-	--font-family: 'Recursive';
+	--font-family: 'DM Mono', monospace;
 	--font-family-display: 'Refract', sans-serif;
 	--line-height: 100%;
 
@@ -524,7 +547,6 @@ button {
 
 	/* Spacing & Layout */
 	--border-width: 0px;
-	--border-radius: 0.65rem;
 	--transition: 0.2s ease-in-out;
 
 	/* Button styles */
@@ -809,4 +831,64 @@ textarea {
 	resize: vertical;
 	min-height: 100px;
 	line-height: 1.4;
+}
+
+/* ------------------------------------------------------------------
+   Site palette — warm cream surface (#f3ead6) + ink (#363636)
+   Greys bridge bg → type; rainbow accents sit on cream without clashing.
+   Use --palette-* in components; map legacy greys where helpful.
+   ------------------------------------------------------------------ */
+:root,
+:root.light {
+	--palette-bg: #f3ead6;
+	--palette-ink: #363636;
+
+	/* Warm greys (light = near surface, dark = near ink) */
+	--palette-grey-100: #f7f2e8;
+	--palette-grey-200: #ebe4d6;
+	--palette-grey-300: #cfc7b8;
+	--palette-grey-400: #a8a091;
+	--palette-grey-500: #7f786f;
+	--palette-grey-600: #5c564f;
+	--palette-grey-700: #3d3a38;
+	--palette-grey-muted: #8a847a;
+	--palette-grey-hint: #9d968b;
+
+	/* Rainbow — slightly desaturated so they read on cream + next to charcoal */
+	--palette-rainbow-1: #c45a5a;
+	--palette-rainbow-2: #d4823a;
+	--palette-rainbow-3: #c9a63a;
+	--palette-rainbow-4: #4f8f6a;
+	--palette-rainbow-5: #3a8f8f;
+	--palette-rainbow-6: #5a7fb8;
+	--palette-rainbow-7: #8b6fb8;
+	--palette-rainbow-8: #b06a8f;
+
+	--palette-rainbow-gradient-h: linear-gradient(
+		90deg,
+		var(--palette-rainbow-1),
+		var(--palette-rainbow-2),
+		var(--palette-rainbow-3),
+		var(--palette-rainbow-4),
+		var(--palette-rainbow-5),
+		var(--palette-rainbow-6),
+		var(--palette-rainbow-7),
+		var(--palette-rainbow-1)
+	);
+	--palette-rainbow-gradient-v: linear-gradient(
+		180deg,
+		var(--palette-rainbow-8),
+		var(--palette-rainbow-1),
+		var(--palette-rainbow-2),
+		var(--palette-rainbow-3),
+		var(--palette-rainbow-4),
+		var(--palette-rainbow-5),
+		var(--palette-rainbow-6),
+		var(--palette-rainbow-8)
+	);
+
+	/* Align core tokens with this palette (overrides earlier :root layers) */
+	--bg-color: var(--palette-bg);
+	--text-color: var(--palette-ink);
+	--muted-text: var(--palette-grey-500);
 }

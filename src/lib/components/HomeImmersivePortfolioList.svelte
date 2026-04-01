@@ -56,11 +56,11 @@
 
 	.piece-shell {
 		width: 100%;
-		background-color: var(--bg-color);
-		border: 1px solid var(--grey-darker);
-		border-radius: 12px;
-		box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
-		overflow: hidden;
+		background-color: transparent;
+		border: none;
+		border-radius: 0;
+		box-shadow: none;
+		overflow: visible;
 	}
 
 	.portfolio-content {
@@ -71,9 +71,9 @@
 			'wght' 400;
 		position: relative;
 		z-index: 5;
-		background-color: var(--bg-color);
-		border: 1px solid var(--grey-darker);
-		border-radius: 4px;
+		background-color: transparent;
+		border: none;
+		border-radius: 0;
 		width: 100%;
 		box-sizing: border-box;
 		display: flex;
@@ -101,7 +101,7 @@
 		}
 
 		.piece-shell {
-			border-radius: 8px;
+			border-radius: 0;
 		}
 	}
 </style>
