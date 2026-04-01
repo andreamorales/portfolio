@@ -5,7 +5,7 @@
 
 <div class="social-icons">
 	<a
-		href="https://github.com/"
+		href="https://www.github.com/andreamoralescoto"
 		target="_blank"
 		rel="noopener noreferrer"
 		class="social-icon"

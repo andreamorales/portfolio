@@ -172,7 +172,7 @@
 	}
 
 	function openGithubProfile() {
-		window.open('https://github.com/andymorales', '_blank');
+		window.open('https://www.github.com/andreamoralescoto', '_blank');
 	}
 
 	function openResume() {
