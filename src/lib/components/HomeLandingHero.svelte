@@ -2,13 +2,14 @@
 	import { afterUpdate, onDestroy, onMount, tick } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { CornerDownLeft } from 'lucide-svelte';
-	import { fade } from 'svelte/transition';
+	import { fade, slide } from 'svelte/transition';
 	import type { PortfolioItem } from '$lib/data/portfolio-items.js';
 	import { contactLinks } from '$lib/data/contact-links';
 	import { scrollFadeEntry } from '$lib/actions/scrollFadeEntry';
 
 	export let portfolioItems: PortfolioItem[] = [];
 	export let onOpenPortfolio: (index: number) => void = () => {};
+	export let onCopyEmail: () => void = () => {};
 
 	type Feedback =
 		| { kind: 'help' }
@@ -22,6 +23,7 @@
 		cmd: string;
 		feedback: Feedback;
 		fullText: string;
+		styledHtml: string;
 		typingProgress: number;
 		typingComplete: boolean;
 	};
@@ -37,30 +39,35 @@
 	let lastTypingStartedId: string | null = null;
 	let typingTimer: ReturnType<typeof setInterval> | null = null;
 	let prevShowReturnHint = true;
+	let bottomPromptVisible = false;
 
 	$: lastEntry = history.length ? history[history.length - 1] : null;
 	$: lastFeedback = lastEntry?.feedback ?? null;
 	$: portfolioInteractive =
 		lastFeedback?.kind === 'portfolio' && (lastEntry?.typingComplete ?? false);
 
+	function esc(s: string): string {
+		return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+	}
+
 	function feedbackToPlainText(f: Feedback, items: PortfolioItem[]): string {
 		switch (f.kind) {
 			case 'help':
 				return (
 					`Commands\n\n` +
-					`  --portfolio\n` +
-					`    List work — use ↑/↓ then Enter or Space to open.\n\n` +
-					`  --portfolio <name>\n` +
-					`    Jump to a piece (partial title ok).\n\n` +
-					`  --about\n` +
-					`    About page.\n\n` +
-					`  --contact\n` +
-					`    Clickable links (email & socials).\n\n`
+					`--portfolio\n` +
+					`List work — use ↑/↓ then Enter or Space to open.\n\n` +
+					`--portfolio <name>\n` +
+					`Jump to a piece (partial title ok).\n\n` +
+					`--about\n` +
+					`About page.\n\n` +
+					`--contact\n` +
+					`Clickable links (email & socials).\n\n`
 				);
 			case 'contact':
 				return (
 					`Links\n\n` +
-					contactLinks.map((l) => `${l.label}\n  ${l.href}`).join('\n\n') +
+					contactLinks.map((l) => l.label).join('  ') +
 					`\n\n`
 				);
 			case 'error':
@@ -71,6 +78,102 @@
 				return (
 					`↑↓ select · Enter / Space open · Esc cancel\n\n` +
 					items.map((it) => it.title).join('\n') +
+					`\n\n`
+				);
+		}
+	}
+
+	function sliceStyledHtml(html: string, maxChars: number): string {
+		let visible = 0;
+		let inTag = false;
+		let result = '';
+		const openTags: string[] = [];
+		let currentTag = '';
+
+		for (let i = 0; i < html.length; i++) {
+			const ch = html[i];
+
+			if (ch === '<') {
+				if (visible >= maxChars && !inTag) break;
+				inTag = true;
+				currentTag = '';
+				result += ch;
+				continue;
+			}
+
+			if (inTag) {
+				result += ch;
+				if (ch === '>') {
+					inTag = false;
+					if (currentTag.startsWith('/')) {
+						openTags.pop();
+					} else {
+						const tagName = currentTag.split(/[\s/>]/)[0];
+						if (tagName) openTags.push(tagName);
+					}
+					currentTag = '';
+				} else {
+					currentTag += ch;
+				}
+				continue;
+			}
+
+			if (visible >= maxChars) break;
+
+			if (ch === '&') {
+				const semi = html.indexOf(';', i);
+				if (semi !== -1 && semi - i < 8) {
+					result += html.slice(i, semi + 1);
+					i = semi;
+					visible++;
+					continue;
+				}
+			}
+
+			result += ch;
+			visible++;
+		}
+
+		for (let j = openTags.length - 1; j >= 0; j--) {
+			result += `</${openTags[j]}>`;
+		}
+		return result;
+	}
+
+	function feedbackToStyledHtml(f: Feedback, items: PortfolioItem[]): string {
+		switch (f.kind) {
+			case 'help':
+				return (
+					`<span class="cli-t-bold">Commands</span>\n\n` +
+					`<span class="cli-t-cmd">--portfolio</span>\n` +
+					`List work — use ↑/↓ then Enter or Space to open.\n\n` +
+					`<span class="cli-t-cmd">--portfolio &lt;name&gt;</span>\n` +
+					`Jump to a piece (partial title ok).\n\n` +
+					`<span class="cli-t-cmd">--about</span>\n` +
+					`About page.\n\n` +
+					`<span class="cli-t-cmd">--contact</span>\n` +
+					`Clickable links (email &amp; socials).\n\n`
+				);
+			case 'contact':
+				return (
+					`<span class="cli-t-bold">Links</span>\n\n` +
+					contactLinks
+						.map((l) =>
+							l.action === 'copy'
+								? `<span class="cli-t-link" role="button" tabindex="0" data-copy-email>${esc(l.label)}</span>`
+								: `<a class="cli-t-link" href="${esc(l.href)}" target="_blank" rel="noopener noreferrer">${esc(l.label)}</a>`
+						)
+						.join('  ') +
+					`\n\n`
+				);
+			case 'error':
+				return `<span class="cli-t-err">${esc(f.message)}</span>\n\n`;
+			case 'system':
+				return `${esc(f.message)}\n\n`;
+			case 'portfolio':
+				return (
+					`↑↓ select · Enter / Space open · Esc cancel\n\n` +
+					items.map((it) => esc(it.title)).join('\n') +
 					`\n\n`
 				);
 		}
@@ -147,6 +250,7 @@
 
 	function pushEntry(cmd: string, feedback: Feedback) {
 		const fullText = feedbackToPlainText(feedback, portfolioItems);
+		const styledHtml = feedbackToStyledHtml(feedback, portfolioItems);
 		history = history.map((h) =>
 			h.typingComplete
 				? h
@@ -159,6 +263,7 @@
 				cmd,
 				feedback,
 				fullText,
+				styledHtml,
 				typingProgress: 0,
 				typingComplete: fullText.length === 0
 			}
@@ -175,10 +280,15 @@
 		const cmdSnapshot = commandLine;
 		commandLine = '';
 		const parsed = parseCommand(cmdSnapshot);
+		const isFirstCommand = showReturnHint;
+		showReturnHint = false;
+
+		if (isFirstCommand) {
+			await new Promise<void>((r) => setTimeout(r, 250));
+		}
 
 		switch (parsed.type) {
 			case 'help':
-				showReturnHint = false;
 				pushEntry(cmdSnapshot, { kind: 'help' });
 				break;
 			case 'about':
@@ -296,9 +406,6 @@
 	}
 
 	afterUpdate(() => {
-		if (prevShowReturnHint && !showReturnHint) {
-			tick().then(() => cliInputEl?.focus());
-		}
 		prevShowReturnHint = showReturnHint;
 
 		if (scrollLogEl && history.length) {
@@ -312,6 +419,10 @@
 		}
 		if (last?.typingComplete) {
 			lastTypingStartedId = null;
+			if (!bottomPromptVisible) {
+				bottomPromptVisible = true;
+				tick().then(() => cliInputEl?.focus());
+			}
 		}
 	});
 </script>
@@ -322,12 +433,22 @@
 			I design tools.
 		</div>
 		<div class="cli-block" in:fade={{ duration: 600, delay: 380 }}>
+			<!-- svelte-ignore a11y-click-events-have-key-events -->
+			<!-- svelte-ignore a11y-no-static-element-interactions -->
 			<div
 				class="cli-terminal-window"
-				class:cli-terminal-window--bottom-prompt={!showReturnHint}
+				class:cli-terminal-window--bottom-prompt={bottomPromptVisible}
+				on:click={(e) => {
+					const t = e.target instanceof HTMLElement ? e.target : null;
+					if (t?.closest('[data-copy-email]')) {
+						e.preventDefault();
+						onCopyEmail();
+					}
+				}}
 			>
-				{#if showReturnHint}
-					<div class="cli-top-bar" class:cli-top-bar--has-body={history.length > 0}>
+			{#if showReturnHint}
+				<div class="cli-top-bar" class:cli-top-bar--has-body={history.length > 0}
+					transition:fade={{ duration: 200 }}>
 						<div class="cli-row">
 							<div class="cli-shell">
 								<div class="cli-inner" role="group" aria-label="Command line">
@@ -372,11 +493,11 @@
 							>
 								<div class="cli-history-cmd">$ {entry.cmd}</div>
 								<div class="cli-history-result">
-									{#if !entry.typingComplete}
-										<pre class="cli-typewriter">{entry.fullText.slice(0, entry.typingProgress)}<span
-												class="cli-type-cursor"
-												aria-hidden="true">▊</span
-											></pre>
+								{#if !entry.typingComplete}
+									<pre class="cli-typewriter">{@html sliceStyledHtml(entry.styledHtml, entry.typingProgress)}<span
+											class="cli-type-cursor"
+											aria-hidden="true">▊</span
+										></pre>
 									{:else if entry.feedback.kind === 'portfolio'}
 										{#if entry.id === lastEntry?.id}
 											<div
@@ -407,19 +528,7 @@
 											<pre class="cli-typewriter cli-typewriter--done">Portfolio browser (ended).</pre>
 										{/if}
 									{:else}
-										<pre
-											class="cli-typewriter cli-typewriter--done"
-											class:cli-typewriter--error={entry.feedback.kind === 'error'}>{entry.fullText}</pre>
-										{#if entry.feedback.kind === 'contact'}
-											<div class="cli-contact-actions" aria-label="Open links">
-												{#each contactLinks as link}
-													<a href={link.href} target="_blank" rel="noopener noreferrer">{link.label}</a>
-												{/each}
-											</div>
-										{/if}
-									{/if}
-									{#if entry.typingComplete}
-										<div class="cli-empty-line" aria-hidden="true">&nbsp;</div>
+										<pre class="cli-typewriter cli-typewriter--done">{@html entry.styledHtml}</pre>
 									{/if}
 								</div>
 							</div>
@@ -428,8 +537,9 @@
 				</div>
 				{/if}
 
-				{#if !showReturnHint}
-					<div class="cli-bottom-prompt" role="group" aria-label="Command line">
+			{#if bottomPromptVisible}
+				<div class="cli-bottom-prompt" role="group" aria-label="Command line"
+					in:fade={{ duration: 250 }}>
 						<label class="cli-label-visually-hidden" for="cli-command-input">Command</label>
 						<span class="cli-prompt" aria-hidden="true">$</span>
 						<input
@@ -481,10 +591,10 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0;
-		/* Fixed width: do not grow/shrink with streamed text (was fit-to-content during typing). */
-		width: min(100%, 42rem);
-		max-width: 42rem;
+		width: 100%;
+		min-width: 0;
 		box-sizing: border-box;
+		contain: inline-size;
 	}
 
 	/* Single dark surface: input + output grow together */
@@ -493,12 +603,18 @@
 		flex-direction: column;
 		width: 100%;
 		min-height: 0;
+		max-height: min(48vh, 22rem);
 		background-color: var(--text-color);
 		color: var(--bg-color);
 		border-radius: var(--border-radius);
 		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
 		overflow: hidden;
 		transition: box-shadow 0.25s ease;
+		font-family: 'IBM Plex Mono', ui-monospace, monospace;
+		font-size: 0.82rem;
+		font-weight: 400;
+		line-height: 1.45;
+		letter-spacing: 0.02em;
 	}
 
 	.cli-top-bar {
@@ -531,11 +647,6 @@
 		box-sizing: border-box;
 		min-width: 0;
 		padding: 0;
-		font-family: 'IBM Plex Mono', ui-monospace, monospace;
-		font-size: 0.875rem;
-		font-weight: 400;
-		line-height: 1.35;
-		letter-spacing: 0.02em;
 	}
 
 	.cli-label-visually-hidden {
@@ -567,6 +678,8 @@
 		letter-spacing: inherit;
 		padding: 0;
 		outline: none;
+		caret-color: rgba(243, 234, 214, 0.9);
+		caret-shape: bar;
 	}
 
 	.cli-input::placeholder {
@@ -648,11 +761,6 @@
 		gap: 0.35rem;
 		padding: 0.55rem 0.85rem 0.6rem 0.75rem;
 		border-top: 1px solid rgba(243, 234, 214, 0.12);
-		font-family: 'IBM Plex Mono', ui-monospace, monospace;
-		font-size: 0.875rem;
-		font-weight: 400;
-		line-height: 1.35;
-		letter-spacing: 0.02em;
 	}
 
 	.cli-bottom-prompt .cli-prompt {
@@ -694,26 +802,13 @@
 	}
 
 	.cli-history-cmd {
-		font-family: 'IBM Plex Mono', ui-monospace, monospace;
-		font-size: 0.72rem;
 		color: rgba(243, 234, 214, 0.42);
-		margin-bottom: 0.35rem;
-		letter-spacing: 0.02em;
+		margin-bottom: 0.15rem;
 	}
 
-	/* Single stream: same <pre> while typing and when done (no HTML swap). */
 	.cli-history-result {
-		--cli-out-size: 0.78rem;
-		--cli-out-lh: 1.45;
-		--cli-out-color: rgba(243, 234, 214, 0.9);
-		font-family: 'IBM Plex Mono', ui-monospace, monospace;
-		font-size: var(--cli-out-size);
-		line-height: var(--cli-out-lh);
+		color: rgba(243, 234, 214, 0.9);
 		padding: 0.15rem 0 0.35rem;
-		border-radius: 0;
-		background: transparent;
-		color: var(--cli-out-color);
-		box-shadow: none;
 		width: 100%;
 		min-width: 0;
 		box-sizing: border-box;
@@ -738,14 +833,28 @@
 		tab-size: 2;
 	}
 
-	.cli-typewriter--error {
-		color: color-mix(in srgb, var(--palette-rainbow-1) 88%, white) !important;
+	.cli-typewriter :global(.cli-t-bold) {
+		font-weight: 600;
+		color: rgba(243, 234, 214, 1);
+	}
+
+	.cli-typewriter :global(.cli-t-cmd) {
+		color: var(--palette-rainbow-4, #5de4c7);
+		font-weight: 500;
+	}
+
+	.cli-typewriter :global(.cli-t-dim) {
+		opacity: 0.6;
+	}
+
+	.cli-typewriter :global(.cli-t-err) {
+		color: color-mix(in srgb, var(--palette-rainbow-1) 88%, white);
 	}
 
 	.cli-type-cursor {
 		display: inline-block;
 		margin-left: 1px;
-		color: rgba(243, 234, 214, 0.55);
+		color: rgba(243, 234, 214, 0.95);
 		animation: cli-cursor-blink 1s steps(1, end) infinite;
 		vertical-align: text-bottom;
 	}
@@ -761,31 +870,16 @@
 		}
 	}
 
-	.cli-empty-line {
-		min-height: 1.15em;
-		margin-top: 0.35rem;
-		border-top: 1px solid rgba(243, 234, 214, 0.08);
-	}
 
-	.cli-contact-actions {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.45rem 0.75rem;
-		margin-top: 0.4rem;
-		font-family: inherit;
-		font-size: inherit;
-		line-height: inherit;
-	}
-
-	.cli-contact-actions a {
-		color: inherit;
+	.cli-typewriter :global(.cli-t-link) {
+		color: var(--palette-rainbow-6, #5a7fb8);
 		text-decoration: underline;
 		text-underline-offset: 2px;
-		font-size: inherit;
+		cursor: pointer;
 	}
 
-	.cli-contact-actions a:hover {
-		opacity: 0.92;
+	.cli-typewriter :global(.cli-t-link:hover) {
+		opacity: 0.8;
 	}
 
 	.cli-output--portfolio {
@@ -859,17 +953,14 @@
 			padding: 0.5rem 0.7rem;
 		}
 
-		.cli-inner {
-			font-size: 0.8125rem;
+		.cli-terminal-window {
+			font-size: 0.76rem;
+			max-height: min(42vh, 18rem);
 		}
 
 		.cli-return-hint {
 			font-size: 0.5rem;
 			gap: 0.2rem;
-		}
-
-		.cli-history-result {
-			--cli-out-size: 0.72rem;
 		}
 
 		.cli-terminal-window--bottom-prompt {

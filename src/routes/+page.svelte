@@ -5,6 +5,7 @@
 	import HomeLandingHero from '$lib/components/HomeLandingHero.svelte';
 	import HomeImmersivePortfolioList from '$lib/components/HomeImmersivePortfolioList.svelte';
 	import HomeNextPieceBanner from '$lib/components/HomeNextPieceBanner.svelte';
+	import Toast from '$lib/components/ui/Toast.svelte';
 	import { portfolioItems } from '$lib/data/portfolio-items.js';
 	import type { PortfolioItem } from '$lib/data/portfolio-items.js';
 	import { colibri } from '$lib/data/home-page-assets';
@@ -35,6 +36,31 @@
 	let landingHeroElement: HTMLElement | null = null;
 	let frameBottomLineEl: HTMLDivElement | null = null;
 	let frameRightLineEl: HTMLDivElement | null = null;
+	let showToast = false;
+	let toastMessage = '';
+
+	async function copyEmailToClipboard() {
+		const email = 'andreamoralescoto@gmail.com';
+		try {
+			const tempInput = document.createElement('input');
+			tempInput.value = email;
+			document.body.appendChild(tempInput);
+			tempInput.select();
+			tempInput.setSelectionRange(0, 99999);
+			try {
+				await navigator.clipboard.writeText(email);
+				toastMessage = 'Email copied!';
+			} catch {
+				document.execCommand('copy');
+				toastMessage = 'Email copied!';
+			}
+			showToast = true;
+			document.body.removeChild(tempInput);
+		} catch {
+			toastMessage = 'Email: andreamoralescoto@gmail.com';
+			showToast = true;
+		}
+	}
 
 	const FRAME_BOTTOM_REST = '0% 50%';
 	const FRAME_RIGHT_REST = '50% 0%';
@@ -232,6 +258,8 @@
 	<meta name="description" content="Andy Morales - Product designer for creative tools." />
 </svelte:head>
 
+<Toast message={toastMessage} bind:visible={showToast} />
+
 <div class="landing-page">
 	<div class="viewport-frame-lines" aria-hidden="true">
 		<div
@@ -280,6 +308,7 @@
 					<HomeLandingHero
 						portfolioItems={sortedPortfolioItems}
 						onOpenPortfolio={openPortfolioPiece}
+						onCopyEmail={copyEmailToClipboard}
 					/>
 				</div>
 			{:else}
