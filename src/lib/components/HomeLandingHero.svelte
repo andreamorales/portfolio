@@ -10,6 +10,7 @@
 	export let portfolioItems: PortfolioItem[] = [];
 	export let onOpenPortfolio: (index: number) => void = () => {};
 	export let onCopyEmail: () => void = () => {};
+	export let onGoHome: () => void = () => {};
 
 	type Feedback =
 		| { kind: 'help' }
@@ -28,13 +29,13 @@
 		typingComplete: boolean;
 	};
 
-	let commandLine = '--h';
+	let commandLine = '--help';
 	let history: HistoryEntry[] = [];
 	let portfolioPickIndex = 0;
 	let cliInputEl: HTMLInputElement | null = null;
 	let scrollLogEl: HTMLDivElement | null = null;
 	let outputId = 'cli-output-region';
-	/** After the first `--h` / help, hide Return and expand the CLI. */
+	/** After the first `--help` / help, hide Return and expand the CLI. */
 	let showReturnHint = true;
 	let lastTypingStartedId: string | null = null;
 	let typingTimer: ReturnType<typeof setInterval> | null = null;
@@ -86,6 +87,8 @@
 			case 'help':
 				return (
 					`Commands\n\n` +
+					`--help\n` +
+					`Show this list.\n\n` +
 					`--portfolio\n` +
 					`List work — use ↑/↓ then Enter or Space to open.\n\n` +
 					`--portfolio <name>\n` +
@@ -172,6 +175,8 @@
 			case 'help':
 				return (
 					`<span class="cli-t-bold">Commands</span>\n\n` +
+					`<span class="cli-t-cmd">--help</span>\n` +
+					`Show this list.\n\n` +
 					`<span class="cli-t-cmd">--portfolio</span>\n` +
 					`List work — use ↑/↓ then Enter or Space to open.\n\n` +
 					`<span class="cli-t-cmd">--portfolio &lt;name&gt;</span>\n` +
@@ -351,7 +356,7 @@
 			default:
 				pushEntry(cmdSnapshot, {
 					kind: 'error',
-					message: `Unknown command: ${parsed.line}. Try --h for available commands.`
+					message: `Unknown command: ${parsed.line}. Try --help for available commands.`
 				});
 		}
 	}
@@ -447,12 +452,13 @@
 	});
 </script>
 
-<div class="header flex-column-left gap-small">
-	<div class="hero-column">
-		<div class="description" in:fade={{ duration: 600, delay: 300 }}>
-			I design tools.
-		</div>
-		<div class="cli-block" in:fade={{ duration: 600, delay: 380 }}>
+<div class="hero-intro-stack">
+	<!-- svelte-ignore a11y-click-events-have-key-events -->
+	<!-- svelte-ignore a11y-no-static-element-interactions -->
+	<div class="description" in:fade={{ duration: 600, delay: 300 }} on:click={onGoHome} role="button" tabindex="0">
+		I design tools.
+	</div>
+	<div class="cli-block" in:fade={{ duration: 600, delay: 380 }}>
 			<!-- svelte-ignore a11y-click-events-have-key-events -->
 			<!-- svelte-ignore a11y-mouse-events-have-key-events -->
 			<!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -559,18 +565,16 @@
 						/>
 					</div>
 				{/if}
-			</div>
 		</div>
 	</div>
 </div>
 
 <style>
-	.hero-column {
+	.hero-intro-stack {
 		display: flex;
 		flex-direction: column;
-		align-items: stretch;
-		gap: 0.5rem;
-		align-self: flex-start;
+		align-items: flex-start;
+		gap: var(--spacing-xs);
 		width: fit-content;
 		max-width: 100%;
 	}
@@ -580,7 +584,7 @@
 		font-size: clamp(3.52rem, 5.6vw, 5.44rem);
 		font-style: normal;
 		font-weight: 400;
-		line-height: 0.92;
+		line-height: 1.08;
 		letter-spacing: -0.02em;
 		position: relative;
 		z-index: 2;
@@ -588,6 +592,39 @@
 		width: 100%;
 		white-space: nowrap;
 		overflow: visible;
+		cursor: default;
+		background-clip: text;
+		-webkit-background-clip: text;
+		transition: color 0.35s ease;
+		/* Room for descenders (g, y) when gradient clips to text */
+		padding-bottom: 0.12em;
+		box-decoration-break: clone;
+		-webkit-box-decoration-break: clone;
+	}
+
+	.description:hover {
+		cursor: pointer;
+		color: transparent;
+		background-image: var(--palette-rainbow-gradient-h);
+		background-size: 400% 120%;
+		background-position: 0% 45%;
+		animation: description-rainbow 18s linear infinite;
+	}
+
+	@keyframes description-rainbow {
+		0% {
+			background-position: 0% 45%;
+		}
+		100% {
+			background-position: 400% 45%;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.description:hover {
+			animation: none;
+			background-position: 0% 45%;
+		}
 	}
 
 	.cli-block {
@@ -598,10 +635,49 @@
 		min-width: 0;
 		box-sizing: border-box;
 		contain: inline-size;
+		position: relative;
+		z-index: 0;
+		isolation: isolate;
+	}
+
+	/* Rainbow glow from the edges outward (no center hotspot) */
+	.cli-block::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		z-index: 0;
+		border-radius: var(--border-radius);
+		pointer-events: none;
+		background-image:
+			var(--palette-rainbow-gradient-h),
+			var(--palette-rainbow-gradient-h),
+			var(--palette-rainbow-gradient-h),
+			var(--palette-rainbow-gradient-h);
+		background-position:
+			top center,
+			bottom center,
+			left center,
+			right center;
+		background-size:
+			100% 5px,
+			100% 5px,
+			5px 100%,
+			5px 100%;
+		background-repeat: no-repeat;
+		filter: blur(10px);
+		opacity: 0.9;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.cli-block::before {
+			opacity: 0.08;
+		}
 	}
 
 	/* Single dark surface: input + output grow together */
 	.cli-terminal-window {
+		position: relative;
+		z-index: 1;
 		display: flex;
 		flex-direction: column;
 		width: 100%;
@@ -678,11 +754,15 @@
 		background: transparent;
 		color: var(--bg-color);
 		font: inherit;
+		line-height: 1.2;
 		letter-spacing: inherit;
 		padding: 0;
+		min-height: 1.2em;
 		outline: none;
 		caret-color: rgba(243, 234, 214, 0.9);
-		caret-shape: bar;
+		font-variant-ligatures: none;
+		text-rendering: geometricPrecision;
+		-webkit-font-smoothing: antialiased;
 	}
 
 	.cli-input::placeholder {
@@ -909,7 +989,7 @@
 	@media (max-width: 768px) {
 		.description {
 			font-size: clamp(2.32rem, 8vw, 3.6rem);
-			line-height: 1;
+			line-height: 1.08;
 			letter-spacing: -0.02em;
 		}
 

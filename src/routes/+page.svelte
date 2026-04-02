@@ -369,59 +369,63 @@
 		/>
 	{/if}
 
-	{#if activeDetailItem && !immersiveMode}
-		<div class="detail-panel">
-			<div class="detail-panel-rainbow detail-panel-rainbow--top" aria-hidden="true"></div>
-			<div class="detail-panel-rainbow detail-panel-rainbow--left" aria-hidden="true"></div>
-			<div class="detail-panel-grid detail-panel-grid--enter">
-				<div class="detail-panel-piece" bind:this={detailPieceEl}>
-					<PortfolioExpandedView
-						projectTitle={activeDetailItem.title}
-						tags={activeDetailItem.tags}
-						description={activeDetailItem.description}
-						images={activeDetailItem.images}
-						content={activeDetailItem.content}
-						year={activeDetailItem.year}
-						role={activeDetailItem.role}
-						link={activeDetailItem.link}
-						metrics={activeDetailItem.metrics}
-						team={activeDetailItem.team}
-						locked={activeDetailItem.locked}
-						unlockPassword={activeDetailItem.unlockPassword}
-						immersive={false}
-					/>
-				</div>
-				<div class="detail-panel-sidebar">
-					<div class="detail-panel-video">
-						{#if activeDetailItem.videoUrl}
-							<iframe
-								src={activeDetailItem.videoUrl}
-								title="Video for {activeDetailItem.title}"
-								frameborder="0"
-								allow="autoplay; encrypted-media"
-								allowfullscreen
-							></iframe>
-						{:else}
-							<span class="detail-panel-placeholder">Video</span>
-						{/if}
-					</div>
-					<div class="detail-panel-transcript">
-						<span class="detail-panel-placeholder">Transcript</span>
-					</div>
-				</div>
-			</div>
-		</div>
-	{/if}
-
 	<main class="container flex-column-left" class:immersive-mode={immersiveMode}>
 		{#if mounted}
 			{#if !immersiveMode}
-				<div class="landing-hero-anchor" bind:this={landingHeroElement}>
+				<div class="landing-landing-row">
+					<div class="landing-hero-anchor" bind:this={landingHeroElement}>
 					<HomeLandingHero
 						portfolioItems={sortedPortfolioItems}
 						onOpenPortfolio={openPortfolioPiece}
 						onCopyEmail={copyEmailToClipboard}
+						onGoHome={() => { activeDetailItem = null; updatePieceQuery(null); }}
 					/>
+					</div>
+					{#if activeDetailItem}
+						<div class="landing-portfolio-shell">
+							<div class="detail-panel">
+								<div class="detail-panel-rainbow detail-panel-rainbow--top" aria-hidden="true"></div>
+								<div class="detail-panel-rainbow detail-panel-rainbow--left" aria-hidden="true"></div>
+								<div class="detail-panel-grid detail-panel-grid--enter">
+									<div class="detail-panel-piece" bind:this={detailPieceEl}>
+										<PortfolioExpandedView
+											projectTitle={activeDetailItem.title}
+											tags={activeDetailItem.tags}
+											description={activeDetailItem.description}
+											images={activeDetailItem.images}
+											content={activeDetailItem.content}
+											year={activeDetailItem.year}
+											role={activeDetailItem.role}
+											link={activeDetailItem.link}
+											metrics={activeDetailItem.metrics}
+											team={activeDetailItem.team}
+											locked={activeDetailItem.locked}
+											unlockPassword={activeDetailItem.unlockPassword}
+											immersive={false}
+										/>
+									</div>
+									<div class="detail-panel-sidebar">
+										<div class="detail-panel-video">
+											{#if activeDetailItem.videoUrl}
+												<iframe
+													src={activeDetailItem.videoUrl}
+													title="Video for {activeDetailItem.title}"
+													frameborder="0"
+													allow="autoplay; encrypted-media"
+													allowfullscreen
+												></iframe>
+											{:else}
+												<span class="detail-panel-placeholder">Video</span>
+											{/if}
+										</div>
+										<div class="detail-panel-transcript">
+											<span class="detail-panel-placeholder">Transcript</span>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					{/if}
 				</div>
 			{:else}
 				<HomeImmersivePortfolioList items={sortedPortfolioItems} />
@@ -447,6 +451,10 @@
 <style>
 	:global(body.detail-panel-open) {
 		overflow: hidden;
+	}
+
+	:global(body.detail-panel-open) .landing-landing-row {
+		height: calc(100vh - 2 * var(--landing-inset));
 	}
 
 	.landing-page {
@@ -561,17 +569,82 @@
 		gap: 0;
 	}
 
-	.landing-hero-anchor {
+	.landing-landing-row {
+		display: flex;
+		flex-direction: row;
+		align-items: stretch;
+		gap: var(--spacing-extra-large);
 		width: 100%;
+		max-width: 100%;
+		height: calc(100vh - 2 * var(--landing-inset));
+		max-height: calc(100vh - 2 * var(--landing-inset));
+		min-height: 0;
+		overflow: visible;
+	}
+
+	.landing-hero-anchor {
+		flex: 0 0 auto;
+		width: fit-content;
+		max-width: 100%;
+		min-width: 0;
+		overflow: visible;
+	}
+
+	.landing-portfolio-shell {
+		position: relative;
+		z-index: 0;
+		flex: 1 1 0%;
+		min-width: 0;
+		min-height: 0;
+		display: flex;
+		flex-direction: column;
+		align-self: stretch;
+		overflow: visible;
+		isolation: isolate;
+	}
+
+	.landing-portfolio-shell::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		z-index: 0;
+		pointer-events: none;
+		background-image:
+			var(--palette-rainbow-gradient-h),
+			var(--palette-rainbow-gradient-h),
+			var(--palette-rainbow-gradient-h),
+			var(--palette-rainbow-gradient-h);
+		background-position:
+			top center,
+			bottom center,
+			left center,
+			right center;
+		background-size:
+			100% 6px,
+			100% 6px,
+			6px 100%,
+			6px 100%;
+		background-repeat: no-repeat;
+		filter: blur(12px);
+		opacity: 0.90;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.landing-portfolio-shell::before {
+			opacity: 0.12;
+		}
 	}
 
 	.detail-panel {
-		position: fixed;
-		top: calc(max(var(--landing-inset), env(safe-area-inset-top)) + 1rem);
-		right: max(var(--landing-inset), env(safe-area-inset-right));
-		bottom: max(var(--landing-inset), env(safe-area-inset-bottom));
-		left: 36%;
+		position: relative;
+		flex: 1 1 auto;
+		min-height: 0;
+		max-height: 100%;
+		width: 100%;
 		z-index: 3;
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
 	}
 
 	.detail-panel-rainbow {
@@ -612,8 +685,9 @@
 		grid-template-columns: 1fr minmax(0, 0.38fr);
 		grid-template-rows: 1fr;
 		width: 100%;
-		height: 100%;
+		flex: 1 1 auto;
 		min-height: 0;
+		height: 100%;
 		gap: 0;
 	}
 
@@ -759,9 +833,20 @@
 	}
 
 	@media (max-width: 768px) {
-		.detail-panel {
-			left: var(--landing-inset);
-			top: 50%;
+		.landing-landing-row {
+			flex-direction: column;
+			align-items: stretch;
+			gap: var(--spacing-md);
+		}
+
+		.landing-hero-anchor {
+			width: 100%;
+		}
+
+		.landing-portfolio-shell {
+			flex: 1 1 auto;
+			min-height: min(70vh, 32rem);
+			width: 100%;
 		}
 
 		.detail-panel-grid {

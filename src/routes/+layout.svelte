@@ -1,13 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import '../lib/styles/global.css';
+	import ThemeToggle from '$lib/components/ui/ThemeToggle.svelte';
+	import { theme } from '$lib/stores/theme';
 
 	onMount(() => {
-		// Always set light theme
-		if (typeof window !== 'undefined') {
-			localStorage.setItem('theme', 'light-theme');
-			document.documentElement.className = 'light-theme';
-		}
+		const stored = (localStorage.getItem('theme') as 'light-theme' | 'dark-theme') ?? 'light-theme';
+		theme.set(stored);
 	});
 </script>
 
@@ -28,6 +27,7 @@
 	<main class="app-main">
 		<slot />
 	</main>
+	<ThemeToggle />
 </div>
 
 <style>

@@ -892,3 +892,53 @@ textarea {
 	--text-color: var(--palette-ink);
 	--muted-text: var(--palette-grey-500);
 }
+
+/* ------------------------------------------------------------------ */
+/* Dark theme                                                           */
+/* ------------------------------------------------------------------ */
+:root.dark-theme {
+	--palette-bg: #1c1a17;
+	--palette-ink: #f0e8d4;
+
+	--palette-grey-100: #252320;
+	--palette-grey-200: #302e2b;
+	--palette-grey-300: #484542;
+	--palette-grey-400: #6b6764;
+	--palette-grey-500: #908c88;
+	--palette-grey-600: #b8b4b0;
+	--palette-grey-700: #d6d2cd;
+	--palette-grey-muted: #7a7672;
+	--palette-grey-hint: #6e6a66;
+
+	/* Core tokens */
+	--bg-color: var(--palette-bg);
+	--text-color: var(--palette-ink);
+	--muted-text: var(--palette-grey-500);
+
+	/* Text gradient */
+	--text-gradient: linear-gradient(180deg, var(--palette-ink) 70%, #1c1a17 120%);
+
+	/* Buttons */
+	--button-primary-bg: var(--palette-ink);
+	--button-primary-text: var(--palette-bg);
+	--button-primary-border: var(--palette-ink);
+	--button-secondary-bg: var(--palette-bg);
+	--button-secondary-text: var(--palette-ink);
+	--button-secondary-border: var(--palette-ink);
+	--button-bg-color: var(--palette-bg);
+	--button-text-color: var(--palette-ink);
+	--button-secondary-shadow: var(--palette-grey-400);
+	--button-tertiary-text: var(--palette-ink);
+
+	/* Inputs */
+	--input-bg-color: var(--palette-bg);
+	--input-text-color: var(--palette-ink);
+	--input-border-color: var(--palette-grey-500);
+	--input-placeholder-color: var(--palette-grey-500);
+
+	/* Misc */
+	--inverse-bg: var(--palette-ink);
+	--inverse-content: var(--palette-bg);
+	--logo-filter: invert(1);
+	--icon-filter: invert(10%) sepia(10%) saturate(200%) hue-rotate(325deg) brightness(98%) contrast(95%);
+}
