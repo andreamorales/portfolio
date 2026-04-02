@@ -50,6 +50,37 @@
 		return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 	}
 
+	function portfolioListPlainText(items: PortfolioItem[], activeIndex: number): string {
+		return (
+			`↑↓ select · Enter / Space open · Esc cancel\n\n` +
+			items
+				.map((it, i) => {
+					const labels = it.tags?.length ? ` (${it.tags.join(' · ')})` : '';
+					return `${i === activeIndex ? '●' : '•'} ${it.title}${labels}`;
+				})
+				.join('\n') +
+			`\n\n`
+		);
+	}
+
+	function portfolioListStyledHtml(items: PortfolioItem[], activeIndex: number): string {
+		return (
+			`↑↓ select · Enter / Space open · Esc cancel\n\n` +
+			items
+				.map((it, i) => {
+					const bulletClass = i === activeIndex ? 'cli-t-bullet cli-t-bullet--active' : 'cli-t-bullet';
+					const itemClass = i === activeIndex ? 'cli-t-item cli-t-item--active' : 'cli-t-item';
+					const bullet = i === activeIndex ? '●' : '•';
+					const labels = it.tags?.length
+						? ` <span class="cli-t-item-labels" data-portfolio-index="${i}">(${esc(it.tags.join(' · '))})</span>`
+						: '';
+					return `<span class="${bulletClass}" data-portfolio-index="${i}">${bullet}</span> <span class="${itemClass}" data-portfolio-index="${i}">${esc(it.title)}</span>${labels}`;
+				})
+				.join('\n') +
+			`\n\n`
+		);
+	}
+
 	function feedbackToPlainText(f: Feedback, items: PortfolioItem[]): string {
 		switch (f.kind) {
 			case 'help':
@@ -75,11 +106,7 @@
 			case 'system':
 				return `${f.message}\n\n`;
 			case 'portfolio':
-				return (
-					`↑↓ select · Enter / Space open · Esc cancel\n\n` +
-					items.map((it) => it.title).join('\n') +
-					`\n\n`
-				);
+				return portfolioListPlainText(items, 0);
 		}
 	}
 
@@ -171,11 +198,7 @@
 			case 'system':
 				return `${esc(f.message)}\n\n`;
 			case 'portfolio':
-				return (
-					`↑↓ select · Enter / Space open · Esc cancel\n\n` +
-					items.map((it) => esc(it.title)).join('\n') +
-					`\n\n`
-				);
+				return portfolioListStyledHtml(items, 0);
 		}
 	}
 
@@ -239,11 +262,6 @@
 			const el = history.find((h) => h.id === entryId);
 			if (!el || el.typingComplete) {
 				clearTypingTimer();
-				if (el?.typingComplete && el.feedback.kind === 'portfolio') {
-					tick().then(() =>
-						scrollLogEl?.querySelector<HTMLElement>('.cli-output--portfolio')?.focus()
-					);
-				}
 			}
 		}, 18);
 	}
@@ -344,14 +362,16 @@
 		const title = portfolioItems[idx].title;
 		const last = history[history.length - 1];
 		const msg = `Opened: ${title}`;
+		const feedback: Feedback = { kind: 'system', message: msg };
 		lastTypingStartedId = null;
 		clearTypingTimer();
 		history = [
 			...history.slice(0, -1),
 			{
 				...last,
-				feedback: { kind: 'system', message: msg },
-				fullText: `${msg}\n\n`,
+				feedback,
+				fullText: feedbackToPlainText(feedback, portfolioItems),
+				styledHtml: feedbackToStyledHtml(feedback, portfolioItems),
 				typingProgress: 0,
 				typingComplete: false
 			}
@@ -434,6 +454,7 @@
 		</div>
 		<div class="cli-block" in:fade={{ duration: 600, delay: 380 }}>
 			<!-- svelte-ignore a11y-click-events-have-key-events -->
+			<!-- svelte-ignore a11y-mouse-events-have-key-events -->
 			<!-- svelte-ignore a11y-no-static-element-interactions -->
 			<div
 				class="cli-terminal-window"
@@ -444,6 +465,15 @@
 						e.preventDefault();
 						onCopyEmail();
 					}
+				}}
+				on:mouseover={(e) => {
+					if (!portfolioInteractive) return;
+					const t = e.target instanceof HTMLElement ? e.target : null;
+					const pick = t?.closest<HTMLElement>('[data-portfolio-index]')?.dataset.portfolioIndex;
+					if (!pick) return;
+					const parsed = Number.parseInt(pick, 10);
+					if (Number.isNaN(parsed)) return;
+					portfolioPickIndex = Math.max(0, Math.min(parsed, portfolioItems.length - 1));
 				}}
 			>
 			{#if showReturnHint}
@@ -498,37 +528,10 @@
 											class="cli-type-cursor"
 											aria-hidden="true">▊</span
 										></pre>
-									{:else if entry.feedback.kind === 'portfolio'}
-										{#if entry.id === lastEntry?.id}
-											<div
-												class="cli-output cli-output--portfolio"
-												role="listbox"
-												tabindex="0"
-												aria-label="Portfolio pieces — use arrow keys to select, Enter or Space to open"
-											>
-												<p class="cli-portfolio-hint" id="cli-portfolio-hint-{entry.id}">
-													<kbd>↑</kbd><kbd>↓</kbd> select · <kbd>Enter</kbd> / <kbd>Space</kbd> open ·
-													<kbd>Esc</kbd> cancel
-												</p>
-												<div class="cli-portfolio-list">
-													{#each portfolioItems as item, i}
-														<div
-															class="cli-portfolio-item"
-															class:cli-portfolio-item--active={i === portfolioPickIndex}
-															role="option"
-															aria-selected={i === portfolioPickIndex}
-															aria-describedby="cli-portfolio-hint-{entry.id}"
-														>
-															{item.title}
-														</div>
-													{/each}
-												</div>
-											</div>
-										{:else}
-											<pre class="cli-typewriter cli-typewriter--done">Portfolio browser (ended).</pre>
-										{/if}
 									{:else}
-										<pre class="cli-typewriter cli-typewriter--done">{@html entry.styledHtml}</pre>
+										<pre class="cli-typewriter cli-typewriter--done">{@html entry.feedback.kind === 'portfolio' && entry.id === lastEntry?.id
+											? portfolioListStyledHtml(portfolioItems, portfolioPickIndex)
+											: entry.styledHtml}</pre>
 									{/if}
 								</div>
 							</div>
@@ -882,64 +885,25 @@
 		opacity: 0.8;
 	}
 
-	.cli-output--portfolio {
-		outline: none;
-		padding: 0;
-		background: transparent;
-		box-shadow: none;
-		color: inherit;
+	.cli-typewriter :global(.cli-t-bullet) {
+		color: rgba(243, 234, 214, 0.5);
+		transition: color 0.12s ease;
 	}
 
-	.cli-output--portfolio:focus-visible {
-		box-shadow:
-			inset 0 0 0 1px rgba(243, 234, 214, 0.25),
-			0 0 0 2px var(--text-color),
-			0 0 0 4px color-mix(in srgb, var(--palette-rainbow-6) 55%, transparent);
-		border-radius: var(--radius-xs);
+	.cli-typewriter :global(.cli-t-bullet--active) {
+		color: #62d98c;
 	}
 
-	.cli-portfolio-hint {
-		margin: 0 0 0.5rem;
-		font-size: inherit;
-		line-height: inherit;
-		color: inherit;
-		opacity: 0.9;
+	.cli-typewriter :global(.cli-t-item) {
+		transition: color 0.12s ease;
 	}
 
-	.cli-portfolio-hint kbd {
-		display: inline-block;
-		padding: 0.06rem 0.22rem;
-		font-size: inherit;
-		line-height: inherit;
-		font-family: inherit;
-		font-weight: inherit;
-		border-radius: var(--radius-xs);
-		background: rgba(255, 255, 255, 0.08);
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		color: inherit;
-		margin: 0 0.05rem;
-		vertical-align: baseline;
+	.cli-typewriter :global(.cli-t-item--active) {
+		color: rgba(243, 234, 214, 1);
 	}
 
-	.cli-portfolio-list {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-	}
-
-	.cli-portfolio-item {
-		padding: 0.35rem 0.45rem;
-		border-radius: var(--radius-xs);
-		cursor: default;
-		transition: background 0.12s ease;
-		font-size: inherit;
-		line-height: inherit;
-		color: inherit;
-	}
-
-	.cli-portfolio-item--active {
-		background: rgba(255, 255, 255, 0.08);
-		box-shadow: inset 2px 0 0 0 var(--palette-rainbow-6);
+	.cli-typewriter :global(.cli-t-item-labels) {
+		color: rgba(243, 234, 214, 0.58);
 	}
 
 	@media (max-width: 768px) {

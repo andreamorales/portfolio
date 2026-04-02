@@ -43,8 +43,8 @@ export interface PortfolioItem {
 
 const initialPortfolioItems = [
 	{
-		title: 'Layer Health: Full Product',
-		tags: ['UX/UI', 'Frontend'],
+		title: 'Layer Health',
+		tags: ['UX/UI', 'FRONTEND'],
 		expanded: false,
 		description:
 			'A password-protected case study for my most recent end-to-end product work across UX/UI and frontend engineering.',
@@ -475,7 +475,7 @@ const initialPortfolioItems = [
 		]
 	},
 	{
-		title: 'Panto: Full Product',
+		title: 'Panto',
 		tags: ['UX/UI', 'FRONTEND'],
 		expanded: false,
 		description:
@@ -596,7 +596,7 @@ const initialPortfolioItems = [
 		team: [{ role: 'Backend Engineer', name: "Kenan O'Neal", relationship: 'co-founder' }]
 	},
 	{
-		title: 'La Güila Toys: Full Product',
+		title: 'La Güila Toys',
 		tags: ['TOY DESIGN'],
 		expanded: false,
 		description:
@@ -689,7 +689,7 @@ const initialPortfolioItems = [
 		]
 	},
 	{
-		title: 'Torch: Full Product',
+		title: 'Torch',
 		tags: ['GAME DESIGN'],
 		expanded: false,
 		description:
