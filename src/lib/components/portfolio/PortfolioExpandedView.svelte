@@ -290,6 +290,9 @@
 
 <style>
 	.portfolio-expanded-view {
+		font-family: 'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
+			Arial, sans-serif;
+		letter-spacing: -0.01em;
 		width: 100%;
 		max-width: 800px;
 		height: 100%;
@@ -349,7 +352,6 @@
 	}
 
 	.text-block {
-		font-family: var(--font-family);
 		font-size: var(--font-size-base);
 		line-height: 1.6;
 		font-variation-settings:
@@ -383,7 +385,6 @@
 	}
 
 	.image-caption {
-		font-family: var(--font-family);
 		font-size: var(--font-size-sm);
 		font-variation-settings:
 			'CASL' 0,
@@ -440,7 +441,7 @@
 		.highlight-line {
 			display: inline;
 			color: var(--text-color);
-			font-family: var(--font-family);
+			font-family: inherit;
 			line-height: 1.6;
 			background: none;
 			-webkit-mask-image: none;
@@ -466,8 +467,8 @@
 
 	.project-title {
 		margin: 0;
-		font-family: var(--font-family);
-		font-size: clamp(1.5rem, 2vw, 2rem);
+		font-family: 'Instrument Serif', serif;
+		font-size: clamp(2rem, 3vw, 2.8rem);
 		line-height: 1;
 		letter-spacing: -0.08em;
 		color: var(--text-color);
@@ -507,7 +508,7 @@
 
 	.locked-gate-copy {
 		margin: 0;
-		font-family: var(--font-family);
+		font-family: inherit;
 		font-size: var(--font-size-sm);
 		line-height: 1.5;
 		color: var(--text-color);
@@ -565,7 +566,7 @@
 	.project-details-grid {
 		width: 100%;
 		background-color: transparent;
-		font-family: var(--font-family);
+		font-family: inherit;
 		border-top: 1px solid var(--black);
 	}
 
@@ -768,7 +769,7 @@
 	.hero-description {
 		width: 100%;
 		max-width: 65ch;
-		font-family: var(--font-family);
+		font-family: inherit;
 		font-size: var(--font-size-lg);
 		line-height: 1.3;
 		font-variation-settings:

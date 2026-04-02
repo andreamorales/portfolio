@@ -527,8 +527,8 @@ button {
 	--font-size-9xl: 8rem;
 
 	/* Typography */
-	--font-family: 'DM Mono', monospace;
-	--font-family-display: 'Refract', sans-serif;
+	--font-family: 'IBM Plex Mono', monospace;
+	--font-family-display: 'Instrument Serif', serif;
 	--line-height: 100%;
 
 	/* Spacing */

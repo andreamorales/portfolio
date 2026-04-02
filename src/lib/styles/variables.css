@@ -26,8 +26,8 @@
 	--cursor-indigo: #5d67e9;
 
 	/* Font settings */
-	--font-family: 'DM Mono', monospace;
-	--font-family-display: 'Refract', serif;
+	--font-family: 'IBM Plex Mono', monospace;
+	--font-family-display: 'Instrument Serif', serif;
 	--font-size: var(--font-size-base);
 
 	--font-weight-light: 300;

@@ -1,10 +1,12 @@
 <script lang="ts">
-	import { onMount, tick } from 'svelte';
+	import { onDestroy, onMount, tick } from 'svelte';
+	import { fade } from 'svelte/transition';
 	import QuickNav from '$lib/components/portfolio/QuickNav.svelte';
 	import HomeImmersiveTopbar from '$lib/components/HomeImmersiveTopbar.svelte';
 	import HomeLandingHero from '$lib/components/HomeLandingHero.svelte';
 	import HomeImmersivePortfolioList from '$lib/components/HomeImmersivePortfolioList.svelte';
 	import HomeNextPieceBanner from '$lib/components/HomeNextPieceBanner.svelte';
+	import PortfolioExpandedView from '$lib/components/portfolio/PortfolioExpandedView.svelte';
 	import Toast from '$lib/components/ui/Toast.svelte';
 	import { portfolioItems } from '$lib/data/portfolio-items.js';
 	import type { PortfolioItem } from '$lib/data/portfolio-items.js';
@@ -14,6 +16,12 @@
 		const years = year.split('-').map((value) => parseInt(value.trim(), 10));
 		return Math.max(...years);
 	};
+
+	const toPieceSlug = (title: string) =>
+		title
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, '-')
+			.replace(/^-|-$/g, '');
 
 	$: sortedPortfolioItems = [...$portfolioItems].sort(
 		(a: PortfolioItem, b: PortfolioItem) => getLatestYear(b.year) - getLatestYear(a.year)
@@ -38,6 +46,8 @@
 	let frameRightLineEl: HTMLDivElement | null = null;
 	let showToast = false;
 	let toastMessage = '';
+	let activeDetailItem: PortfolioItem | null = null;
+	let detailPieceEl: HTMLDivElement | null = null;
 
 	async function copyEmailToClipboard() {
 		const email = 'andreamoralescoto@gmail.com';
@@ -103,6 +113,39 @@
 
 	let mounted = false;
 
+	$: if (typeof document !== 'undefined') {
+		document.body.classList.toggle('detail-panel-open', !!activeDetailItem && !immersiveMode);
+	}
+
+	$: if (mounted && !immersiveMode && !activeDetailItem && typeof window !== 'undefined') {
+		const hasPieceParam = new URLSearchParams(window.location.search).has('piece');
+		if (hasPieceParam) {
+			openPieceFromUrl();
+		}
+	}
+
+	function updatePieceQuery(piece: PortfolioItem | null) {
+		if (typeof window === 'undefined') return;
+		const url = new URL(window.location.href);
+		if (piece) {
+			url.searchParams.set('piece', toPieceSlug(piece.title));
+		} else {
+			url.searchParams.delete('piece');
+		}
+		window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+	}
+
+	function openPieceFromUrl() {
+		if (typeof window === 'undefined' || immersiveMode) return;
+		const slug = new URLSearchParams(window.location.search).get('piece');
+		if (!slug) {
+			activeDetailItem = null;
+			return;
+		}
+		const found = sortedPortfolioItems.find((item) => toPieceSlug(item.title) === slug) ?? null;
+		activeDetailItem = found;
+	}
+
 	async function enterImmersiveMode(targetIndex: number = 0) {
 		if (immersiveMode || isActivatingImmersive) {
 			if (immersiveMode) {
@@ -115,6 +158,8 @@
 		allowScrollToOpen = false;
 		canCloseImmersiveAtTop = false;
 		immersiveMode = true;
+		activeDetailItem = null;
+		updatePieceQuery(null);
 		navMenuOpen = false;
 		activePortfolioIndex = targetIndex;
 
@@ -155,12 +200,12 @@
 	}
 
 	function openPortfolioPiece(index: number) {
-		if (!immersiveMode) {
-			enterImmersiveMode(index);
+		if (immersiveMode) {
+			scrollToImmersiveSection(index);
 			return;
 		}
-
-		scrollToImmersiveSection(index);
+		activeDetailItem = sortedPortfolioItems[index] ?? null;
+		updatePieceQuery(activeDetailItem);
 	}
 
 	function updateImmersiveProgress() {
@@ -200,6 +245,7 @@
 
 	onMount(() => {
 		mounted = true;
+		openPieceFromUrl();
 
 		const handleScroll = () => {
 			if (isActivatingImmersive) return;
@@ -240,16 +286,38 @@
 			}
 		};
 
+		const handleWheel = (e: WheelEvent) => {
+			if (!activeDetailItem || immersiveMode) return;
+			const target = e.target instanceof Element ? e.target : null;
+			if (target?.closest('.cli-terminal-window')) return;
+			if (!detailPieceEl) return;
+			const maxScroll = Math.max(0, detailPieceEl.scrollHeight - detailPieceEl.clientHeight);
+			if (maxScroll <= 0) return;
+			e.preventDefault();
+			const next = Math.max(0, Math.min(maxScroll, detailPieceEl.scrollTop + e.deltaY));
+			detailPieceEl.scrollTop = next;
+		};
+
 		window.addEventListener('scroll', handleScroll, { passive: true });
+		document.addEventListener('wheel', handleWheel, { passive: false, capture: true });
 		document.addEventListener('click', handleDocumentClick);
+		window.addEventListener('popstate', openPieceFromUrl);
 
 		document.querySelector(':root')?.classList.add('mounted');
 		document.body.classList.add('js-enabled');
 
 		return () => {
 			window.removeEventListener('scroll', handleScroll);
+			document.removeEventListener('wheel', handleWheel, { capture: true });
 			document.removeEventListener('click', handleDocumentClick);
+			window.removeEventListener('popstate', openPieceFromUrl);
 		};
+	});
+
+	onDestroy(() => {
+		if (typeof document !== 'undefined') {
+			document.body.classList.remove('detail-panel-open');
+		}
 	});
 </script>
 
@@ -301,6 +369,50 @@
 		/>
 	{/if}
 
+	{#if activeDetailItem && !immersiveMode}
+		<div class="detail-panel">
+			<div class="detail-panel-rainbow detail-panel-rainbow--top" aria-hidden="true"></div>
+			<div class="detail-panel-rainbow detail-panel-rainbow--left" aria-hidden="true"></div>
+			<div class="detail-panel-grid detail-panel-grid--enter">
+				<div class="detail-panel-piece" bind:this={detailPieceEl}>
+					<PortfolioExpandedView
+						projectTitle={activeDetailItem.title}
+						tags={activeDetailItem.tags}
+						description={activeDetailItem.description}
+						images={activeDetailItem.images}
+						content={activeDetailItem.content}
+						year={activeDetailItem.year}
+						role={activeDetailItem.role}
+						link={activeDetailItem.link}
+						metrics={activeDetailItem.metrics}
+						team={activeDetailItem.team}
+						locked={activeDetailItem.locked}
+						unlockPassword={activeDetailItem.unlockPassword}
+						immersive={false}
+					/>
+				</div>
+				<div class="detail-panel-sidebar">
+					<div class="detail-panel-video">
+						{#if activeDetailItem.videoUrl}
+							<iframe
+								src={activeDetailItem.videoUrl}
+								title="Video for {activeDetailItem.title}"
+								frameborder="0"
+								allow="autoplay; encrypted-media"
+								allowfullscreen
+							></iframe>
+						{:else}
+							<span class="detail-panel-placeholder">Video</span>
+						{/if}
+					</div>
+					<div class="detail-panel-transcript">
+						<span class="detail-panel-placeholder">Transcript</span>
+					</div>
+				</div>
+			</div>
+		</div>
+	{/if}
+
 	<main class="container flex-column-left" class:immersive-mode={immersiveMode}>
 		{#if mounted}
 			{#if !immersiveMode}
@@ -333,10 +445,13 @@
 {/if}
 
 <style>
+	:global(body.detail-panel-open) {
+		overflow: hidden;
+	}
+
 	.landing-page {
 		--landing-inset: 2rem;
-		/* Pull frame lines inward so they end before the corner on the left / top */
-		--frame-line-trim: 1.5rem;
+		--frame-line-trim: 0rem;
 		min-height: 100vh;
 		background-color: var(--bg-color);
 		color: var(--text-color);
@@ -349,6 +464,8 @@
 
 	.viewport-frame-lines {
 		pointer-events: none;
+		position: relative;
+		z-index: 12;
 	}
 
 	.viewport-frame-hit {
@@ -446,6 +563,266 @@
 
 	.landing-hero-anchor {
 		width: 100%;
+	}
+
+	.detail-panel {
+		position: fixed;
+		top: calc(max(var(--landing-inset), env(safe-area-inset-top)) + 1rem);
+		right: max(var(--landing-inset), env(safe-area-inset-right));
+		bottom: max(var(--landing-inset), env(safe-area-inset-bottom));
+		left: 36%;
+		z-index: 3;
+	}
+
+	.detail-panel-rainbow {
+		position: absolute;
+		opacity: 0.95;
+		z-index: 4;
+		pointer-events: none;
+	}
+
+	.detail-panel-rainbow--top {
+		top: 0;
+		right: 0;
+		left: 0;
+		height: 1px;
+		background-image: var(--palette-rainbow-gradient-h);
+		background-size: 240% 100%;
+		background-position: 100% 50%;
+		transform-origin: right center;
+		transform: scaleX(0);
+		animation: detail-line-grow-top 1800ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+	}
+
+	.detail-panel-rainbow--left {
+		top: 0;
+		bottom: 0;
+		left: 0;
+		width: 1px;
+		background-image: var(--palette-rainbow-gradient-v);
+		background-size: 100% 240%;
+		background-position: 50% 100%;
+		transform-origin: center bottom;
+		transform: scaleY(0);
+		animation: detail-line-grow-left 1800ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+	}
+
+	.detail-panel-grid {
+		display: grid;
+		grid-template-columns: 1fr minmax(0, 0.38fr);
+		grid-template-rows: 1fr;
+		width: 100%;
+		height: 100%;
+		min-height: 0;
+		gap: 0;
+	}
+
+	.detail-panel-grid--enter {
+		opacity: 0;
+		animation: detail-content-fade-in 420ms ease forwards;
+		animation-delay: 1650ms;
+	}
+
+	.detail-panel-piece {
+		border: 1px solid var(--text-color);
+		border-right: none;
+		border-bottom: none;
+		border-top: none;
+		border-left: none;
+		border-radius: 0;
+		overflow-y: scroll;
+		overflow-x: hidden;
+		background: var(--bg-color);
+		min-height: 0;
+		height: 100%;
+		max-height: 100%;
+		overscroll-behavior: contain;
+		scrollbar-width: thin;
+		scrollbar-color: rgba(0, 0, 0, 0.25) transparent;
+	}
+
+	.detail-panel-piece::-webkit-scrollbar {
+		width: 9px;
+	}
+
+	.detail-panel-piece::-webkit-scrollbar-thumb {
+		background: rgba(0, 0, 0, 0.3);
+		border-radius: 999px;
+	}
+
+	.detail-panel-piece :global(.portfolio-expanded-view) {
+		height: auto !important;
+		min-height: max-content;
+		overflow: visible !important;
+		max-width: 100% !important;
+		margin: 0 !important;
+	}
+
+	.detail-panel-piece :global(.portfolio-expanded-view .content-container),
+	.detail-panel-piece :global(.portfolio-expanded-view .content-view),
+	.detail-panel-piece :global(.portfolio-expanded-view .content-blocks) {
+		overflow: visible !important;
+		max-width: 100% !important;
+	}
+
+	.detail-panel-piece :global(.portfolio-expanded-view .hero-image-container),
+	.detail-panel-piece :global(.portfolio-expanded-view .image-gallery),
+	.detail-panel-piece :global(.portfolio-expanded-view .project-details-grid) {
+		max-width: 100% !important;
+	}
+
+	.detail-panel-piece :global(.hero-image-container .image-frame) {
+		max-width: 100%;
+	}
+
+	.detail-panel-piece :global(.image-block .image-frame img) {
+		max-height: none;
+	}
+
+	.detail-panel-sidebar {
+		display: grid;
+		grid-template-rows: 1fr 1fr;
+		gap: 0;
+		min-height: 0;
+		position: relative;
+	}
+
+	.detail-panel-sidebar::before {
+		content: '';
+		position: absolute;
+		left: 0;
+		top: 0;
+		bottom: 0;
+		width: 1px;
+		background-image: var(--palette-rainbow-gradient-v);
+		background-size: 100% 240%;
+		background-position: 50% 0%;
+		pointer-events: none;
+		z-index: 2;
+	}
+
+	.detail-panel-sidebar::after {
+		content: '';
+		position: absolute;
+		left: 0;
+		right: 0;
+		top: calc(50% - 0.5px);
+		height: 1px;
+		background-image: var(--palette-rainbow-gradient-h);
+		background-size: 240% 100%;
+		background-position: 0% 50%;
+		pointer-events: none;
+		z-index: 2;
+	}
+
+	.detail-panel-video {
+		border: 1px solid var(--text-color);
+		border-bottom: none;
+		border-right: none;
+		border-top: none;
+		border-left-color: transparent;
+		border-radius: 0;
+		overflow: hidden;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: var(--bg-color);
+	}
+
+	.detail-panel-video iframe {
+		width: 100%;
+		height: 100%;
+		border: none;
+	}
+
+	.detail-panel-transcript {
+		border: 1px solid var(--text-color);
+		border-right: none;
+		border-bottom: none;
+		border-left-color: transparent;
+		border-top-color: transparent;
+		border-radius: 0;
+		overflow-y: auto;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: var(--bg-color);
+	}
+
+	.detail-panel-placeholder {
+		font-family: 'IBM Plex Mono', ui-monospace, monospace;
+		font-size: 0.75rem;
+		color: var(--text-color);
+		opacity: 0.35;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+	}
+
+	@media (max-width: 768px) {
+		.detail-panel {
+			left: var(--landing-inset);
+			top: 50%;
+		}
+
+		.detail-panel-grid {
+			grid-template-columns: 1fr;
+			grid-template-rows: 1fr auto auto;
+		}
+
+		.detail-panel-piece {
+			border: 1px solid var(--text-color);
+			border-radius: 0;
+		}
+
+		.detail-panel-sidebar {
+			grid-template-rows: auto auto;
+		}
+
+		.detail-panel-sidebar::before,
+		.detail-panel-sidebar::after {
+			display: none;
+		}
+
+		.detail-panel-video {
+			border: 1px solid var(--text-color);
+			border-top: none;
+			border-left-color: var(--text-color);
+			min-height: 8rem;
+		}
+
+		.detail-panel-transcript {
+			border-radius: 0;
+			border-left-color: var(--text-color);
+			border-top-color: var(--text-color);
+			min-height: 6rem;
+		}
+	}
+
+	@keyframes detail-line-grow-top {
+		from {
+			transform: scaleX(0);
+		}
+		to {
+			transform: scaleX(1);
+		}
+	}
+
+	@keyframes detail-line-grow-left {
+		from {
+			transform: scaleY(0);
+		}
+		to {
+			transform: scaleY(1);
+		}
+	}
+
+	@keyframes detail-content-fade-in {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
 	}
 
 	.container.immersive-mode {

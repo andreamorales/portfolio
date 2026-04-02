@@ -106,7 +106,7 @@
 		color: var(--text-color);
 		width: fit-content;
 		white-space: nowrap;
-		font-family: 'DM Mono', monospace;
+		font-family: 'IBM Plex Mono', monospace;
 		font-variation-settings:
 			'MONO' 1,
 			'CASL' 0,
