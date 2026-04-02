@@ -562,6 +562,32 @@
 		letter-spacing: -0.01em;
 	}
 
+	:global(html.dark-theme) .portfolio-expanded-view {
+		letter-spacing: 0.05em;
+	}
+
+	:global(html.dark-theme) .hero-description,
+	:global(html.dark-theme) .text-block,
+	:global(html.dark-theme) .image-caption,
+	:global(html.dark-theme) .details-label,
+	:global(html.dark-theme) .details-value,
+	:global(html.dark-theme) .project-link,
+	:global(html.dark-theme) .muted-text,
+	:global(html.dark-theme) .discontinued-text,
+	:global(html.dark-theme) .role,
+	:global(html.dark-theme) .name,
+	:global(html.dark-theme) .relationship {
+		letter-spacing: 0.055em;
+	}
+
+	:global(html.dark-theme) .highlight-line {
+		letter-spacing: 0.05em;
+	}
+
+	:global(html.dark-theme) .project-title {
+		letter-spacing: -0.02em;
+	}
+
 	/* Project details grid */
 	.project-details-grid {
 		width: 100%;

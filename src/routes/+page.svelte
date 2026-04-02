@@ -644,12 +644,12 @@
 			6px 100%;
 		background-repeat: no-repeat;
 		filter: blur(12px);
-		opacity: 0.90;
+		opacity: var(--glow-portfolio-opacity, 0.9);
 	}
 
 	@media (prefers-reduced-motion: reduce) {
 		.landing-portfolio-shell::before {
-			opacity: 0.12;
+			opacity: var(--glow-portfolio-opacity-rm, 0.12);
 		}
 	}
 

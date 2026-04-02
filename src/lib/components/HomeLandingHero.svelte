@@ -665,12 +665,12 @@
 			5px 100%;
 		background-repeat: no-repeat;
 		filter: blur(10px);
-		opacity: 0.9;
+		opacity: var(--glow-cli-opacity, 0.9);
 	}
 
 	@media (prefers-reduced-motion: reduce) {
 		.cli-block::before {
-			opacity: 0.08;
+			opacity: var(--glow-cli-opacity-rm, 0.08);
 		}
 	}
 
@@ -702,7 +702,7 @@
 	}
 
 	.cli-top-bar--has-body {
-		border-bottom: 1px solid rgba(243, 234, 214, 0.12);
+		border-bottom: 1px solid color-mix(in srgb, var(--bg-color) 14%, transparent);
 	}
 
 	.cli-row {
@@ -741,7 +741,7 @@
 	}
 
 	.cli-prompt {
-		color: rgba(243, 234, 214, 0.65);
+		color: color-mix(in srgb, var(--bg-color) 66%, transparent);
 		user-select: none;
 		margin-right: 0.35rem;
 		flex-shrink: 0;
@@ -759,14 +759,14 @@
 		padding: 0;
 		min-height: 1.2em;
 		outline: none;
-		caret-color: rgba(243, 234, 214, 0.9);
+		caret-color: color-mix(in srgb, var(--bg-color) 92%, transparent);
 		font-variant-ligatures: none;
 		text-rendering: geometricPrecision;
 		-webkit-font-smoothing: antialiased;
 	}
 
 	.cli-input::placeholder {
-		color: rgba(243, 234, 214, 0.45);
+		color: color-mix(in srgb, var(--bg-color) 44%, transparent);
 	}
 
 	.cli-input:read-only {
@@ -784,13 +784,13 @@
 		font-weight: 500;
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
-		color: rgba(243, 234, 214, 0.42);
+		color: color-mix(in srgb, var(--bg-color) 40%, transparent);
 		white-space: nowrap;
 	}
 
 	.cli-return-hint :global(svg) {
 		display: block;
-		color: rgba(243, 234, 214, 0.45);
+		color: color-mix(in srgb, var(--bg-color) 42%, transparent);
 		opacity: 0.92;
 	}
 
@@ -816,7 +816,7 @@
 		padding-right: 0.35rem;
 		margin-right: -0.15rem;
 		scrollbar-width: thin;
-		scrollbar-color: rgba(243, 234, 214, 0.35) rgba(0, 0, 0, 0.2);
+		scrollbar-color: color-mix(in srgb, var(--bg-color) 36%, transparent) rgba(0, 0, 0, 0.22);
 	}
 
 	/* Top input + scrollback: cap scroll height */
@@ -843,7 +843,7 @@
 		flex-shrink: 0;
 		gap: 0.35rem;
 		padding: 0.55rem 0.85rem 0.6rem 0.75rem;
-		border-top: 1px solid rgba(243, 234, 214, 0.12);
+		border-top: 1px solid color-mix(in srgb, var(--bg-color) 14%, transparent);
 	}
 
 	.cli-bottom-prompt .cli-prompt {
@@ -861,13 +861,13 @@
 	}
 
 	.cli-history-scroll::-webkit-scrollbar-thumb {
-		background: rgba(243, 234, 214, 0.28);
+		background: color-mix(in srgb, var(--bg-color) 30%, transparent);
 		border-radius: var(--radius-full);
 		border: 1px solid rgba(0, 0, 0, 0.15);
 	}
 
 	.cli-history-scroll::-webkit-scrollbar-thumb:hover {
-		background: rgba(243, 234, 214, 0.42);
+		background: color-mix(in srgb, var(--bg-color) 44%, transparent);
 	}
 
 	.cli-history-scroll::-webkit-scrollbar-button {
@@ -885,12 +885,12 @@
 	}
 
 	.cli-history-cmd {
-		color: rgba(243, 234, 214, 0.42);
+		color: color-mix(in srgb, var(--bg-color) 42%, transparent);
 		margin-bottom: 0.15rem;
 	}
 
 	.cli-history-result {
-		color: rgba(243, 234, 214, 0.9);
+		color: color-mix(in srgb, var(--bg-color) 90%, transparent);
 		padding: 0.15rem 0 0.35rem;
 		width: 100%;
 		min-width: 0;
@@ -918,7 +918,7 @@
 
 	.cli-typewriter :global(.cli-t-bold) {
 		font-weight: 600;
-		color: rgba(243, 234, 214, 1);
+		color: var(--bg-color);
 	}
 
 	.cli-typewriter :global(.cli-t-cmd) {
@@ -937,7 +937,7 @@
 	.cli-type-cursor {
 		display: inline-block;
 		margin-left: 1px;
-		color: rgba(243, 234, 214, 0.95);
+		color: color-mix(in srgb, var(--bg-color) 94%, transparent);
 		animation: cli-cursor-blink 1s steps(1, end) infinite;
 		vertical-align: text-bottom;
 	}
@@ -966,7 +966,7 @@
 	}
 
 	.cli-typewriter :global(.cli-t-bullet) {
-		color: rgba(243, 234, 214, 0.5);
+		color: color-mix(in srgb, var(--bg-color) 50%, transparent);
 		transition: color 0.12s ease;
 	}
 
@@ -979,11 +979,11 @@
 	}
 
 	.cli-typewriter :global(.cli-t-item--active) {
-		color: rgba(243, 234, 214, 1);
+		color: var(--bg-color);
 	}
 
 	.cli-typewriter :global(.cli-t-item-labels) {
-		color: rgba(243, 234, 214, 0.58);
+		color: color-mix(in srgb, var(--bg-color) 58%, transparent);
 	}
 
 	@media (max-width: 768px) {
