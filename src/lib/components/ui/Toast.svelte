@@ -63,7 +63,7 @@
 <style>
 	.toast {
 		position: fixed;
-		bottom: 5rem;
+		bottom: calc(2rem + 1px + var(--spacing-sm) + 1.25rem + var(--spacing-sm));
 		left: 1.25rem;
 		background-color: var(--text-color);
 		color: var(--bg-color);
@@ -74,7 +74,7 @@
 		font-variation-settings:
 			'CASL' 0,
 			'wght' 400;
-		z-index: 9999;
+		z-index: 10051;
 		cursor: pointer;
 		pointer-events: auto;
 		white-space: nowrap;

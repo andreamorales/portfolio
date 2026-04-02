@@ -23,6 +23,11 @@
 			.replace(/[^a-z0-9]+/g, '-')
 			.replace(/^-|-$/g, '');
 
+	function isDirectVideoFile(url: string): boolean {
+		const path = url.split('?')[0] ?? url;
+		return /\.(mp4|webm|ogg)$/i.test(path);
+	}
+
 	$: sortedPortfolioItems = [...$portfolioItems].sort(
 		(a: PortfolioItem, b: PortfolioItem) => getLatestYear(b.year) - getLatestYear(a.year)
 	);
@@ -407,13 +412,26 @@
 									<div class="detail-panel-sidebar">
 										<div class="detail-panel-video">
 											{#if activeDetailItem.videoUrl}
-												<iframe
-													src={activeDetailItem.videoUrl}
-													title="Video for {activeDetailItem.title}"
-													frameborder="0"
-													allow="autoplay; encrypted-media"
-													allowfullscreen
-												></iframe>
+												{#if isDirectVideoFile(activeDetailItem.videoUrl)}
+													<!-- svelte-ignore a11y-media-has-caption -->
+													<video
+														class="detail-panel-video-embed"
+														controls
+														playsinline
+														preload="metadata"
+														src={activeDetailItem.videoUrl}
+														title="Video for {activeDetailItem.title}"
+													></video>
+												{:else}
+													<iframe
+														class="detail-panel-video-embed"
+														src={activeDetailItem.videoUrl}
+														title="Video for {activeDetailItem.title}"
+														frameborder="0"
+														allow="autoplay; encrypted-media"
+														allowfullscreen
+													></iframe>
+												{/if}
 											{:else}
 												<span class="detail-panel-placeholder">Video</span>
 											{/if}
@@ -803,10 +821,13 @@
 		background: var(--bg-color);
 	}
 
-	.detail-panel-video iframe {
+	.detail-panel-video iframe,
+	.detail-panel-video video.detail-panel-video-embed {
 		width: 100%;
 		height: 100%;
 		border: none;
+		object-fit: contain;
+		vertical-align: middle;
 	}
 
 	.detail-panel-transcript {
