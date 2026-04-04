@@ -730,7 +730,7 @@
 		max-height: 100%;
 		overscroll-behavior: contain;
 		scrollbar-width: thin;
-		scrollbar-color: rgba(0, 0, 0, 0.25) transparent;
+		scrollbar-color: var(--alpha-black-025) transparent;
 	}
 
 	.detail-panel-piece::-webkit-scrollbar {
@@ -738,7 +738,7 @@
 	}
 
 	.detail-panel-piece::-webkit-scrollbar-thumb {
-		background: rgba(0, 0, 0, 0.3);
+		background: var(--alpha-black-030);
 		border-radius: 999px;
 	}
 

@@ -10,6 +10,29 @@
 	/* Light-mode body / headline ink (dark mode uses a separate near-black bg) */
 	--palette-charcoal: #363636;
 
+	/* Alpha overlays — use instead of raw rgba() in components */
+	--alpha-black-002: rgba(0, 0, 0, 0.02);
+	--alpha-black-012: rgba(0, 0, 0, 0.12);
+	--alpha-black-015: rgba(0, 0, 0, 0.15);
+	--alpha-black-020: rgba(0, 0, 0, 0.2);
+	--alpha-black-022: rgba(0, 0, 0, 0.22);
+	--alpha-black-025: rgba(0, 0, 0, 0.25);
+	--alpha-black-030: rgba(0, 0, 0, 0.3);
+	--alpha-white-080: rgba(255, 255, 255, 0.8);
+
+	/* Pure neutrals (masks, focus rings, slider knob) */
+	--palette-black-pure: #000000;
+	--palette-white-pure: #ffffff;
+
+	/* Semantic */
+	--palette-text-danger: #8b2d2d;
+	--palette-focus-ring: #2196f3;
+
+	/* Home portfolio label underline (indigo tint) */
+	--decorative-indigo-012: rgba(93, 103, 233, 0.12);
+	--decorative-indigo-015: rgba(93, 103, 233, 0.15);
+	--decorative-indigo-018: rgba(93, 103, 233, 0.18);
+
 	--radius-hairline: 1px;
 	--radius-2xs: 0.125rem;
 	--radius-xs: 0.25rem;
@@ -349,7 +372,7 @@ button.button-clear {
 	width: 26px;
 	left: 4px;
 	bottom: 4px;
-	background-color: white;
+	background-color: var(--palette-white-pure);
 	transition: 0.4s;
 	-webkit-transition: 0.4s;
 }
@@ -359,7 +382,7 @@ input:checked + .slider {
 }
 
 input:focus + .slider {
-	box-shadow: 0 0 1px #2196f3;
+	box-shadow: 0 0 1px var(--palette-focus-ring);
 }
 
 input:checked + .slider:before {
@@ -891,6 +914,9 @@ textarea {
 		var(--palette-rainbow-8)
 	);
 
+	/* CLI portfolio list — active row (not part of gradient ramp) */
+	--palette-rainbow-cli-active: #62d98c;
+
 	/* Rainbow edge glow (CLI + portfolio shell) — overridden in dark theme */
 	--glow-cli-opacity: 0.9;
 	--glow-cli-opacity-rm: 0.08;
@@ -903,39 +929,52 @@ textarea {
 	--bg-color: var(--palette-bg);
 	--text-color: var(--palette-ink);
 	--muted-text: var(--palette-grey-500);
+
+	/*
+	  CLI terminal (HomeLandingHero): fill = --text-color (charcoal), type mostly = --bg-color (cream).
+	  Muted / hint text must meet WCAG AA (~4.5:1) on charcoal ~#363636.
+	*/
+	--cli-terminal-body-fg: var(--palette-bg);
+	--cli-terminal-muted-fg: #d4cfc4;
+	--cli-terminal-subtle-fg: #c9c3b8;
+	--cli-terminal-placeholder-fg: #c4beb3;
+	--cli-terminal-dim-fg: #a39a8f;
+	--cli-terminal-scrollbar-thumb-fg: #8a8278;
+	--cli-terminal-scrollbar-thumb-hover-fg: #9a9288;
+	--cli-terminal-divider-fg: rgba(255, 255, 255, 0.22);
 }
 
 /* ------------------------------------------------------------------ */
 /* Dark theme                                                           */
 /* ------------------------------------------------------------------ */
 :root.dark-theme {
-	/* Near-black warm base (not the light-mode charcoal ink) */
-	--palette-bg: #070605;
+	/* Dark warm grey (not pure black — a step lighter than near-black) */
+	--palette-bg: #141312;
 
 	/* Primary type: warm beige, dimmer than paper-white (easier on eyes in dark UI) */
 	--palette-ink: #c4b6a4;
 
-	/* Warm greys — surfaces + chrome on deep bg */
-	--palette-grey-100: #121110;
-	--palette-grey-200: #171615;
-	--palette-grey-300: #1e1c1a;
-	--palette-grey-400: #2a2624;
-	--palette-grey-500: #383330;
-	--palette-grey-600: #4a443f;
-	--palette-grey-700: #5c554e;
-	--palette-grey-muted: #5a524a;
+	/* Warm greys — surfaces sit above page bg (#141312) */
+	--palette-grey-100: #1c1a18;
+	--palette-grey-200: #22201d;
+	--palette-grey-300: #2a2724;
+	--palette-grey-400: #34302c;
+	--palette-grey-500: #403c38;
+	--palette-grey-600: #524d48;
+	--palette-grey-700: #645e58;
+	--palette-grey-muted: #6b655e;
 	/* Placeholders / subtle hints — must read on --palette-grey-100 inputs */
-	--palette-grey-hint: #7a7268;
+	--palette-grey-hint: #8a8378;
 
-	/* Rainbow — darker / less luminous than light mode (still saturated enough to read) */
-	--palette-rainbow-1: #a85a58;
-	--palette-rainbow-2: #b8743a;
-	--palette-rainbow-3: #a88a38;
-	--palette-rainbow-4: #3d7a5c;
-	--palette-rainbow-5: #2e7a82;
-	--palette-rainbow-6: #4a6fa8;
-	--palette-rainbow-7: #7a68a0;
-	--palette-rainbow-8: #9a5a78;
+	/* Rainbow — deep/muted accents (beige + greys unchanged) */
+	--palette-rainbow-1: #5c3432;
+	--palette-rainbow-2: #6a4424;
+	--palette-rainbow-3: #5e4c22;
+	--palette-rainbow-4: #234838;
+	--palette-rainbow-5: #1c4e56;
+	--palette-rainbow-6: #2c3f62;
+	--palette-rainbow-7: #443c58;
+	--palette-rainbow-8: #5a3648;
 
 	--palette-rainbow-gradient-h: linear-gradient(
 		90deg,
@@ -961,10 +1000,35 @@ textarea {
 	);
 
 	/* Softer edge glows on dark (rainbow reads against deep surfaces) */
-	--glow-cli-opacity: 0.34;
-	--glow-cli-opacity-rm: 0.05;
-	--glow-portfolio-opacity: 0.34;
-	--glow-portfolio-opacity-rm: 0.08;
+	--glow-cli-opacity: 0.26;
+	--glow-cli-opacity-rm: 0.04;
+	--glow-portfolio-opacity: 0.26;
+	--glow-portfolio-opacity-rm: 0.06;
+
+	--palette-rainbow-cli-active: #2f8f58;
+
+	/*
+	  Accents on warm ink (#palette-ink) — CLI inverts to beige fill; page --palette-rainbow-* stays dark for gradients.
+	  These mirror light-mode saturation so type stays legible on the terminal.
+	*/
+	--palette-rainbow-on-ink-1: #c45a5a;
+	/* Darker greens/blues for AA normal text on warm beige (#c4b6a4) */
+	--palette-rainbow-on-ink-4: #285a44;
+	--palette-rainbow-on-ink-6: #2a4f7a;
+	--palette-rainbow-on-ink-err: #8f2828;
+
+	/*
+	  CLI terminal: fill = --text-color (warm beige ink), type mostly = --bg-color (near-black).
+	  Muted / hint text must meet WCAG AA on beige ~#c4b6a4.
+	*/
+	--cli-terminal-body-fg: var(--palette-bg);
+	--cli-terminal-muted-fg: #2a241c;
+	--cli-terminal-subtle-fg: #2f2a22;
+	--cli-terminal-placeholder-fg: #3a3329;
+	--cli-terminal-dim-fg: #4a4036;
+	--cli-terminal-scrollbar-thumb-fg: #5c5348;
+	--cli-terminal-scrollbar-thumb-hover-fg: #6d6358;
+	--cli-terminal-divider-fg: rgba(0, 0, 0, 0.18);
 
 	/* Body tracking matches light mode; portfolio case studies widen locally */
 	--body-letter-spacing: 0;
@@ -999,5 +1063,5 @@ textarea {
 	--inverse-bg: var(--palette-ink);
 	--inverse-content: var(--palette-bg);
 	--logo-filter: invert(1);
-	--icon-filter: invert(8%) sepia(8%) saturate(180%) hue-rotate(325deg) brightness(96%) contrast(92%);
+	--icon-filter: invert(6%) sepia(6%) saturate(150%) hue-rotate(325deg) brightness(86%) contrast(94%);
 }

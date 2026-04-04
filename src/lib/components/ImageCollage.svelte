@@ -100,7 +100,7 @@
 		// Only show highlight if cursor is actively dragging this image
 		if (cursor.isDragging && cursor.targetImage === imageIndex) {
 			return `
-        box-shadow: 0 0 0 4px ${cursor.color}, 0 0 0 6px rgba(255,255,255,0.8);
+        box-shadow: 0 0 0 4px ${cursor.color}, 0 0 0 6px var(--alpha-white-080);
         border-radius: var(--radius-xs);
         outline: 2px dashed ${cursor.color};
         outline-offset: 2px;

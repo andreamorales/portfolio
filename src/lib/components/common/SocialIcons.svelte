@@ -122,6 +122,6 @@
 	}
 
 	.social-icon:hover svg {
-		stroke: white;
+		stroke: var(--palette-white-pure);
 	}
 </style>

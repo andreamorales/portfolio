@@ -41,6 +41,7 @@
 	let typingTimer: ReturnType<typeof setInterval> | null = null;
 	let prevShowReturnHint = true;
 	let bottomPromptVisible = false;
+	let bottomPromptFocused = false;
 
 	$: lastEntry = history.length ? history[history.length - 1] : null;
 	$: lastFeedback = lastEntry?.feedback ?? null;
@@ -301,6 +302,11 @@
 
 	async function submitCommand() {
 		const cmdSnapshot = commandLine;
+		// Empty Enter should be a no-op, not an implicit --help.
+		if (!cmdSnapshot.trim().replace(/^\$\s*/, '')) {
+			commandLine = '';
+			return;
+		}
 		commandLine = '';
 		const parsed = parseCommand(cmdSnapshot);
 		const isFirstCommand = showReturnHint;
@@ -456,7 +462,10 @@
 	<!-- svelte-ignore a11y-click-events-have-key-events -->
 	<!-- svelte-ignore a11y-no-static-element-interactions -->
 	<div class="description" in:fade={{ duration: 600, delay: 300 }} on:click={onGoHome} role="button" tabindex="0">
-		I design tools.
+		<span class="description-layers">
+			<span class="description-base">I design tools.</span>
+			<span class="description-shimmer" aria-hidden="true">I design tools.</span>
+		</span>
 	</div>
 	<div class="cli-block" in:fade={{ duration: 600, delay: 380 }}>
 			<!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -532,8 +541,8 @@
 								{#if !entry.typingComplete}
 									<pre class="cli-typewriter">{@html sliceStyledHtml(entry.styledHtml, entry.typingProgress)}<span
 											class="cli-type-cursor"
-											aria-hidden="true">▊</span
-										></pre>
+											aria-hidden="true"
+										></span></pre>
 									{:else}
 										<pre class="cli-typewriter cli-typewriter--done">{@html entry.feedback.kind === 'portfolio' && entry.id === lastEntry?.id
 											? portfolioListStyledHtml(portfolioItems, portfolioPickIndex)
@@ -551,18 +560,26 @@
 					in:fade={{ duration: 250 }}>
 						<label class="cli-label-visually-hidden" for="cli-command-input">Command</label>
 						<span class="cli-prompt" aria-hidden="true">$</span>
-						<input
-							id="cli-command-input"
-							bind:this={cliInputEl}
-							type="text"
-							class="cli-input"
-							bind:value={commandLine}
-							autocomplete="off"
-							spellcheck={false}
-							aria-describedby={history.length ? outputId : undefined}
-							readonly={lastFeedback?.kind === 'portfolio' && portfolioInteractive}
-							on:keydown={onInputKeydown}
-						/>
+						<div class="cli-input-shell">
+							<input
+								id="cli-command-input"
+								bind:this={cliInputEl}
+								type="text"
+								class="cli-input"
+								class:cli-input--empty={commandLine.length === 0}
+								bind:value={commandLine}
+								autocomplete="off"
+								spellcheck={false}
+								aria-describedby={history.length ? outputId : undefined}
+								readonly={lastFeedback?.kind === 'portfolio' && portfolioInteractive}
+								on:focus={() => (bottomPromptFocused = true)}
+								on:blur={() => (bottomPromptFocused = false)}
+								on:keydown={onInputKeydown}
+							/>
+							{#if bottomPromptFocused && commandLine.length === 0}
+								<span class="cli-empty-caret" aria-hidden="true"></span>
+							{/if}
+						</div>
 					</div>
 				{/if}
 		</div>
@@ -574,7 +591,7 @@
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: var(--spacing-xs);
+		gap: 0.35rem;
 		width: fit-content;
 		max-width: 100%;
 	}
@@ -584,31 +601,65 @@
 		font-size: clamp(3.52rem, 5.6vw, 5.44rem);
 		font-style: normal;
 		font-weight: 400;
-		line-height: 1.08;
+		/* Bit looser than 1.08 so “g” isn’t clipped; avoid extra padding (adds gap to terminal) */
+		line-height: 1.12;
 		letter-spacing: -0.02em;
 		position: relative;
 		z-index: 2;
-		color: var(--text-color);
 		width: 100%;
 		white-space: nowrap;
 		overflow: visible;
 		cursor: default;
-		background-clip: text;
-		-webkit-background-clip: text;
-		transition: color 0.35s ease;
-		/* Room for descenders (g, y) when gradient clips to text */
-		padding-bottom: 0.12em;
 		box-decoration-break: clone;
 		-webkit-box-decoration-break: clone;
 	}
 
-	.description:hover {
-		cursor: pointer;
+	.description-layers {
+		position: relative;
+		display: inline-block;
+		max-width: 100%;
+		overflow: visible;
+	}
+
+	.description-base {
+		display: block;
+		color: var(--text-color);
+		transition: opacity 0.45s cubic-bezier(0.33, 1, 0.68, 1);
+	}
+
+	.description-shimmer {
+		display: block;
+		position: absolute;
+		left: 0;
+		top: 0;
+		white-space: nowrap;
 		color: transparent;
+		-webkit-text-fill-color: transparent;
 		background-image: var(--palette-rainbow-gradient-h);
-		background-size: 400% 120%;
-		background-position: 0% 45%;
-		animation: description-rainbow 18s linear infinite;
+		background-size: 460% 130%;
+		background-position: 0% 42%;
+		background-clip: text;
+		-webkit-background-clip: text;
+		opacity: 0;
+		transition: opacity 0.45s cubic-bezier(0.33, 1, 0.68, 1);
+		pointer-events: none;
+		animation: description-rainbow 8s linear infinite;
+		overflow: visible;
+	}
+
+	.description:hover,
+	.description:focus-visible {
+		cursor: pointer;
+	}
+
+	.description:hover .description-base,
+	.description:focus-visible .description-base {
+		opacity: 0;
+	}
+
+	.description:hover .description-shimmer,
+	.description:focus-visible .description-shimmer {
+		opacity: 1;
 	}
 
 	@keyframes description-rainbow {
@@ -616,13 +667,17 @@
 			background-position: 0% 45%;
 		}
 		100% {
-			background-position: 400% 45%;
+			background-position: 520% 45%;
 		}
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.description:hover {
+		.description-shimmer {
 			animation: none;
+		}
+
+		.description:hover .description-shimmer,
+		.description:focus-visible .description-shimmer {
 			background-position: 0% 45%;
 		}
 	}
@@ -686,7 +741,7 @@
 		background-color: var(--text-color);
 		color: var(--bg-color);
 		border-radius: var(--border-radius);
-		box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+		box-shadow: inset 0 0 0 1px var(--alpha-black-012);
 		overflow: hidden;
 		transition: box-shadow 0.25s ease;
 		font-family: 'IBM Plex Mono', ui-monospace, monospace;
@@ -702,7 +757,7 @@
 	}
 
 	.cli-top-bar--has-body {
-		border-bottom: 1px solid color-mix(in srgb, var(--bg-color) 14%, transparent);
+		border-bottom: 1px solid var(--cli-terminal-divider-fg);
 	}
 
 	.cli-row {
@@ -741,7 +796,7 @@
 	}
 
 	.cli-prompt {
-		color: color-mix(in srgb, var(--bg-color) 66%, transparent);
+		color: var(--cli-terminal-muted-fg);
 		user-select: none;
 		margin-right: 0.35rem;
 		flex-shrink: 0;
@@ -754,24 +809,22 @@
 		background: transparent;
 		color: var(--bg-color);
 		font: inherit;
-		line-height: 1.2;
+		line-height: 1.35;
 		letter-spacing: inherit;
 		padding: 0;
-		min-height: 1.2em;
+		min-height: 1.35em;
 		outline: none;
-		caret-color: color-mix(in srgb, var(--bg-color) 92%, transparent);
+		caret-color: var(--cli-terminal-body-fg);
 		font-variant-ligatures: none;
-		text-rendering: geometricPrecision;
 		-webkit-font-smoothing: antialiased;
 	}
 
 	.cli-input::placeholder {
-		color: color-mix(in srgb, var(--bg-color) 44%, transparent);
+		color: var(--cli-terminal-placeholder-fg);
 	}
 
 	.cli-input:read-only {
 		cursor: default;
-		opacity: 0.85;
 	}
 
 	.cli-return-hint {
@@ -784,14 +837,14 @@
 		font-weight: 500;
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
-		color: color-mix(in srgb, var(--bg-color) 40%, transparent);
+		color: var(--cli-terminal-subtle-fg);
 		white-space: nowrap;
 	}
 
 	.cli-return-hint :global(svg) {
 		display: block;
-		color: color-mix(in srgb, var(--bg-color) 42%, transparent);
-		opacity: 0.92;
+		color: var(--cli-terminal-subtle-fg);
+		opacity: 1;
 	}
 
 	.cli-history-wrap {
@@ -816,7 +869,7 @@
 		padding-right: 0.35rem;
 		margin-right: -0.15rem;
 		scrollbar-width: thin;
-		scrollbar-color: color-mix(in srgb, var(--bg-color) 36%, transparent) rgba(0, 0, 0, 0.22);
+		scrollbar-color: var(--cli-terminal-scrollbar-thumb-fg) var(--alpha-black-022);
 	}
 
 	/* Top input + scrollback: cap scroll height */
@@ -842,12 +895,43 @@
 		align-items: center;
 		flex-shrink: 0;
 		gap: 0.35rem;
-		padding: 0.55rem 0.85rem 0.6rem 0.75rem;
-		border-top: 1px solid color-mix(in srgb, var(--bg-color) 14%, transparent);
+		/* Extra inset so the native caret isn’t clipped to a curve by overflow:hidden + border-radius */
+		padding: 0.55rem 0.85rem 0.65rem 0.85rem;
+		border-top: 1px solid var(--cli-terminal-divider-fg);
 	}
 
 	.cli-bottom-prompt .cli-prompt {
 		margin-right: 0;
+	}
+
+	.cli-input-shell {
+		position: relative;
+		flex: 1;
+		min-width: 0;
+	}
+
+	.cli-bottom-prompt .cli-input {
+		line-height: 1.4;
+		min-height: 1.4em;
+		/* Nudge insertion point off the left edge so the first caret isn't clipped */
+		padding-left: 0.08em;
+	}
+
+	/* Empty-state fallback caret: plain bar, avoids browser-specific tapered glyph */
+	.cli-bottom-prompt .cli-input.cli-input--empty {
+		caret-color: transparent;
+	}
+
+	.cli-empty-caret {
+		position: absolute;
+		left: 0.08em;
+		top: 50%;
+		transform: translateY(-50%);
+		width: 1px;
+		height: 1em;
+		background: var(--cli-terminal-body-fg);
+		pointer-events: none;
+		animation: cli-cursor-blink 1s steps(1, end) infinite;
 	}
 
 	.cli-history-scroll::-webkit-scrollbar {
@@ -855,19 +939,19 @@
 	}
 
 	.cli-history-scroll::-webkit-scrollbar-track {
-		background: rgba(0, 0, 0, 0.2);
+		background: var(--alpha-black-020);
 		border-radius: var(--radius-full);
 		margin: 0.2rem 0;
 	}
 
 	.cli-history-scroll::-webkit-scrollbar-thumb {
-		background: color-mix(in srgb, var(--bg-color) 30%, transparent);
+		background: var(--cli-terminal-scrollbar-thumb-fg);
 		border-radius: var(--radius-full);
-		border: 1px solid rgba(0, 0, 0, 0.15);
+		border: 1px solid var(--alpha-black-015);
 	}
 
 	.cli-history-scroll::-webkit-scrollbar-thumb:hover {
-		background: color-mix(in srgb, var(--bg-color) 44%, transparent);
+		background: var(--cli-terminal-scrollbar-thumb-hover-fg);
 	}
 
 	.cli-history-scroll::-webkit-scrollbar-button {
@@ -885,12 +969,12 @@
 	}
 
 	.cli-history-cmd {
-		color: color-mix(in srgb, var(--bg-color) 42%, transparent);
+		color: var(--cli-terminal-muted-fg);
 		margin-bottom: 0.15rem;
 	}
 
 	.cli-history-result {
-		color: color-mix(in srgb, var(--bg-color) 90%, transparent);
+		color: var(--cli-terminal-body-fg);
 		padding: 0.15rem 0 0.35rem;
 		width: 100%;
 		min-width: 0;
@@ -922,24 +1006,31 @@
 	}
 
 	.cli-typewriter :global(.cli-t-cmd) {
-		color: var(--palette-rainbow-4, #5de4c7);
+		color: var(--palette-rainbow-on-ink-4, var(--palette-rainbow-4));
 		font-weight: 500;
 	}
 
 	.cli-typewriter :global(.cli-t-dim) {
-		opacity: 0.6;
+		opacity: 1;
+		color: var(--cli-terminal-dim-fg);
 	}
 
 	.cli-typewriter :global(.cli-t-err) {
-		color: color-mix(in srgb, var(--palette-rainbow-1) 88%, white);
+		color: var(
+			--palette-rainbow-on-ink-err,
+			color-mix(in srgb, var(--palette-rainbow-1) 88%, var(--palette-white-pure))
+		);
 	}
 
+	/* Solid bar — avoids ▊ glyph clipping / “half a letter” in monospace at small sizes */
 	.cli-type-cursor {
 		display: inline-block;
-		margin-left: 1px;
-		color: color-mix(in srgb, var(--bg-color) 94%, transparent);
-		animation: cli-cursor-blink 1s steps(1, end) infinite;
+		width: max(2px, 0.4ch);
+		height: 1.15em;
+		margin-left: 0.12em;
 		vertical-align: text-bottom;
+		background-color: var(--cli-terminal-body-fg);
+		animation: cli-cursor-blink 1s steps(1, end) infinite;
 	}
 
 	@keyframes cli-cursor-blink {
@@ -955,23 +1046,24 @@
 
 
 	.cli-typewriter :global(.cli-t-link) {
-		color: var(--palette-rainbow-6, #5a7fb8);
+		color: var(--palette-rainbow-on-ink-6, var(--palette-rainbow-6));
 		text-decoration: underline;
 		text-underline-offset: 2px;
 		cursor: pointer;
 	}
 
 	.cli-typewriter :global(.cli-t-link:hover) {
-		opacity: 0.8;
+		opacity: 0.92;
 	}
 
 	.cli-typewriter :global(.cli-t-bullet) {
-		color: color-mix(in srgb, var(--bg-color) 50%, transparent);
+		color: var(--cli-terminal-muted-fg);
 		transition: color 0.12s ease;
 	}
 
 	.cli-typewriter :global(.cli-t-bullet--active) {
-		color: #62d98c;
+		/* Same green as .cli-t-cmd (not the brighter mint CLI token) */
+		color: var(--palette-rainbow-on-ink-4, var(--palette-rainbow-4));
 	}
 
 	.cli-typewriter :global(.cli-t-item) {
@@ -983,13 +1075,13 @@
 	}
 
 	.cli-typewriter :global(.cli-t-item-labels) {
-		color: color-mix(in srgb, var(--bg-color) 58%, transparent);
+		color: var(--cli-terminal-muted-fg);
 	}
 
 	@media (max-width: 768px) {
 		.description {
 			font-size: clamp(2.32rem, 8vw, 3.6rem);
-			line-height: 1.08;
+			line-height: 1.12;
 			letter-spacing: -0.02em;
 		}
 

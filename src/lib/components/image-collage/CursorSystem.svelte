@@ -706,7 +706,7 @@
 		top: -20px;
 		left: 10px;
 		background-color: var(--cursor-color);
-		color: white;
+		color: var(--palette-white-pure);
 		padding: 2px 6px;
 		border-radius: var(--radius-xs);
 		font-size: 12px;

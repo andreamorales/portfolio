@@ -174,7 +174,7 @@
 		top: 50%;
 		left: 50%;
 		transform: translate(-50%, -50%);
-		color: #363636;
+		color: var(--palette-charcoal);
 		z-index: 1000;
 		width: 64px;
 		height: 64px;

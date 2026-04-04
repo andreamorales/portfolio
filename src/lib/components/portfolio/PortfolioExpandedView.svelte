@@ -470,7 +470,7 @@
 		font-family: 'Instrument Serif', serif;
 		font-size: clamp(2rem, 3vw, 2.8rem);
 		line-height: 1;
-		letter-spacing: -0.08em;
+		letter-spacing: -0.04em;
 		color: var(--text-color);
 		font-variation-settings:
 			'CASL' 0,
@@ -496,7 +496,7 @@
 		padding: var(--spacing-lg);
 		border: 1px solid var(--black);
 		border-radius: var(--border-radius-sm);
-		background: rgba(0, 0, 0, 0.02);
+		background: var(--alpha-black-002);
 	}
 
 	.locked-gate-label {
@@ -545,7 +545,7 @@
 	.locked-gate-error {
 		margin: 0;
 		font-size: var(--font-size-xs);
-		color: #8b2d2d;
+		color: var(--palette-text-danger);
 	}
 
 	.hero-description,

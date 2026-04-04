@@ -103,8 +103,8 @@
 		min-width: 0;
 		background-repeat: no-repeat;
 		background-image:
-			linear-gradient(2deg, rgba(93, 103, 233, 0.15), rgba(93, 103, 233, 0.18)),
-			linear-gradient(1.5deg, rgba(93, 103, 233, 0.12), rgba(93, 103, 233, 0.15));
+			linear-gradient(2deg, var(--decorative-indigo-015), var(--decorative-indigo-018)),
+			linear-gradient(1.5deg, var(--decorative-indigo-012), var(--decorative-indigo-015));
 		background-position:
 			0 62%,
 			0 66%;
@@ -112,23 +112,23 @@
 			100% 0.5em,
 			98% 0.45em;
 		-webkit-mask-image:
-			radial-gradient(5px at 92% 65%, transparent 92%, #000 100%),
-			radial-gradient(3px at 78% 63%, transparent 93%, #000 100%),
-			radial-gradient(4px at 62% 67%, transparent 91%, #000 100%),
-			radial-gradient(3px at 45% 64%, transparent 94%, #000 100%),
-			radial-gradient(5px at 30% 66%, transparent 92%, #000 100%),
-			radial-gradient(3px at 15% 63%, transparent 93%, #000 100%),
-			radial-gradient(4px at 5% 67%, transparent 91%, #000 100%),
-			linear-gradient(#000 0 0);
+			radial-gradient(5px at 92% 65%, transparent 92%, var(--palette-black-pure) 100%),
+			radial-gradient(3px at 78% 63%, transparent 93%, var(--palette-black-pure) 100%),
+			radial-gradient(4px at 62% 67%, transparent 91%, var(--palette-black-pure) 100%),
+			radial-gradient(3px at 45% 64%, transparent 94%, var(--palette-black-pure) 100%),
+			radial-gradient(5px at 30% 66%, transparent 92%, var(--palette-black-pure) 100%),
+			radial-gradient(3px at 15% 63%, transparent 93%, var(--palette-black-pure) 100%),
+			radial-gradient(4px at 5% 67%, transparent 91%, var(--palette-black-pure) 100%),
+			linear-gradient(var(--palette-black-pure) 0 0);
 		mask-image:
-			radial-gradient(5px at 92% 65%, transparent 92%, #000 100%),
-			radial-gradient(3px at 78% 63%, transparent 93%, #000 100%),
-			radial-gradient(4px at 62% 67%, transparent 91%, #000 100%),
-			radial-gradient(3px at 45% 64%, transparent 94%, #000 100%),
-			radial-gradient(5px at 30% 66%, transparent 92%, #000 100%),
-			radial-gradient(3px at 15% 63%, transparent 93%, #000 100%),
-			radial-gradient(4px at 5% 67%, transparent 91%, #000 100%),
-			linear-gradient(#000 0 0);
+			radial-gradient(5px at 92% 65%, transparent 92%, var(--palette-black-pure) 100%),
+			radial-gradient(3px at 78% 63%, transparent 93%, var(--palette-black-pure) 100%),
+			radial-gradient(4px at 62% 67%, transparent 91%, var(--palette-black-pure) 100%),
+			radial-gradient(3px at 45% 64%, transparent 94%, var(--palette-black-pure) 100%),
+			radial-gradient(5px at 30% 66%, transparent 92%, var(--palette-black-pure) 100%),
+			radial-gradient(3px at 15% 63%, transparent 93%, var(--palette-black-pure) 100%),
+			radial-gradient(4px at 5% 67%, transparent 91%, var(--palette-black-pure) 100%),
+			linear-gradient(var(--palette-black-pure) 0 0);
 	}
 
 	.tags {
