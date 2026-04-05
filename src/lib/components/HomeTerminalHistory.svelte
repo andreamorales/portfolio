@@ -179,6 +179,16 @@
 		font-weight: 500;
 	}
 
+	.cli-typewriter :global(.cli-t-portfolio-heading) {
+		display: inline-block;
+		margin: 0.25rem 0 0.1rem;
+		color: var(--cli-terminal-muted-fg);
+		font-size: 0.73em;
+		font-weight: 600;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+	}
+
 	.cli-typewriter :global(.cli-t-dim) {
 		opacity: 1;
 		color: var(--cli-terminal-dim-fg);

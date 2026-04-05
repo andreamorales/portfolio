@@ -33,6 +33,11 @@
 		typingComplete: boolean;
 	};
 
+	type PortfolioGroupedEntry = {
+		item: PortfolioItem;
+		sourceIndex: number;
+	};
+
 	let commandLine = '--help';
 	let history: HistoryEntry[] = [];
 	let portfolioPickIndex = 0;
@@ -54,9 +59,12 @@
 	let introReturnVisible = false;
 	let introGlowVisible = false;
 	const introTimers: ReturnType<typeof setTimeout>[] = [];
+	const sideProjectSlugs = new Set(['la-guila-toys', 'torch']);
+	let portfolioDisplayEntries: PortfolioGroupedEntry[] = [];
 
 	$: lastEntry = history.length ? history[history.length - 1] : null;
 	$: lastFeedback = lastEntry?.feedback ?? null;
+	$: portfolioDisplayEntries = getPortfolioDisplayEntries(portfolioItems);
 	$: portfolioInteractive =
 		lastFeedback?.kind === 'portfolio' &&
 		(lastEntry?.typingComplete ?? false) &&
@@ -86,35 +94,64 @@
 		return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 	}
 
+	function isSideProject(item: PortfolioItem): boolean {
+		return sideProjectSlugs.has(slugify(item.title));
+	}
+
+	function getPortfolioDisplayEntries(items: PortfolioItem[]): PortfolioGroupedEntry[] {
+		const productDesign: PortfolioGroupedEntry[] = [];
+		const sideProjects: PortfolioGroupedEntry[] = [];
+		items.forEach((item, sourceIndex) => {
+			const grouped = { item, sourceIndex };
+			if (isSideProject(item)) {
+				sideProjects.push(grouped);
+			} else {
+				productDesign.push(grouped);
+			}
+		});
+		return [...productDesign, ...sideProjects];
+	}
+
 	function portfolioListPlainText(items: PortfolioItem[], activeIndex: number): string {
+		const entries = getPortfolioDisplayEntries(items);
+		const productCount = entries.filter((entry) => !isSideProject(entry.item)).length;
+		const lines: string[] = ['↑↓ = select | ENTER/SPACE = open | ESC = cancel', '', 'Product Design'];
+		entries.forEach((entry, i) => {
+			if (i === productCount) {
+				lines.push('', 'Side Projects');
+			}
+			const labels = entry.item.tags?.length ? ` (${entry.item.tags.join(' · ')})` : '';
+			lines.push(`${i === activeIndex ? '●' : '•'} ${entry.item.title}${labels}`);
+		});
 		return (
-			`↑↓ = select | ENTER/SPACE = open | ESC = cancel\n\n` +
-			items
-				.map((it, i) => {
-					const labels = it.tags?.length ? ` (${it.tags.join(' · ')})` : '';
-					return `${i === activeIndex ? '●' : '•'} ${it.title}${labels}`;
-				})
-				.join('\n') +
-			`\n\n`
+			lines.join('\n') + '\n\n'
 		);
 	}
 
 	function portfolioListStyledHtml(items: PortfolioItem[], activeIndex: number): string {
+		const entries = getPortfolioDisplayEntries(items);
+		const productCount = entries.filter((entry) => !isSideProject(entry.item)).length;
+		const rows: string[] = [
+			'↑↓ = select | ENTER/SPACE = open | ESC = cancel',
+			'',
+			'<span class="cli-t-portfolio-heading">Product Design</span>'
+		];
+		entries.forEach((entry, i) => {
+			if (i === productCount) {
+				rows.push('', '<span class="cli-t-portfolio-heading">Side Projects</span>');
+			}
+			const bulletClass = i === activeIndex ? 'cli-t-bullet cli-t-bullet--active' : 'cli-t-bullet';
+			const itemClass = i === activeIndex ? 'cli-t-item cli-t-item--active' : 'cli-t-item';
+			const bullet = i === activeIndex ? '●' : '•';
+			const labels = entry.item.tags?.length
+				? ` <span class="cli-t-item-labels" data-portfolio-index="${i}">(${esc(entry.item.tags.join(' · '))})</span>`
+				: '';
+			rows.push(
+				`<span class="cli-t-portfolio-row" data-portfolio-index="${i}"><span class="${bulletClass}" data-portfolio-index="${i}">${bullet}</span> <span class="${itemClass}" data-portfolio-index="${i}">${esc(entry.item.title)}</span>${labels}</span>`
+			);
+		});
 		return (
-			`↑↓ = select | ENTER/SPACE = open | ESC = cancel\n\n` +
-			items
-				.map((it, i) => {
-					const bulletClass =
-						i === activeIndex ? 'cli-t-bullet cli-t-bullet--active' : 'cli-t-bullet';
-					const itemClass = i === activeIndex ? 'cli-t-item cli-t-item--active' : 'cli-t-item';
-					const bullet = i === activeIndex ? '●' : '•';
-					const labels = it.tags?.length
-						? ` <span class="cli-t-item-labels" data-portfolio-index="${i}">(${esc(it.tags.join(' · '))})</span>`
-						: '';
-					return `<span class="cli-t-portfolio-row" data-portfolio-index="${i}"><span class="${bulletClass}" data-portfolio-index="${i}">${bullet}</span> <span class="${itemClass}" data-portfolio-index="${i}">${esc(it.title)}</span>${labels}</span>`;
-				})
-				.join('\n') +
-			`\n\n`
+			rows.join('\n') + '\n\n'
 		);
 	}
 
@@ -267,6 +304,8 @@
 	function slugify(text: string) {
 		return text
 			.toLowerCase()
+			.normalize('NFD')
+			.replace(/[\u0300-\u036f]/g, '')
 			.replace(/[^a-z0-9]+/g, '-')
 			.replace(/^-|-$/g, '');
 	}
@@ -435,8 +474,10 @@
 	}
 
 	function confirmPortfolioPick() {
-		if (!portfolioInteractive || !portfolioItems.length) return;
-		const idx = portfolioPickIndex;
+		if (!portfolioInteractive || !portfolioDisplayEntries.length) return;
+		const selected = portfolioDisplayEntries[portfolioPickIndex];
+		if (!selected) return;
+		const idx = selected.sourceIndex;
 		const title = portfolioItems[idx].title;
 		const last = history[history.length - 1];
 		const msg = `Opened: ${title}`;
@@ -491,12 +532,14 @@
 			return;
 		}
 		if (!portfolioInteractive) return;
+		if (!portfolioDisplayEntries.length) return;
 		if (e.key === 'ArrowDown') {
 			e.preventDefault();
-			portfolioPickIndex = (portfolioPickIndex + 1) % portfolioItems.length;
+			portfolioPickIndex = (portfolioPickIndex + 1) % portfolioDisplayEntries.length;
 		} else if (e.key === 'ArrowUp') {
 			e.preventDefault();
-			portfolioPickIndex = (portfolioPickIndex - 1 + portfolioItems.length) % portfolioItems.length;
+			portfolioPickIndex =
+				(portfolioPickIndex - 1 + portfolioDisplayEntries.length) % portfolioDisplayEntries.length;
 		} else if (e.key === 'Enter' || e.key === ' ') {
 			e.preventDefault();
 			confirmPortfolioPick();
@@ -513,8 +556,8 @@
 		for (const timer of introTimers) clearTimeout(timer);
 	});
 
-	$: if (lastFeedback?.kind === 'portfolio' && portfolioItems.length && portfolioInteractive) {
-		portfolioPickIndex = Math.max(0, Math.min(portfolioPickIndex, portfolioItems.length - 1));
+	$: if (lastFeedback?.kind === 'portfolio' && portfolioDisplayEntries.length && portfolioInteractive) {
+		portfolioPickIndex = Math.max(0, Math.min(portfolioPickIndex, portfolioDisplayEntries.length - 1));
 	}
 
 	afterUpdate(() => {
@@ -576,14 +619,14 @@
 			if (!portfolioInteractive) return;
 			const parsed = getPortfolioIndexFromPointerEvent(e);
 			if (parsed === null) return;
-			portfolioPickIndex = Math.max(0, Math.min(parsed, portfolioItems.length - 1));
+			portfolioPickIndex = Math.max(0, Math.min(parsed, portfolioDisplayEntries.length - 1));
 			confirmPortfolioPick();
 		}}
 		on:mouseover={(e) => {
 			if (!portfolioInteractive) return;
 			const parsed = getPortfolioIndexFromPointerEvent(e);
 			if (parsed === null) return;
-			portfolioPickIndex = Math.max(0, Math.min(parsed, portfolioItems.length - 1));
+			portfolioPickIndex = Math.max(0, Math.min(parsed, portfolioDisplayEntries.length - 1));
 		}}
 	>
 		{#if showReturnHint}

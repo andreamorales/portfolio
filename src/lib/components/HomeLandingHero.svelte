@@ -15,6 +15,7 @@
 	<!-- svelte-ignore a11y-click-events-have-key-events -->
 	<div
 		class="description"
+		class:description--rainbow-ready={!introTypewriterActive}
 		on:click={onGoHome}
 		role="button"
 		tabindex="0"
@@ -125,13 +126,13 @@
 		cursor: pointer;
 	}
 
-	.description:hover .description-base,
-	.description:focus-visible .description-base {
+	.description--rainbow-ready:hover .description-base,
+	.description--rainbow-ready:focus-visible .description-base {
 		opacity: 0;
 	}
 
-	.description:hover .description-shimmer,
-	.description:focus-visible .description-shimmer {
+	.description--rainbow-ready:hover .description-shimmer,
+	.description--rainbow-ready:focus-visible .description-shimmer {
 		opacity: 1;
 	}
 
@@ -169,8 +170,8 @@
 			animation: none;
 		}
 
-		.description:hover .description-shimmer,
-		.description:focus-visible .description-shimmer {
+		.description--rainbow-ready:hover .description-shimmer,
+		.description--rainbow-ready:focus-visible .description-shimmer {
 			background-position: 0% 45%;
 		}
 

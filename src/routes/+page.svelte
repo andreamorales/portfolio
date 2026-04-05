@@ -85,6 +85,7 @@
 
 	const FRAME_BOTTOM_REST = '0% 50%';
 	const FRAME_RIGHT_REST = '50% 0%';
+	const DETAIL_CONTENT_REVEAL_DELAY_MS = 1360;
 
 	function clearFrameLineInline(el: HTMLDivElement | null) {
 		if (!el) return;
@@ -457,6 +458,8 @@
 											locked={activeDetailItem.locked}
 											unlockPassword={activeDetailItem.unlockPassword}
 											immersive={false}
+											staggerReveal={true}
+											staggerBaseDelayMs={DETAIL_CONTENT_REVEAL_DELAY_MS}
 										/>
 									</div>
 									<div class="detail-panel-sidebar">

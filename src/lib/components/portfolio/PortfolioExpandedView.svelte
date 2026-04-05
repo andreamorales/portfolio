@@ -23,12 +23,32 @@
 	export let immersive = false;
 	export let locked = false;
 	export let unlockPassword: string = '';
+	export let staggerReveal = false;
+	export let staggerBaseDelayMs = 0;
 
 	// Initialize the featuredImage variable
 	let featuredImage: string = '';
 	let enteredPassword = '';
 	let passwordError = '';
 	let isUnlocked = false;
+	let unusedGalleryImages: Array<{ src: string; alt: string; caption?: string }> = [];
+
+	const REVEAL_TIME_SCALE = 1.35;
+	const ms = (value: number) => Math.round(value * REVEAL_TIME_SCALE);
+	const REVEAL_PARENT_DURATION_MS = ms(360);
+	const REVEAL_PARENT_TO_CHILD_GAP_MS = ms(0);
+	const REVEAL_CHILD_STEP_MS = ms(70);
+	const REVEAL_GROUP_GAP_MS = ms(30);
+	const REVEAL_PARENT_FADE_DURATION_MS = ms(620);
+	const REVEAL_CHILD_FADE_DURATION_MS = ms(560);
+
+	type RevealGroup = { parentDelayMs: number; childStartDelayMs: number };
+
+	let introReveal: RevealGroup = { parentDelayMs: 0, childStartDelayMs: 0 };
+	let detailsReveal: RevealGroup | null = null;
+	let heroReveal: RevealGroup | null = null;
+	let contentReveal: RevealGroup | null = null;
+	let lockedReveal: RevealGroup | null = null;
 
 	$: if (!locked) {
 		isUnlocked = true;
@@ -58,6 +78,59 @@
 		return image?.caption;
 	}
 
+	function revealStyle(delayMs: number): string | undefined {
+		if (!staggerReveal) return undefined;
+		return `--reveal-delay: ${Math.max(0, Math.round(delayMs))}ms;`;
+	}
+
+	function childDelayStyle(group: RevealGroup | null, step: number): string | undefined {
+		const anchor = (group ?? introReveal).childStartDelayMs;
+		return revealStyle(anchor + step * REVEAL_CHILD_STEP_MS);
+	}
+
+	$: {
+		const usedImageSources = new Set([
+			featuredImage,
+			...content
+				.filter((block) => block.type === 'image')
+				.flatMap((block) => {
+					const blockImages = [block.value];
+					if (block.layout === 'side-by-side' && block.sideImage) {
+						blockImages.push(block.sideImage.value);
+					}
+					return blockImages;
+				})
+		]);
+		unusedGalleryImages = images.filter((img) => !usedImageSources.has(img.src));
+	}
+
+	$: {
+		let cursor = staggerBaseDelayMs;
+		const schedule = (): RevealGroup => {
+			const parentDelayMs = cursor;
+			const childStartDelayMs = parentDelayMs + REVEAL_PARENT_DURATION_MS + REVEAL_PARENT_TO_CHILD_GAP_MS;
+			const nextGroupStartMs = parentDelayMs + REVEAL_PARENT_DURATION_MS + REVEAL_GROUP_GAP_MS;
+			cursor = Math.max(nextGroupStartMs, childStartDelayMs);
+			return { parentDelayMs, childStartDelayMs };
+		};
+
+		introReveal = schedule();
+		detailsReveal = null;
+		heroReveal = null;
+		contentReveal = null;
+		lockedReveal = null;
+
+		if (locked && !isUnlocked) {
+			lockedReveal = schedule();
+		} else {
+			detailsReveal = schedule();
+			if (featuredImage) {
+				heroReveal = schedule();
+			}
+			contentReveal = schedule();
+		}
+	}
+
 	function unlockCaseStudy() {
 		if (!locked) {
 			return;
@@ -73,9 +146,18 @@
 	}
 </script>
 
-<div class="portfolio-expanded-view flex-column" class:immersive>
-	<div class="project-intro">
-		<div class="project-title-row">
+<div
+	class="portfolio-expanded-view flex-column"
+	class:immersive
+	class:portfolio-expanded-view--staggered={staggerReveal}
+	style={
+		staggerReveal
+			? `--reveal-parent-duration: ${REVEAL_PARENT_FADE_DURATION_MS}ms; --reveal-child-duration: ${REVEAL_CHILD_FADE_DURATION_MS}ms;`
+			: undefined
+	}
+>
+	<div class="project-intro reveal-parent" style={revealStyle(introReveal.parentDelayMs)}>
+		<div class="project-title-row reveal-child" style={revealStyle(introReveal.childStartDelayMs)}>
 			<h2 id={titleId} class="project-title">{projectTitle}</h2>
 			{#if tags.length > 0}
 				<div class="project-tags">
@@ -86,7 +168,10 @@
 			{/if}
 		</div>
 
-		<div class="hero-description">
+		<div
+			class="hero-description reveal-child"
+			style={revealStyle(introReveal.childStartDelayMs + REVEAL_CHILD_STEP_MS)}
+		>
 			{#each description.split('. ') as line, index (`${line}-${index}`)}
 				<span class="highlight-line">{line}{line.endsWith('.') ? '' : '.'} </span>
 			{/each}
@@ -94,13 +179,27 @@
 	</div>
 
 	{#if locked && !isUnlocked}
-		<div class="locked-gate">
+		<div
+			class="locked-gate reveal-parent"
+			style={revealStyle((lockedReveal ?? introReveal).parentDelayMs)}
+		>
 			<div class="locked-gate-card">
-				<div class="locked-gate-label">Password Protected</div>
-				<p class="locked-gate-copy">
+				<div
+					class="locked-gate-label reveal-child"
+					style={revealStyle((lockedReveal ?? introReveal).childStartDelayMs)}
+				>
+					Password Protected
+				</div>
+				<p
+					class="locked-gate-copy reveal-child"
+					style={revealStyle((lockedReveal ?? introReveal).childStartDelayMs + REVEAL_CHILD_STEP_MS)}
+				>
 					This is my most recent case study. Enter the password to unlock the full piece.
 				</p>
-				<div class="locked-gate-controls">
+				<div
+					class="locked-gate-controls reveal-child"
+					style={revealStyle((lockedReveal ?? introReveal).childStartDelayMs + REVEAL_CHILD_STEP_MS * 2)}
+				>
 					<input
 						class="locked-gate-input"
 						type="password"
@@ -114,25 +213,48 @@
 					</button>
 				</div>
 				{#if passwordError}
-					<p class="locked-gate-error">{passwordError}</p>
+					<p
+						class="locked-gate-error reveal-child"
+						style={revealStyle(
+							(lockedReveal ?? introReveal).childStartDelayMs + REVEAL_CHILD_STEP_MS * 3
+						)}
+					>
+						{passwordError}
+					</p>
 				{/if}
 			</div>
 		</div>
 	{:else}
 		<!-- Project details grid -->
-		<div class="project-details-grid">
-			<div class="details-row">
+		<div
+			class="project-details-grid reveal-parent"
+			style={revealStyle((detailsReveal ?? introReveal).parentDelayMs)}
+		>
+			<div
+				class="details-row reveal-child"
+				style={childDelayStyle(detailsReveal, 0)}
+			>
 				<div class="details-cell">
-					<div class="details-label">Year</div>
-					<div class="details-value">{year}</div>
+					<div class="details-label reveal-child" style={childDelayStyle(detailsReveal, 0)}>
+						Year
+					</div>
+					<div class="details-value reveal-child" style={childDelayStyle(detailsReveal, 0)}>
+						{year}
+					</div>
 				</div>
 				<div class="details-cell">
-					<div class="details-label">Role</div>
-					<div class="details-value">{role}</div>
+					<div class="details-label reveal-child" style={childDelayStyle(detailsReveal, 1)}>
+						Role
+					</div>
+					<div class="details-value reveal-child" style={childDelayStyle(detailsReveal, 1)}>
+						{role}
+					</div>
 				</div>
 				<div class="details-cell">
-					<div class="details-label">Link</div>
-					<div class="details-value">
+					<div class="details-label reveal-child" style={childDelayStyle(detailsReveal, 2)}>
+						Link
+					</div>
+					<div class="details-value reveal-child" style={childDelayStyle(detailsReveal, 2)}>
 						{#if link === 'Discontinued'}
 							<span class="discontinued-text">Discontinued</span>
 						{:else if link}
@@ -160,16 +282,31 @@
 					</div>
 				</div>
 			</div>
-			<div class="details-row metrics-row">
+			<div
+				class="details-row metrics-row reveal-child"
+				style={childDelayStyle(detailsReveal, 3)}
+			>
 				{#each metrics.slice(0, 2) as metric, index (`${metric}-${index}`)}
 					<div class="details-cell">
-						<div class="details-label">Impact</div>
-						<div class="details-value">{metric}</div>
+						<div
+							class="details-label reveal-child"
+							style={childDelayStyle(detailsReveal, 3 + index)}
+						>
+							Impact
+						</div>
+						<div
+							class="details-value reveal-child"
+							style={childDelayStyle(detailsReveal, 3 + index)}
+						>
+							{metric}
+						</div>
 					</div>
 				{/each}
 				<div class="details-cell">
-					<div class="details-label">Team</div>
-					<div class="details-value team-list">
+					<div class="details-label reveal-child" style={childDelayStyle(detailsReveal, 5)}>
+						Team
+					</div>
+					<div class="details-value team-list reveal-child" style={childDelayStyle(detailsReveal, 5)}>
 						{#if team && team.length > 0}
 							{#each team as member (`${member.role}-${member.name}`)}
 								<div class="team-member">
@@ -188,8 +325,8 @@
 
 		<!-- Featured hero image -->
 		{#if featuredImage}
-			<div class="hero-image-container">
-				<div class="image-frame">
+			<div class="hero-image-container reveal-parent" style={revealStyle((heroReveal ?? introReveal).parentDelayMs)}>
+				<div class="image-frame reveal-child" style={revealStyle((heroReveal ?? introReveal).childStartDelayMs)}>
 					<img
 						src={featuredImage}
 						alt={projectTitle}
@@ -201,17 +338,23 @@
 		{/if}
 
 		<!-- Content sections -->
-		<div class="content-container flex-column">
+		<div class="content-container flex-column reveal-parent" style={revealStyle((contentReveal ?? introReveal).parentDelayMs)}>
 			<div class="content-view width-100">
 				<!-- Content blocks (text and images) -->
 				<div class="content-blocks">
 					{#each content as block, index (`${block.type}-${block.value}-${index}`)}
 						{#if block.type === 'text'}
-							<div class="text-block">
+							<div
+								class="text-block reveal-child"
+								style={revealStyle((contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS)}
+							>
 								<p>{block.value}</p>
 							</div>
 						{:else if block.type === 'image'}
-							<div class="image-block {block.layout === 'side-by-side' ? 'side-by-side' : ''}">
+							<div
+								class="image-block {block.layout === 'side-by-side' ? 'side-by-side' : ''} reveal-child"
+								style={revealStyle((contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS)}
+							>
 								{#if block.layout === 'side-by-side'}
 									<div class="image-pair">
 										<div class="image-container">
@@ -254,24 +397,16 @@
 				</div>
 
 				<!-- Image gallery - only show unused images -->
-				{#if images.length > 0}
-					{@const usedImages = new Set([
-						featuredImage,
-						...content
-							.filter((block) => block.type === 'image')
-							.flatMap((block) => {
-								const blockImages = [block.value];
-								if (block.layout === 'side-by-side' && block.sideImage) {
-									blockImages.push(block.sideImage.value);
-								}
-								return blockImages;
-							})
-					])}
-					{@const unusedImages = images.filter((img) => !usedImages.has(img.src))}
-					{#if unusedImages.length > 0}
+				{#if unusedGalleryImages.length > 0}
 						<div class="image-gallery">
-							{#each unusedImages as image (image.src)}
-								<div class="gallery-item">
+							{#each unusedGalleryImages as image, index (image.src)}
+								<div
+									class="gallery-item reveal-child"
+									style={revealStyle(
+										(contentReveal ?? introReveal).childStartDelayMs +
+											(content.length + index) * REVEAL_CHILD_STEP_MS
+									)}
+								>
 									<div class="image-frame">
 										<img src={image.src} alt={image.alt} />
 									</div>
@@ -281,7 +416,6 @@
 								</div>
 							{/each}
 						</div>
-					{/if}
 				{/if}
 			</div>
 		</div>
@@ -311,6 +445,29 @@
 		margin: 0 auto;
 		padding: 0;
 		border-top: 16px solid var(--text-color);
+	}
+
+	.portfolio-expanded-view--staggered {
+		--reveal-distance: 0px;
+	}
+
+	.portfolio-expanded-view--staggered .reveal-parent,
+	.portfolio-expanded-view--staggered .reveal-child {
+		opacity: 0;
+		transform: none;
+		animation-name: portfolio-reveal-in;
+		animation-timing-function: cubic-bezier(0.22, 0.61, 0.36, 1);
+		animation-fill-mode: forwards;
+		animation-delay: var(--reveal-delay, 0ms);
+		will-change: opacity, transform;
+	}
+
+	.portfolio-expanded-view--staggered .reveal-parent {
+		animation-duration: var(--reveal-parent-duration, 700ms);
+	}
+
+	.portfolio-expanded-view--staggered .reveal-child {
+		animation-duration: var(--reveal-child-duration, 560ms);
 	}
 
 	.content-container {
@@ -914,5 +1071,25 @@
 	.side-by-side .image-caption {
 		margin-top: var(--spacing-xs);
 		flex-shrink: 0;
+	}
+
+	@keyframes portfolio-reveal-in {
+		from {
+			opacity: 0;
+			transform: none;
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.portfolio-expanded-view--staggered .reveal-parent,
+		.portfolio-expanded-view--staggered .reveal-child {
+			opacity: 1;
+			transform: none;
+			animation: none;
+		}
 	}
 </style>
