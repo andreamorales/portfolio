@@ -225,15 +225,12 @@
 		transition: color 0.12s ease;
 	}
 
-	:global(.cli-terminal-window--portfolio-interactive)
-		.cli-typewriter
-		:global(.cli-t-portfolio-row) {
+	/* Past --portfolio blocks stay clickable (not only when that command is "active"). */
+	.cli-typewriter :global(.cli-t-portfolio-row) {
 		cursor: pointer;
 	}
 
-	:global(.cli-terminal-window--portfolio-interactive)
-		.cli-typewriter
-		:global(.cli-t-portfolio-row:hover .cli-t-item) {
+	.cli-typewriter :global(.cli-t-portfolio-row:hover .cli-t-item) {
 		font-weight: 600;
 	}
 

@@ -48,7 +48,7 @@ const initialPortfolioItems = [
 	{
 		title: '█ █ █ █',
 		slug: 'most-recent1',
-		tags: ['PRODUCT DESIGN'],
+		tags: ['UX/UI', 'FRONTEND'],
 		expanded: false,
 		description:
 			'Password-protected case study for my most recent product work.',

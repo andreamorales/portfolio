@@ -160,6 +160,9 @@
 				if (decrypted.projectTitle?.trim()) {
 					projectTitle = decrypted.projectTitle;
 				}
+				if (decrypted.tags?.length) {
+					tags = decrypted.tags;
+				}
 				description = decrypted.description;
 				images = decrypted.images;
 				content = decrypted.content;

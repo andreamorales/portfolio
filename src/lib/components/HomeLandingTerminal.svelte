@@ -164,15 +164,53 @@
 		);
 	}
 
-	/** Text nodes between spans have no closest(); resolve to parent element first. */
-	function getPortfolioIndexFromPointerEvent(e: MouseEvent): number | null {
+	/** Text nodes have no closest(); resolve to parent element first. */
+	function getPointerTargetElement(e: MouseEvent): Element | null {
 		const raw = e.target;
-		const el = raw instanceof Element ? raw : (raw as Node | null)?.parentElement;
+		return raw instanceof Element ? raw : (raw as Node | null)?.parentElement ?? null;
+	}
+
+	function getPortfolioIndexFromPointerEvent(e: MouseEvent): number | null {
+		const el = getPointerTargetElement(e);
 		if (!el) return null;
 		const picked = el.closest<HTMLElement>('[data-portfolio-index]');
 		if (!picked) return null;
 		const parsed = Number.parseInt(picked.dataset.portfolioIndex ?? '', 10);
 		return Number.isNaN(parsed) ? null : parsed;
+	}
+
+	/**
+	 * Fallback for clicks near a row (e.g. whitespace in the same line):
+	 * choose the closest rendered portfolio row in the same history block.
+	 */
+	function getClosestPortfolioRowIndexFromPointerEvent(e: MouseEvent): number | null {
+		const el = getPointerTargetElement(e);
+		if (!el) return null;
+		const pre = el.closest('pre');
+		if (!pre) return null;
+		const rows = Array.from(
+			pre.querySelectorAll<HTMLElement>('.cli-t-portfolio-row[data-portfolio-index]')
+		);
+		if (!rows.length) return null;
+
+		const y = e.clientY;
+		let bestIndex: number | null = null;
+		let bestDistance = Number.POSITIVE_INFINITY;
+
+		for (const row of rows) {
+			const rect = row.getBoundingClientRect();
+			const parsed = Number.parseInt(row.dataset.portfolioIndex ?? '', 10);
+			if (Number.isNaN(parsed)) continue;
+			const distance =
+				y < rect.top ? rect.top - y : y > rect.bottom ? y - rect.bottom : 0;
+			if (distance < bestDistance) {
+				bestDistance = distance;
+				bestIndex = parsed;
+				if (distance === 0) break;
+			}
+		}
+
+		return bestIndex;
 	}
 
 	function feedbackToPlainText(f: Feedback, items: PortfolioItem[]): string {
@@ -664,19 +702,23 @@
 	<div
 		class="cli-terminal-window"
 		class:cli-terminal-window--bottom-prompt={bottomPromptVisible}
-		class:cli-terminal-window--portfolio-interactive={portfolioInteractive}
 		on:click={(e) => {
-			const t = e.target instanceof HTMLElement ? e.target : null;
-			if (t?.closest('[data-copy-email]')) {
+			const targetEl = getPointerTargetElement(e);
+			if (targetEl?.closest('[data-copy-email]')) {
 				e.preventDefault();
 				onCopyEmail();
 				return;
 			}
-			if (!portfolioInteractive) return;
-			const parsed = getPortfolioIndexFromPointerEvent(e);
-			if (parsed === null) return;
-			portfolioPickIndex = Math.max(0, Math.min(parsed, portfolioDisplayEntries.length - 1));
-			confirmPortfolioPick();
+			/* Portfolio list rows stay openable from any past --portfolio block, not only the latest command. */
+			const parsed =
+				getPortfolioIndexFromPointerEvent(e) ?? getClosestPortfolioRowIndexFromPointerEvent(e);
+			if (parsed !== null && portfolioDisplayEntries.length) {
+				const selected = portfolioDisplayEntries[parsed];
+				if (selected) {
+					void openPortfolioFromTerminal(selected.sourceIndex);
+				}
+				return;
+			}
 		}}
 		on:mouseover={(e) => {
 			if (!portfolioInteractive) return;

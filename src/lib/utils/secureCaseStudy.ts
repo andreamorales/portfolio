@@ -23,6 +23,7 @@ export interface SecurePortfolioTeamMember {
 
 export interface SecurePortfolioPayloadData {
 	projectTitle?: string;
+	tags?: string[];
 	description: string;
 	images: SecurePortfolioImage[];
 	content: SecurePortfolioContentItem[];

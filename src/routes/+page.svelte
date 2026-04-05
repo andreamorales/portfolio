@@ -162,6 +162,7 @@
 		return {
 			...piece,
 			title: payload.projectTitle ?? piece.title,
+			tags: payload.tags?.length ? payload.tags : piece.tags,
 			description: payload.description,
 			images: payload.images,
 			content: payload.content,
@@ -484,23 +485,26 @@
 								></div>
 								<div class="detail-panel-grid detail-panel-grid--enter">
 									<div class="detail-panel-piece" bind:this={detailPieceEl}>
-										<PortfolioExpandedView
-											projectTitle={activeDetailItem.title}
-											tags={activeDetailItem.tags}
-											description={activeDetailItem.description}
-											images={activeDetailItem.images}
-											content={activeDetailItem.content}
-											year={activeDetailItem.year}
-											role={activeDetailItem.role}
-											link={activeDetailItem.link}
-											metrics={activeDetailItem.metrics}
-											team={activeDetailItem.team}
-											locked={!!activeDetailItem.locked && !isPieceUnlocked(activeDetailItem)}
-											encryptedPayload={activeDetailItem.encryptedPayload}
-											immersive={false}
-											staggerReveal={true}
-											staggerBaseDelayMs={DETAIL_CONTENT_REVEAL_DELAY_MS}
-										/>
+										<!-- Only remount body content when switching pieces (shell/dividers stay put). -->
+										{#key toPieceSlug(activeDetailItem)}
+											<PortfolioExpandedView
+												projectTitle={activeDetailItem.title}
+												tags={activeDetailItem.tags}
+												description={activeDetailItem.description}
+												images={activeDetailItem.images}
+												content={activeDetailItem.content}
+												year={activeDetailItem.year}
+												role={activeDetailItem.role}
+												link={activeDetailItem.link}
+												metrics={activeDetailItem.metrics}
+												team={activeDetailItem.team}
+												locked={!!activeDetailItem.locked && !isPieceUnlocked(activeDetailItem)}
+												encryptedPayload={activeDetailItem.encryptedPayload}
+												immersive={false}
+												staggerReveal={true}
+												staggerBaseDelayMs={DETAIL_CONTENT_REVEAL_DELAY_MS}
+											/>
+										{/key}
 									</div>
 									<div class="detail-panel-sidebar">
 										<div class="detail-panel-video">
