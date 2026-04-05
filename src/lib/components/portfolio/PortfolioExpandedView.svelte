@@ -348,7 +348,7 @@
 	.content-blocks {
 		display: flex;
 		flex-direction: column;
-		gap: var(--spacing-xl);
+		gap: var(--spacing-sm);
 	}
 
 	.text-block {
@@ -453,13 +453,13 @@
 	.project-intro {
 		display: flex;
 		flex-direction: column;
-		gap: var(--spacing-md);
+		gap: var(--spacing-xs);
 		padding: var(--spacing-lg) 1.5rem 0;
 	}
 
 	.project-title-row {
 		display: flex;
-		align-items: flex-start;
+		align-items: center;
 		justify-content: flex-start;
 		gap: var(--spacing-md);
 		flex-wrap: wrap;
@@ -562,10 +562,6 @@
 		letter-spacing: -0.01em;
 	}
 
-	:global(html.dark-theme) .portfolio-expanded-view {
-		letter-spacing: 0.05em;
-	}
-
 	:global(html.dark-theme) .hero-description,
 	:global(html.dark-theme) .text-block,
 	:global(html.dark-theme) .image-caption,
@@ -577,15 +573,42 @@
 	:global(html.dark-theme) .role,
 	:global(html.dark-theme) .name,
 	:global(html.dark-theme) .relationship {
-		letter-spacing: 0.055em;
+		letter-spacing: 0.03em;
+	}
+
+	/* Slightly lighter body weight in dark mode for easier reading on deep backgrounds */
+	:global(html.dark-theme) .hero-description,
+	:global(html.dark-theme) .text-block,
+	:global(html.dark-theme) .project-link,
+	:global(html.dark-theme) .muted-text,
+	:global(html.dark-theme) .discontinued-text,
+	:global(html.dark-theme) .role,
+	:global(html.dark-theme) .name,
+	:global(html.dark-theme) .relationship {
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 360;
+	}
+
+	:global(html.dark-theme) .image-caption,
+	:global(html.dark-theme) .details-label {
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 330;
+	}
+
+	:global(html.dark-theme) .details-label {
+		color: var(--palette-grey-hint);
+	}
+
+	:global(html.dark-theme) .details-value {
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 460;
 	}
 
 	:global(html.dark-theme) .highlight-line {
-		letter-spacing: 0.05em;
-	}
-
-	:global(html.dark-theme) .project-title {
-		letter-spacing: -0.02em;
+		letter-spacing: 0.025em;
 	}
 
 	/* Project details grid */
@@ -657,6 +680,7 @@
 
 		.project-title-row {
 			flex-direction: column;
+			align-items: flex-start;
 		}
 
 		.project-tags {
