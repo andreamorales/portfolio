@@ -137,7 +137,11 @@
 		} else {
 			url.searchParams.delete('piece');
 		}
-		window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+		window.history.replaceState(
+			window.history.state,
+			'',
+			`${url.pathname}${url.search}${url.hash}`
+		);
 	}
 
 	function openPieceFromUrl() {
@@ -379,18 +383,27 @@
 			{#if !immersiveMode}
 				<div class="landing-landing-row">
 					<div class="landing-hero-anchor" bind:this={landingHeroElement}>
-					<HomeLandingHero
-						portfolioItems={sortedPortfolioItems}
-						onOpenPortfolio={openPortfolioPiece}
-						onCopyEmail={copyEmailToClipboard}
-						onGoHome={() => { activeDetailItem = null; updatePieceQuery(null); }}
-					/>
+						<HomeLandingHero
+							portfolioItems={sortedPortfolioItems}
+							onOpenPortfolio={openPortfolioPiece}
+							onCopyEmail={copyEmailToClipboard}
+							onGoHome={() => {
+								activeDetailItem = null;
+								updatePieceQuery(null);
+							}}
+						/>
 					</div>
 					{#if activeDetailItem}
 						<div class="landing-portfolio-shell">
 							<div class="detail-panel">
-								<div class="detail-panel-rainbow detail-panel-rainbow--top" aria-hidden="true"></div>
-								<div class="detail-panel-rainbow detail-panel-rainbow--left" aria-hidden="true"></div>
+								<div
+									class="detail-panel-rainbow detail-panel-rainbow--top"
+									aria-hidden="true"
+								></div>
+								<div
+									class="detail-panel-rainbow detail-panel-rainbow--left"
+									aria-hidden="true"
+								></div>
 								<div class="detail-panel-grid detail-panel-grid--enter">
 									<div class="detail-panel-piece" bind:this={detailPieceEl}>
 										<PortfolioExpandedView
@@ -628,10 +641,8 @@
 		z-index: 0;
 		pointer-events: none;
 		background-image:
-			var(--palette-rainbow-gradient-h),
-			var(--palette-rainbow-gradient-h),
-			var(--palette-rainbow-gradient-h),
-			var(--palette-rainbow-gradient-h);
+			var(--palette-rainbow-gradient-h), var(--palette-rainbow-gradient-h),
+			var(--palette-rainbow-gradient-h), var(--palette-rainbow-gradient-h);
 		background-position:
 			top center,
 			bottom center,
@@ -943,7 +954,6 @@
 		.container {
 			gap: var(--spacing-md);
 		}
-
 
 		.container.immersive-mode {
 			padding-top: 0;

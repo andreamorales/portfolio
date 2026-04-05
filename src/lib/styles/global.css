@@ -1063,5 +1063,6 @@ textarea {
 	--inverse-bg: var(--palette-ink);
 	--inverse-content: var(--palette-bg);
 	--logo-filter: invert(1);
-	--icon-filter: invert(6%) sepia(6%) saturate(150%) hue-rotate(325deg) brightness(86%) contrast(94%);
+	--icon-filter: invert(6%) sepia(6%) saturate(150%) hue-rotate(325deg) brightness(86%)
+		contrast(94%);
 }

@@ -290,8 +290,15 @@
 
 <style>
 	.portfolio-expanded-view {
-		font-family: 'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
-			Arial, sans-serif;
+		font-family:
+			'Instrument Sans',
+			-apple-system,
+			BlinkMacSystemFont,
+			'Segoe UI',
+			Roboto,
+			Helvetica,
+			Arial,
+			sans-serif;
 		letter-spacing: -0.01em;
 		width: 100%;
 		max-width: 800px;

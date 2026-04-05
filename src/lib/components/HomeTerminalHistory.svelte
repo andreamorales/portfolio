@@ -12,63 +12,65 @@
 	export let portfolioListStyledHtml: (items: Array<any>, activeIndex: number) => string = () => '';
 </script>
 
-{#if history.length}
-	<div class="cli-history-wrap" id={outputId}>
-		<div
-			bind:this={scrollLogEl}
-			class="cli-history-scroll"
-			class:cli-history-scroll--compact={showReturnHint}
-			role="log"
-			aria-live="polite"
-			aria-relevant="additions"
-		>
-			{#each history as entry (entry.id)}
-				{#if entry.feedback.kind === 'about'}
-					<div class="cli-history-entry">
-						<div class="cli-history-cmd">$ {entry.cmd}</div>
-						<div class="cli-history-result">
-							{#if !entry.typingComplete}
-								<pre class="cli-typewriter"
-									>{@html sliceStyledHtml(entry.styledHtml, entry.typingProgress)}<span
-										class="cli-type-cursor"
-										aria-hidden="true"
-									></span></pre
-								>
-							{:else}
-								<pre class="cli-typewriter cli-typewriter--done">{@html entry.styledHtml}</pre>
-							{/if}
-						</div>
+<div class="cli-history-wrap" class:cli-history-wrap--empty={!history.length} id={outputId}>
+	<div
+		bind:this={scrollLogEl}
+		class="cli-history-scroll"
+		class:cli-history-scroll--compact={showReturnHint}
+		role="log"
+		aria-live="polite"
+		aria-relevant="additions"
+	>
+		{#each history as entry (entry.id)}
+			{#if entry.feedback.kind === 'about'}
+				<div class="cli-history-entry">
+					<div class="cli-history-cmd">$ {entry.cmd}</div>
+					<div class="cli-history-result">
+						{#if !entry.typingComplete}
+							<pre class="cli-typewriter">{@html sliceStyledHtml(
+									entry.styledHtml,
+									entry.typingProgress
+								)}<span class="cli-type-cursor" aria-hidden="true"></span></pre>
+						{:else}
+							<pre class="cli-typewriter cli-typewriter--done">{@html entry.styledHtml}</pre>
+						{/if}
 					</div>
-				{:else}
-					<div class="cli-history-entry" use:scrollFadeEntry={{ root: scrollLogEl }}>
-						<div class="cli-history-cmd">$ {entry.cmd}</div>
-						<div class="cli-history-result">
-							{#if !entry.typingComplete}
-								<pre class="cli-typewriter"
-									>{@html sliceStyledHtml(entry.styledHtml, entry.typingProgress)}<span
-										class="cli-type-cursor"
-										aria-hidden="true"
-									></span></pre
-								>
-							{:else}
-								<pre class="cli-typewriter cli-typewriter--done"
-									>{@html entry.feedback.kind === 'portfolio' && entry.id === lastEntry?.id
-										? portfolioListStyledHtml(portfolioItems, portfolioPickIndex)
-										: entry.styledHtml}</pre
-								>
-							{/if}
-						</div>
+				</div>
+			{:else}
+				<div class="cli-history-entry" use:scrollFadeEntry={{ root: scrollLogEl }}>
+					<div class="cli-history-cmd">$ {entry.cmd}</div>
+					<div class="cli-history-result">
+						{#if !entry.typingComplete}
+							<pre class="cli-typewriter">{@html sliceStyledHtml(
+									entry.styledHtml,
+									entry.typingProgress
+								)}<span class="cli-type-cursor" aria-hidden="true"></span></pre>
+						{:else}
+							<pre class="cli-typewriter cli-typewriter--done">{@html entry.feedback.kind ===
+									'portfolio' && entry.id === lastEntry?.id
+									? portfolioListStyledHtml(portfolioItems, portfolioPickIndex)
+									: entry.styledHtml}</pre>
+						{/if}
 					</div>
-				{/if}
-			{/each}
-		</div>
+				</div>
+			{/if}
+		{/each}
 	</div>
-{/if}
+</div>
 
 <style>
 	.cli-history-wrap {
 		margin: 0;
 		padding: 0.5rem 0.65rem 0.65rem 0.75rem;
+	}
+
+	.cli-history-wrap--empty {
+		padding: 0;
+	}
+
+	.cli-history-wrap--empty .cli-history-scroll {
+		max-height: 0;
+		overflow: hidden;
 	}
 
 	:global(.cli-terminal-window--bottom-prompt) .cli-history-wrap {
@@ -214,12 +216,14 @@
 	}
 
 	:global(.cli-terminal-window--portfolio-interactive)
-		.cli-typewriter :global(.cli-t-portfolio-row) {
+		.cli-typewriter
+		:global(.cli-t-portfolio-row) {
 		cursor: pointer;
 	}
 
 	:global(.cli-terminal-window--portfolio-interactive)
-		.cli-typewriter :global(.cli-t-portfolio-row:hover .cli-t-item) {
+		.cli-typewriter
+		:global(.cli-t-portfolio-row:hover .cli-t-item) {
 		font-weight: 600;
 	}
 

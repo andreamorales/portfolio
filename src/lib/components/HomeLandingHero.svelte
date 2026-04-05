@@ -11,8 +11,13 @@
 
 <div class="hero-intro-stack">
 	<!-- svelte-ignore a11y-click-events-have-key-events -->
-	<!-- svelte-ignore a11y-no-static-element-interactions -->
-	<div class="description" in:fade={{ duration: 600, delay: 300 }} on:click={onGoHome} role="button" tabindex="0">
+	<div
+		class="description"
+		in:fade={{ duration: 600, delay: 300 }}
+		on:click={onGoHome}
+		role="button"
+		tabindex="0"
+	>
 		<span class="description-layers">
 			<span class="description-base">I design tools.</span>
 			<span class="description-shimmer" aria-hidden="true">I design tools.</span>

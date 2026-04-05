@@ -311,8 +311,14 @@
 
 		function overlapsExclusionZone(rect: Rect): boolean {
 			for (const zone of exclusionZones) {
-				const xOverlap = Math.max(0, Math.min(rect.right, zone.right) - Math.max(rect.left, zone.left));
-				const yOverlap = Math.max(0, Math.min(rect.bottom, zone.bottom) - Math.max(rect.top, zone.top));
+				const xOverlap = Math.max(
+					0,
+					Math.min(rect.right, zone.right) - Math.max(rect.left, zone.left)
+				);
+				const yOverlap = Math.max(
+					0,
+					Math.min(rect.bottom, zone.bottom) - Math.max(rect.top, zone.top)
+				);
 				if (xOverlap > 0 && yOverlap > 0) return true;
 			}
 			return false;

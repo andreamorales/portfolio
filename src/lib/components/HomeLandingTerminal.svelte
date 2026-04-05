@@ -8,7 +8,7 @@
 	import HomeTerminalHistory from '$lib/components/HomeTerminalHistory.svelte';
 
 	const aboutBio =
-		'I lead the design of creative and technical products. I lead the design of tools for devs and creatives, all through the lens of play. I started my career in 2010 as a filmmaker and game designer, which gave me a sharp eye for storytelling, and 12 years ago delved into product design and game design. I\'ve worked at MongoDB, Roblox, ConsenSys, and was the CEO and co-founder of my own AI startup, Panto. I currently work at Layer Health bringing AI to medical chart review.';
+		"I lead the design of creative and technical products. I lead the design of tools for devs and creatives, all through the lens of play. I started my career in 2010 as a filmmaker and game designer, which gave me a sharp eye for storytelling, and 12 years ago delved into product design and game design. I've worked at MongoDB, Roblox, ConsenSys, and was the CEO and co-founder of my own AI startup, Panto. I currently work at Layer Health bringing AI to medical chart review.";
 
 	export let portfolioItems: PortfolioItem[] = [];
 	export let onOpenPortfolio: (index: number) => void = () => {};
@@ -74,7 +74,8 @@
 			`↑↓ = select | ENTER/SPACE = open | ESC = cancel\n\n` +
 			items
 				.map((it, i) => {
-					const bulletClass = i === activeIndex ? 'cli-t-bullet cli-t-bullet--active' : 'cli-t-bullet';
+					const bulletClass =
+						i === activeIndex ? 'cli-t-bullet cli-t-bullet--active' : 'cli-t-bullet';
 					const itemClass = i === activeIndex ? 'cli-t-item cli-t-item--active' : 'cli-t-item';
 					const bullet = i === activeIndex ? '●' : '•';
 					const labels = it.tags?.length
@@ -115,11 +116,7 @@
 					`Clickable links (email & socials).\n\n`
 				);
 			case 'contact':
-				return (
-					`Links\n\n` +
-					contactLinks.map((l) => l.label).join('  ') +
-					`\n\n`
-				);
+				return `Links\n\n` + contactLinks.map((l) => l.label).join('  ') + `\n\n`;
 			case 'error':
 				return `${f.message}\n\n`;
 			case 'system':
@@ -228,7 +225,7 @@
 				return (
 					`<span class="cli-t-about-wrap">` +
 					`<span class="cli-t-about-ascii-block">${esc(aboutAscii)}</span>` +
-					`\n<span class="cli-t-about-bio">${esc(aboutBio)}</span>\n\n` +
+					`\n<span class="cli-t-about-bio">${esc(aboutBio)}</span>` +
 					`</span>\n\n`
 				);
 		}
@@ -280,43 +277,42 @@
 		}
 	}
 
+	function advanceTypingStep(entryId: string) {
+		history = history.map((h) => {
+			if (h.id !== entryId || h.typingComplete) return h;
+			// For --about only: stream ASCII much faster, then return to normal speed for the bio copy.
+			let step = 2;
+			if (h.feedback.kind === 'about') {
+				const bioStart = aboutAscii.length + 1; // +1 accounts for newline between ASCII and bio
+				if (h.typingProgress < bioStart) {
+					step = Math.min(36, bioStart - h.typingProgress);
+				}
+			}
+			const np = Math.min(h.typingProgress + step, h.fullText.length);
+			const done = np >= h.fullText.length;
+			return { ...h, typingProgress: np, typingComplete: done };
+		});
+
+		requestAnimationFrame(() => {
+			if (scrollLogEl) scrollLogEl.scrollTop = scrollLogEl.scrollHeight;
+		});
+
+		const el = history.find((h) => h.id === entryId);
+		if (!el || el.typingComplete) {
+			clearTypingTimer();
+		}
+	}
+
 	function startTypingAnimation(entryId: string) {
 		clearTypingTimer();
-		typingTimer = setInterval(() => {
-			history = history.map((h) => {
-				if (h.id !== entryId || h.typingComplete) return h;
-				// For --about only: stream ASCII much faster, then return to normal speed for the bio copy.
-				let step = 2;
-				if (h.feedback.kind === 'about') {
-					const bioStart = aboutAscii.length + 1; // +1 accounts for newline between ASCII and bio
-					if (h.typingProgress < bioStart) {
-						step = Math.min(36, bioStart - h.typingProgress);
-					}
-				}
-				const np = Math.min(h.typingProgress + step, h.fullText.length);
-				const done = np >= h.fullText.length;
-				return { ...h, typingProgress: np, typingComplete: done };
-			});
-
-			// Keep the viewport pinned to the live tail while characters stream in.
-			requestAnimationFrame(() => {
-				if (scrollLogEl) scrollLogEl.scrollTop = scrollLogEl.scrollHeight;
-			});
-
-			const el = history.find((h) => h.id === entryId);
-			if (!el || el.typingComplete) {
-				clearTypingTimer();
-			}
-		}, 18);
+		typingTimer = setInterval(() => advanceTypingStep(entryId), 18);
 	}
 
 	function pushEntry(cmd: string, feedback: Feedback) {
 		const fullText = feedbackToPlainText(feedback, portfolioItems);
 		const styledHtml = feedbackToStyledHtml(feedback, portfolioItems);
 		history = history.map((h) =>
-			h.typingComplete
-				? h
-				: { ...h, typingProgress: h.fullText.length, typingComplete: true }
+			h.typingComplete ? h : { ...h, typingProgress: h.fullText.length, typingComplete: true }
 		);
 		history = [
 			...history,
@@ -352,6 +348,8 @@
 
 		if (isFirstCommand) {
 			await new Promise<void>((r) => setTimeout(r, 250));
+			bottomPromptVisible = true;
+			await tick();
 		}
 
 		switch (parsed.type) {
@@ -465,8 +463,7 @@
 			portfolioPickIndex = (portfolioPickIndex + 1) % portfolioItems.length;
 		} else if (e.key === 'ArrowUp') {
 			e.preventDefault();
-			portfolioPickIndex =
-				(portfolioPickIndex - 1 + portfolioItems.length) % portfolioItems.length;
+			portfolioPickIndex = (portfolioPickIndex - 1 + portfolioItems.length) % portfolioItems.length;
 		} else if (e.key === 'Enter' || e.key === ' ') {
 			e.preventDefault();
 			confirmPortfolioPick();
@@ -510,117 +507,124 @@
 </script>
 
 <div class="cli-block" in:fade={{ duration: 600, delay: 380 }}>
-			<!-- svelte-ignore a11y-click-events-have-key-events -->
-			<!-- svelte-ignore a11y-mouse-events-have-key-events -->
-			<!-- svelte-ignore a11y-no-static-element-interactions -->
+	<!-- svelte-ignore a11y-click-events-have-key-events -->
+	<!-- svelte-ignore a11y-mouse-events-have-key-events -->
+	<!-- svelte-ignore a11y-no-static-element-interactions -->
+	<div
+		class="cli-terminal-window"
+		class:cli-terminal-window--bottom-prompt={bottomPromptVisible}
+		class:cli-terminal-window--portfolio-interactive={portfolioInteractive}
+		on:click={(e) => {
+			const t = e.target instanceof HTMLElement ? e.target : null;
+			if (t?.closest('[data-copy-email]')) {
+				e.preventDefault();
+				onCopyEmail();
+				return;
+			}
+			if (!portfolioInteractive) return;
+			const parsed = getPortfolioIndexFromPointerEvent(e);
+			if (parsed === null) return;
+			portfolioPickIndex = Math.max(0, Math.min(parsed, portfolioItems.length - 1));
+			confirmPortfolioPick();
+		}}
+		on:mouseover={(e) => {
+			if (!portfolioInteractive) return;
+			const parsed = getPortfolioIndexFromPointerEvent(e);
+			if (parsed === null) return;
+			portfolioPickIndex = Math.max(0, Math.min(parsed, portfolioItems.length - 1));
+		}}
+	>
+		{#if showReturnHint}
 			<div
-				class="cli-terminal-window"
-				class:cli-terminal-window--bottom-prompt={bottomPromptVisible}
-				class:cli-terminal-window--portfolio-interactive={portfolioInteractive}
-				on:click={(e) => {
-					const t = e.target instanceof HTMLElement ? e.target : null;
-					if (t?.closest('[data-copy-email]')) {
-						e.preventDefault();
-						onCopyEmail();
-						return;
-					}
-					if (!portfolioInteractive) return;
-					const parsed = getPortfolioIndexFromPointerEvent(e);
-					if (parsed === null) return;
-					portfolioPickIndex = Math.max(0, Math.min(parsed, portfolioItems.length - 1));
-					confirmPortfolioPick();
-				}}
-				on:mouseover={(e) => {
-					if (!portfolioInteractive) return;
-					const parsed = getPortfolioIndexFromPointerEvent(e);
-					if (parsed === null) return;
-					portfolioPickIndex = Math.max(0, Math.min(parsed, portfolioItems.length - 1));
-				}}
+				class="cli-top-bar"
+				class:cli-top-bar--has-body={history.length > 0}
+				transition:fade={{ duration: 200 }}
 			>
-			{#if showReturnHint}
-				<div class="cli-top-bar" class:cli-top-bar--has-body={history.length > 0}
-					transition:fade={{ duration: 200 }}>
-						<div class="cli-row">
-							<div class="cli-shell">
-								<div class="cli-inner" role="group" aria-label="Command line">
-									<label class="cli-label-visually-hidden" for="cli-command-input">Command</label>
-									<span class="cli-prompt" aria-hidden="true">$</span>
-									<div class="cli-input-shell">
-										<input
-											id="cli-command-input"
-											bind:this={cliInputEl}
-											type="text"
-											class="cli-input"
-											class:cli-input--at-start={showStartCaret}
-											bind:value={commandLine}
-											autocomplete="off"
-											spellcheck={false}
-											aria-describedby={history.length ? outputId : undefined}
-											on:focus={syncStartCaret}
-											on:blur={() => (showStartCaret = false)}
-											on:click={() => requestAnimationFrame(syncStartCaret)}
-											on:keyup={() => requestAnimationFrame(syncStartCaret)}
-											on:input={() => requestAnimationFrame(syncStartCaret)}
-											on:select={() => requestAnimationFrame(syncStartCaret)}
-											on:keydown={onInputKeydown}
-										/>
-										{#if showStartCaret}
-											<span class="cli-start-caret" aria-hidden="true"></span>
-										{/if}
-									</div>
-								</div>
-							</div>
-							<div class="cli-return-hint">
-								<span class="cli-return-label">Return</span>
-								<CornerDownLeft size={11} strokeWidth={1.5} aria-hidden="true" />
+				<div class="cli-row">
+					<div class="cli-shell">
+						<div class="cli-inner" role="group" aria-label="Command line">
+							<label class="cli-label-visually-hidden" for="cli-command-input">Command</label>
+							<span class="cli-prompt" aria-hidden="true">$</span>
+							<div class="cli-input-shell">
+								<input
+									id="cli-command-input"
+									bind:this={cliInputEl}
+									type="text"
+									class="cli-input"
+									class:cli-input--at-start={showStartCaret}
+									bind:value={commandLine}
+									autocomplete="off"
+									spellcheck={false}
+									aria-describedby={history.length ? outputId : undefined}
+									on:focus={syncStartCaret}
+									on:blur={() => (showStartCaret = false)}
+									on:click={() => requestAnimationFrame(syncStartCaret)}
+									on:keyup={() => requestAnimationFrame(syncStartCaret)}
+									on:input={() => requestAnimationFrame(syncStartCaret)}
+									on:select={() => requestAnimationFrame(syncStartCaret)}
+									on:keydown={onInputKeydown}
+								/>
+								{#if showStartCaret}
+									<span class="cli-start-caret" aria-hidden="true"></span>
+								{/if}
 							</div>
 						</div>
 					</div>
-				{/if}
-
-				<HomeTerminalHistory
-					{history}
-					{lastEntry}
-					{portfolioItems}
-					{portfolioPickIndex}
-					{showReturnHint}
-					{outputId}
-					bind:scrollLogEl
-					{sliceStyledHtml}
-					{portfolioListStyledHtml}
-				/>
-
-			{#if bottomPromptVisible}
-				<div class="cli-bottom-prompt" role="group" aria-label="Command line"
-					in:fade={{ duration: 250 }}>
-						<label class="cli-label-visually-hidden" for="cli-command-input">Command</label>
-						<span class="cli-prompt" aria-hidden="true">$</span>
-						<div class="cli-input-shell">
-							<input
-								id="cli-command-input"
-								bind:this={cliInputEl}
-								type="text"
-								class="cli-input"
-								class:cli-input--at-start={showStartCaret}
-								bind:value={commandLine}
-								autocomplete="off"
-								spellcheck={false}
-								aria-describedby={history.length ? outputId : undefined}
-								on:focus={syncStartCaret}
-								on:blur={() => (showStartCaret = false)}
-								on:click={() => requestAnimationFrame(syncStartCaret)}
-								on:keyup={() => requestAnimationFrame(syncStartCaret)}
-								on:input={() => requestAnimationFrame(syncStartCaret)}
-								on:select={() => requestAnimationFrame(syncStartCaret)}
-								on:keydown={onInputKeydown}
-							/>
-							{#if showStartCaret}
-								<span class="cli-start-caret" aria-hidden="true"></span>
-							{/if}
-						</div>
+					<div class="cli-return-hint">
+						<span class="cli-return-label">Return</span>
+						<CornerDownLeft size={11} strokeWidth={1.5} aria-hidden="true" />
 					</div>
-				{/if}
-		</div>
+				</div>
+			</div>
+		{/if}
+
+		<HomeTerminalHistory
+			{history}
+			{lastEntry}
+			{portfolioItems}
+			{portfolioPickIndex}
+			{showReturnHint}
+			{outputId}
+			bind:scrollLogEl
+			{sliceStyledHtml}
+			{portfolioListStyledHtml}
+		/>
+
+		{#if bottomPromptVisible}
+			<div
+				class="cli-bottom-prompt"
+				role="group"
+				aria-label="Command line"
+				in:fade={{ duration: 250 }}
+			>
+				<label class="cli-label-visually-hidden" for="cli-command-input">Command</label>
+				<span class="cli-prompt" aria-hidden="true">$</span>
+				<div class="cli-input-shell">
+					<input
+						id="cli-command-input"
+						bind:this={cliInputEl}
+						type="text"
+						class="cli-input"
+						class:cli-input--at-start={showStartCaret}
+						bind:value={commandLine}
+						autocomplete="off"
+						spellcheck={false}
+						aria-describedby={history.length ? outputId : undefined}
+						on:focus={syncStartCaret}
+						on:blur={() => (showStartCaret = false)}
+						on:click={() => requestAnimationFrame(syncStartCaret)}
+						on:keyup={() => requestAnimationFrame(syncStartCaret)}
+						on:input={() => requestAnimationFrame(syncStartCaret)}
+						on:select={() => requestAnimationFrame(syncStartCaret)}
+						on:keydown={onInputKeydown}
+					/>
+					{#if showStartCaret}
+						<span class="cli-start-caret" aria-hidden="true"></span>
+					{/if}
+				</div>
+			</div>
+		{/if}
+	</div>
 </div>
 
 <style>
@@ -646,10 +650,8 @@
 		border-radius: var(--border-radius);
 		pointer-events: none;
 		background-image:
-			var(--palette-rainbow-gradient-h),
-			var(--palette-rainbow-gradient-h),
-			var(--palette-rainbow-gradient-h),
-			var(--palette-rainbow-gradient-h);
+			var(--palette-rainbow-gradient-h), var(--palette-rainbow-gradient-h),
+			var(--palette-rainbow-gradient-h), var(--palette-rainbow-gradient-h);
 		background-position:
 			top center,
 			bottom center,
@@ -854,7 +856,6 @@
 		line-height: 1.4;
 		min-height: 1.4em;
 	}
-
 
 	@media (max-width: 768px) {
 		.cli-top-bar {
