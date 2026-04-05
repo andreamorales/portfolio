@@ -1,10 +1,15 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
 	import type { PortfolioItem } from '$lib/data/portfolio-items.js';
+	import type { SecurePortfolioPayloadData } from '$lib/utils/secureCaseStudy';
 	import HomeLandingTerminal from '$lib/components/HomeLandingTerminal.svelte';
 
 	export let portfolioItems: PortfolioItem[] = [];
-	export let onOpenPortfolio: (index: number) => void = () => {};
+	export let onOpenPortfolio: (
+		index: number,
+		unlocked?: boolean,
+		unlockedData?: SecurePortfolioPayloadData
+	) => void = () => {};
 	export let onCopyEmail: () => void = () => {};
 	export let onGoHome: () => void = () => {};
 	export let introTypewriterActive = false;

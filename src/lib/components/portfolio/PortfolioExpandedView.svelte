@@ -1,5 +1,9 @@
 <script lang="ts">
 	import Label from '$lib/components/ui/input/Label.svelte';
+	import {
+		decryptSecurePortfolioPayload,
+		type SecurePortfolioEncryptedPayload
+	} from '$lib/utils/secureCaseStudy';
 
 	// Props
 	export let projectTitle: string = '';
@@ -22,7 +26,7 @@
 	export let team: Array<{ role: string; name: string; relationship: string }> = [];
 	export let immersive = false;
 	export let locked = false;
-	export let unlockPassword: string = '';
+	export let encryptedPayload: SecurePortfolioEncryptedPayload | null = null;
 	export let staggerReveal = false;
 	export let staggerBaseDelayMs = 0;
 
@@ -30,8 +34,10 @@
 	let featuredImage: string = '';
 	let enteredPassword = '';
 	let passwordError = '';
+	let isUnlocking = false;
 	let isUnlocked = false;
 	let unusedGalleryImages: Array<{ src: string; alt: string; caption?: string }> = [];
+	let effectiveStaggerBaseDelayMs = 0;
 
 	const REVEAL_TIME_SCALE = 1.35;
 	const ms = (value: number) => Math.round(value * REVEAL_TIME_SCALE);
@@ -53,6 +59,9 @@
 	$: if (!locked) {
 		isUnlocked = true;
 	}
+
+	/* If user unlocks from the page itself, skip the large initial panel delay so content starts right away. */
+	$: effectiveStaggerBaseDelayMs = locked && isUnlocked ? 0 : staggerBaseDelayMs;
 
 	// Computed prop for featured image - use first image from images array
 	$: {
@@ -105,7 +114,7 @@
 	}
 
 	$: {
-		let cursor = staggerBaseDelayMs;
+		let cursor = effectiveStaggerBaseDelayMs;
 		const schedule = (): RevealGroup => {
 			const parentDelayMs = cursor;
 			const childStartDelayMs = parentDelayMs + REVEAL_PARENT_DURATION_MS + REVEAL_PARENT_TO_CHILD_GAP_MS;
@@ -136,13 +145,36 @@
 			return;
 		}
 
-		if (enteredPassword.trim() === unlockPassword) {
-			isUnlocked = true;
-			passwordError = '';
+		if (!encryptedPayload) {
+			passwordError = 'This case study is unavailable right now.';
 			return;
 		}
 
-		passwordError = 'That password does not match.';
+		isUnlocking = true;
+		decryptSecurePortfolioPayload(encryptedPayload, enteredPassword)
+			.then((decrypted) => {
+				if (!decrypted) {
+					passwordError = 'That password does not match.';
+					return;
+				}
+				if (decrypted.projectTitle?.trim()) {
+					projectTitle = decrypted.projectTitle;
+				}
+				description = decrypted.description;
+				images = decrypted.images;
+				content = decrypted.content;
+				year = decrypted.year;
+				role = decrypted.role;
+				link = decrypted.link;
+				metrics = decrypted.metrics;
+				team = decrypted.team;
+				enteredPassword = '';
+				passwordError = '';
+				isUnlocked = true;
+			})
+			.finally(() => {
+				isUnlocking = false;
+			});
 	}
 </script>
 
@@ -188,7 +220,7 @@
 					class="locked-gate-label reveal-child"
 					style={revealStyle((lockedReveal ?? introReveal).childStartDelayMs)}
 				>
-					Password Protected
+					Pass Protected
 				</div>
 				<p
 					class="locked-gate-copy reveal-child"
@@ -204,12 +236,18 @@
 						class="locked-gate-input"
 						type="password"
 						bind:value={enteredPassword}
+						disabled={isUnlocking}
 						placeholder="Enter password"
 						aria-label="Portfolio password"
 						on:keydown={(event) => event.key === 'Enter' && unlockCaseStudy()}
 					/>
-					<button class="locked-gate-button" type="button" on:click={unlockCaseStudy}>
-						Unlock
+					<button
+						class="locked-gate-button"
+						type="button"
+						disabled={isUnlocking}
+						on:click={unlockCaseStudy}
+					>
+						{isUnlocking ? 'Unlocking...' : 'Unlock'}
 					</button>
 				</div>
 				{#if passwordError}
@@ -692,7 +730,12 @@
 		border-radius: var(--radius-xs);
 		background: var(--bg-color);
 		color: var(--text-color);
-		font: inherit;
+		font-family: inherit;
+		font-size: var(--font-size-sm);
+		line-height: 1.4;
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 400;
 	}
 
 	.locked-gate-button {
@@ -701,9 +744,20 @@
 		border-radius: var(--radius-xs);
 		background: var(--text-color);
 		color: var(--bg-color);
-		font: inherit;
-		font-weight: 600;
+		font-family: inherit;
+		font-size: var(--font-size-sm);
+		line-height: 1.4;
+		font-weight: 500;
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 500;
 		cursor: pointer;
+	}
+
+	.locked-gate-button:disabled,
+	.locked-gate-input:disabled {
+		opacity: 0.7;
+		cursor: not-allowed;
 	}
 
 	.locked-gate-error {

@@ -5,13 +5,21 @@
 	import type { PortfolioItem } from '$lib/data/portfolio-items.js';
 	import { contactLinks } from '$lib/data/contact-links';
 	import aboutAscii from '$lib/data/about-ascii.txt?raw';
+	import {
+		decryptSecurePortfolioPayload,
+		type SecurePortfolioPayloadData
+	} from '$lib/utils/secureCaseStudy';
 	import HomeTerminalHistory from '$lib/components/HomeTerminalHistory.svelte';
 
 	const aboutBio =
-		"I lead the design of creative and technical products. I lead the design of tools for devs and creatives, all through the lens of play. I started my career in 2010 as a filmmaker and game designer, which gave me a sharp eye for storytelling, and 12 years ago delved into product design and game design. I've worked at MongoDB, Roblox, ConsenSys, and was the CEO and co-founder of my own AI startup, Panto. I currently work at Layer Health bringing AI to medical chart review.";
+		"I lead the design of creative and technical products. I lead the design of tools for devs and creatives, all through the lens of play. I started my career in 2010 as a filmmaker and game designer, which gave me a sharp eye for storytelling, and 12 years ago delved into product design and game design. I've worked at MongoDB, Roblox, ConsenSys, and was the CEO and co-founder of my own AI startup, Panto. I currently work at a healthcare AI company bringing AI to medical chart review.";
 
 	export let portfolioItems: PortfolioItem[] = [];
-	export let onOpenPortfolio: (index: number) => void = () => {};
+	export let onOpenPortfolio: (
+		index: number,
+		unlocked?: boolean,
+		unlockedData?: SecurePortfolioPayloadData
+	) => void = () => {};
 	export let onCopyEmail: () => void = () => {};
 	export let introVisible = true;
 
@@ -61,6 +69,7 @@
 	const introTimers: ReturnType<typeof setTimeout>[] = [];
 	const sideProjectSlugs = new Set(['la-guila-toys', 'torch']);
 	let portfolioDisplayEntries: PortfolioGroupedEntry[] = [];
+	let pendingLockedPortfolioIndex: number | null = null;
 
 	$: lastEntry = history.length ? history[history.length - 1] : null;
 	$: lastFeedback = lastEntry?.feedback ?? null;
@@ -406,8 +415,72 @@
 		history = history.slice(0, -1);
 	}
 
+	function requestPassForLockedPiece(idx: number) {
+		const piece = portfolioItems[idx];
+		if (!piece) return;
+		pendingLockedPortfolioIndex = idx;
+		commandLine = '';
+		pushEntry(`open ${piece.title}`, {
+			kind: 'system',
+			message: 'Password:'
+		});
+		tick().then(() => {
+			cliInputEl?.focus();
+			requestAnimationFrame(syncStartCaret);
+		});
+	}
+
+	async function openPortfolioFromTerminal(idx: number) {
+		const piece = portfolioItems[idx];
+		if (!piece) return;
+		if (piece.locked) {
+			requestPassForLockedPiece(idx);
+			return;
+		}
+		pendingLockedPortfolioIndex = null;
+		pushEntry(`open ${piece.title}`, {
+			kind: 'system',
+			message: `Opening: ${piece.title}`
+		});
+		await tick();
+		onOpenPortfolio(idx);
+	}
+
 	async function submitCommand() {
 		const cmdSnapshot = commandLine;
+		if (pendingLockedPortfolioIndex !== null) {
+			const passwordAttempt = cmdSnapshot.trim();
+			commandLine = '';
+			if (!passwordAttempt) return;
+			const idx = pendingLockedPortfolioIndex;
+			const piece = portfolioItems[idx];
+			if (!piece?.encryptedPayload) {
+				pushEntry('password', {
+					kind: 'error',
+					message: 'This piece cannot be unlocked right now.'
+				});
+				pendingLockedPortfolioIndex = null;
+				return;
+			}
+			const decrypted = await decryptSecurePortfolioPayload(piece.encryptedPayload, passwordAttempt);
+			if (!decrypted) {
+				pushEntry('password', {
+					kind: 'error',
+					message: 'That password does not match.\n\nPassword:'
+				});
+				return;
+			}
+			pendingLockedPortfolioIndex = null;
+			const openedTitle = decrypted.projectTitle ?? piece.title;
+			pushEntry('password', {
+				kind: 'system',
+				message: `Opening: ${openedTitle}`
+			});
+			await tick();
+			onOpenPortfolio(idx, true, decrypted);
+			return;
+		}
+
 		// Empty Enter should be a no-op, not an implicit --help.
 		if (!cmdSnapshot.trim().replace(/^\$\s*/, '')) {
 			commandLine = '';
@@ -445,6 +518,7 @@
 				if (lastFeedback?.kind === 'portfolio') {
 					popLast();
 				}
+				pendingLockedPortfolioIndex = null;
 				portfolioPickIndex = 0;
 				pushEntry(cmdSnapshot, { kind: 'portfolio' });
 				break;
@@ -456,12 +530,7 @@
 						message: `No piece matched “${parsed.query}”. Try --portfolio to browse, or use part of the title.`
 					});
 				} else {
-					pushEntry(cmdSnapshot, {
-						kind: 'system',
-						message: `Opening: ${portfolioItems[idx].title}`
-					});
-					await tick();
-					onOpenPortfolio(idx);
+					await openPortfolioFromTerminal(idx);
 				}
 				break;
 			}
@@ -473,29 +542,12 @@
 		}
 	}
 
-	function confirmPortfolioPick() {
+	async function confirmPortfolioPick() {
 		if (!portfolioInteractive || !portfolioDisplayEntries.length) return;
 		const selected = portfolioDisplayEntries[portfolioPickIndex];
 		if (!selected) return;
 		const idx = selected.sourceIndex;
-		const title = portfolioItems[idx].title;
-		const last = history[history.length - 1];
-		const msg = `Opened: ${title}`;
-		const feedback: Feedback = { kind: 'system', message: msg };
-		lastTypingStartedId = null;
-		clearTypingTimer();
-		history = [
-			...history.slice(0, -1),
-			{
-				...last,
-				feedback,
-				fullText: feedbackToPlainText(feedback, portfolioItems),
-				styledHtml: feedbackToStyledHtml(feedback, portfolioItems),
-				typingProgress: 0,
-				typingComplete: false
-			}
-		];
-		onOpenPortfolio(idx);
+		await openPortfolioFromTerminal(idx);
 	}
 
 	function onInputKeydown(e: KeyboardEvent) {
@@ -526,6 +578,10 @@
 	function onGlobalKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape' && history.length) {
 			e.preventDefault();
+			if (pendingLockedPortfolioIndex !== null) {
+				pendingLockedPortfolioIndex = null;
+				commandLine = '';
+			}
 			const wasPortfolio = lastFeedback?.kind === 'portfolio';
 			popLast();
 			if (wasPortfolio) cliInputEl?.focus();

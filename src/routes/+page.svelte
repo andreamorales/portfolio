@@ -12,6 +12,7 @@
 	import Toast from '$lib/components/ui/Toast.svelte';
 	import { portfolioItems } from '$lib/data/portfolio-items.js';
 	import type { PortfolioItem } from '$lib/data/portfolio-items.js';
+	import type { SecurePortfolioPayloadData } from '$lib/utils/secureCaseStudy';
 	import { colibri } from '$lib/data/home-page-assets';
 
 	const getLatestYear = (year: string) => {
@@ -19,8 +20,9 @@
 		return Math.max(...years);
 	};
 
-	const toPieceSlug = (title: string) =>
-		title
+	const toPieceSlug = (piece: Pick<PortfolioItem, 'title' | 'slug'>) =>
+		piece.slug ??
+		piece.title
 			.toLowerCase()
 			.replace(/[^a-z0-9]+/g, '-')
 			.replace(/^-|-$/g, '');
@@ -54,6 +56,8 @@
 	let showToast = false;
 	let toastMessage = '';
 	let activeDetailItem: PortfolioItem | null = null;
+	let unlockedPieceSlugs = new Set<string>();
+	let unlockedPieceDataBySlug = new Map<string, SecurePortfolioPayloadData>();
 	let detailPieceEl: HTMLDivElement | null = null;
 	let introTypewriterActive = true;
 	let introLinesVisible = false;
@@ -140,7 +144,7 @@
 		if (typeof window === 'undefined') return;
 		const url = new URL(window.location.href);
 		if (piece) {
-			url.searchParams.set('piece', toPieceSlug(piece.title));
+			url.searchParams.set('piece', toPieceSlug(piece));
 		} else {
 			url.searchParams.delete('piece');
 		}
@@ -151,6 +155,24 @@
 		);
 	}
 
+	function mergeUnlockedPieceData(piece: PortfolioItem | null): PortfolioItem | null {
+		if (!piece) return null;
+		const payload = unlockedPieceDataBySlug.get(toPieceSlug(piece));
+		if (!payload) return piece;
+		return {
+			...piece,
+			title: payload.projectTitle ?? piece.title,
+			description: payload.description,
+			images: payload.images,
+			content: payload.content,
+			year: payload.year,
+			role: payload.role,
+			link: payload.link,
+			metrics: payload.metrics,
+			team: payload.team
+		};
+	}
+
 	function openPieceFromUrl() {
 		if (typeof window === 'undefined' || immersiveMode) return;
 		const slug = new URLSearchParams(window.location.search).get('piece');
@@ -158,8 +180,8 @@
 			activeDetailItem = null;
 			return;
 		}
-		const found = sortedPortfolioItems.find((item) => toPieceSlug(item.title) === slug) ?? null;
-		activeDetailItem = found;
+		const foundBySlug = sortedPortfolioItems.find((item) => toPieceSlug(item) === slug) ?? null;
+		activeDetailItem = mergeUnlockedPieceData(foundBySlug);
 	}
 
 	async function enterImmersiveMode(targetIndex: number = 0) {
@@ -215,12 +237,30 @@
 		});
 	}
 
-	function openPortfolioPiece(index: number) {
+	function isPieceUnlocked(piece: Pick<PortfolioItem, 'title' | 'slug'> | null): boolean {
+		if (!piece) return false;
+		return unlockedPieceSlugs.has(toPieceSlug(piece));
+	}
+
+	function openPortfolioPiece(
+		index: number,
+		markUnlocked = false,
+		unlockedData?: SecurePortfolioPayloadData
+	) {
 		if (immersiveMode) {
 			scrollToImmersiveSection(index);
 			return;
 		}
-		activeDetailItem = sortedPortfolioItems[index] ?? null;
+		const picked = sortedPortfolioItems[index] ?? null;
+		if (picked && markUnlocked) {
+			const slug = toPieceSlug(picked);
+			unlockedPieceSlugs = new Set([...unlockedPieceSlugs, slug]);
+			if (unlockedData) {
+				unlockedPieceDataBySlug = new Map(unlockedPieceDataBySlug);
+				unlockedPieceDataBySlug.set(slug, unlockedData);
+			}
+		}
+		activeDetailItem = mergeUnlockedPieceData(picked);
 		updatePieceQuery(activeDetailItem);
 	}
 
@@ -455,8 +495,8 @@
 											link={activeDetailItem.link}
 											metrics={activeDetailItem.metrics}
 											team={activeDetailItem.team}
-											locked={activeDetailItem.locked}
-											unlockPassword={activeDetailItem.unlockPassword}
+											locked={!!activeDetailItem.locked && !isPieceUnlocked(activeDetailItem)}
+											encryptedPayload={activeDetailItem.encryptedPayload}
 											immersive={false}
 											staggerReveal={true}
 											staggerBaseDelayMs={DETAIL_CONTENT_REVEAL_DELAY_MS}

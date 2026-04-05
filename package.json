@@ -15,7 +15,8 @@
 		"format": "prettier --write .",
 		"lint": "prettier --check . && eslint .",
 		"verify": "prettier --write . && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && eslint .",
-		"validate": "node ./scripts/validate.mjs"
+		"validate": "node ./scripts/validate.mjs",
+		"encrypt:case-study": "node ./scripts/encrypt-case-study.mjs"
 	},
 	"files": [
 		"dist",

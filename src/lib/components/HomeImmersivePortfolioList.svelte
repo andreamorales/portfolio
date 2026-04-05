@@ -28,7 +28,7 @@
 						metrics={item.metrics}
 						team={item.team}
 						locked={item.locked}
-						unlockPassword={item.unlockPassword}
+						encryptedPayload={item.encryptedPayload}
 						immersive={true}
 					/>
 				</div>
