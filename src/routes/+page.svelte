@@ -7,6 +7,8 @@
 	import HomeImmersivePortfolioList from '$lib/components/HomeImmersivePortfolioList.svelte';
 	import HomeNextPieceBanner from '$lib/components/HomeNextPieceBanner.svelte';
 	import PortfolioExpandedView from '$lib/components/portfolio/PortfolioExpandedView.svelte';
+	import FloatingContactDock from '$lib/components/ui/FloatingContactDock.svelte';
+	import ThemeToggle from '$lib/components/ui/ThemeToggle.svelte';
 	import Toast from '$lib/components/ui/Toast.svelte';
 	import { portfolioItems } from '$lib/data/portfolio-items.js';
 	import type { PortfolioItem } from '$lib/data/portfolio-items.js';
@@ -336,6 +338,10 @@
 </svelte:head>
 
 <Toast message={toastMessage} bind:visible={showToast} />
+<div class="corner-controls" class:corner-controls--cluster={!!activeDetailItem && !immersiveMode}>
+	<ThemeToggle />
+	<FloatingContactDock visible={!immersiveMode} onCopyEmail={copyEmailToClipboard} />
+</div>
 
 <div class="landing-page">
 	<div class="viewport-frame-lines" aria-hidden="true">
@@ -486,6 +492,33 @@
 
 	:global(body.detail-panel-open) .landing-landing-row {
 		height: calc(100vh - 2 * var(--landing-inset));
+	}
+
+	.corner-controls {
+		position: fixed;
+		left: max(2rem, env(safe-area-inset-left));
+		right: max(calc(2rem + 1px + var(--spacing-sm)), env(safe-area-inset-right));
+		bottom: max(calc(2rem + 1px + var(--spacing-sm)), env(safe-area-inset-bottom));
+		display: flex;
+		align-items: flex-end;
+		justify-content: space-between;
+		z-index: 10050;
+		pointer-events: none;
+	}
+
+	.corner-controls--cluster {
+		right: auto;
+		justify-content: flex-start;
+		gap: 0.7rem;
+	}
+
+	.corner-controls :global(.theme-toggle),
+	.corner-controls :global(.floating-contact-dock) {
+		display: flex;
+		align-items: flex-end;
+		align-self: flex-end;
+		line-height: 0;
+		pointer-events: auto;
 	}
 
 	.landing-page {

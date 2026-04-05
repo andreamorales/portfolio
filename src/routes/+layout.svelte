@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import '../lib/styles/global.css';
-	import ThemeToggle from '$lib/components/ui/ThemeToggle.svelte';
 	import { theme } from '$lib/stores/theme';
 
 	onMount(() => {
@@ -27,7 +26,6 @@
 	<main class="app-main">
 		<slot />
 	</main>
-	<ThemeToggle />
 </div>
 
 <style>
