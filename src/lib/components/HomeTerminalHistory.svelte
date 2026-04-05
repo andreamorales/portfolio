@@ -23,25 +23,43 @@
 			aria-relevant="additions"
 		>
 			{#each history as entry (entry.id)}
-				<div class="cli-history-entry" use:scrollFadeEntry={{ root: scrollLogEl }}>
-					<div class="cli-history-cmd">$ {entry.cmd}</div>
-					<div class="cli-history-result">
-						{#if !entry.typingComplete}
-							<pre class="cli-typewriter"
-								>{@html sliceStyledHtml(entry.styledHtml, entry.typingProgress)}<span
-									class="cli-type-cursor"
-									aria-hidden="true"
-								></span></pre
-							>
-						{:else}
-							<pre class="cli-typewriter cli-typewriter--done"
-								>{@html entry.feedback.kind === 'portfolio' && entry.id === lastEntry?.id
-									? portfolioListStyledHtml(portfolioItems, portfolioPickIndex)
-									: entry.styledHtml}</pre
-							>
-						{/if}
+				{#if entry.feedback.kind === 'about'}
+					<div class="cli-history-entry">
+						<div class="cli-history-cmd">$ {entry.cmd}</div>
+						<div class="cli-history-result">
+							{#if !entry.typingComplete}
+								<pre class="cli-typewriter"
+									>{@html sliceStyledHtml(entry.styledHtml, entry.typingProgress)}<span
+										class="cli-type-cursor"
+										aria-hidden="true"
+									></span></pre
+								>
+							{:else}
+								<pre class="cli-typewriter cli-typewriter--done">{@html entry.styledHtml}</pre>
+							{/if}
+						</div>
 					</div>
-				</div>
+				{:else}
+					<div class="cli-history-entry" use:scrollFadeEntry={{ root: scrollLogEl }}>
+						<div class="cli-history-cmd">$ {entry.cmd}</div>
+						<div class="cli-history-result">
+							{#if !entry.typingComplete}
+								<pre class="cli-typewriter"
+									>{@html sliceStyledHtml(entry.styledHtml, entry.typingProgress)}<span
+										class="cli-type-cursor"
+										aria-hidden="true"
+									></span></pre
+								>
+							{:else}
+								<pre class="cli-typewriter cli-typewriter--done"
+									>{@html entry.feedback.kind === 'portfolio' && entry.id === lastEntry?.id
+										? portfolioListStyledHtml(portfolioItems, portfolioPickIndex)
+										: entry.styledHtml}</pre
+								>
+							{/if}
+						</div>
+					</div>
+				{/if}
 			{/each}
 		</div>
 	</div>
@@ -59,7 +77,7 @@
 		overflow: hidden;
 		display: flex;
 		flex-direction: column;
-		padding-bottom: 0.35rem;
+		padding-bottom: 0;
 	}
 
 	.cli-history-scroll {
@@ -123,6 +141,11 @@
 		width: 100%;
 		min-width: 0;
 		box-sizing: border-box;
+	}
+
+	/* Keep output flush with the bottom prompt divider. */
+	:global(.cli-terminal-window--bottom-prompt) .cli-history-entry:last-child .cli-history-result {
+		padding-bottom: 0;
 	}
 
 	.cli-typewriter {

@@ -48,7 +48,9 @@
 	$: lastEntry = history.length ? history[history.length - 1] : null;
 	$: lastFeedback = lastEntry?.feedback ?? null;
 	$: portfolioInteractive =
-		lastFeedback?.kind === 'portfolio' && (lastEntry?.typingComplete ?? false);
+		lastFeedback?.kind === 'portfolio' &&
+		(lastEntry?.typingComplete ?? false) &&
+		commandLine.trim().length === 0;
 
 	function esc(s: string): string {
 		return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -283,17 +285,22 @@
 		typingTimer = setInterval(() => {
 			history = history.map((h) => {
 				if (h.id !== entryId || h.typingComplete) return h;
-				// For --about only: stream ASCII faster, then return to normal speed for the bio copy.
+				// For --about only: stream ASCII much faster, then return to normal speed for the bio copy.
 				let step = 2;
 				if (h.feedback.kind === 'about') {
 					const bioStart = aboutAscii.length + 1; // +1 accounts for newline between ASCII and bio
 					if (h.typingProgress < bioStart) {
-						step = Math.min(18, bioStart - h.typingProgress);
+						step = Math.min(36, bioStart - h.typingProgress);
 					}
 				}
 				const np = Math.min(h.typingProgress + step, h.fullText.length);
 				const done = np >= h.fullText.length;
 				return { ...h, typingProgress: np, typingComplete: done };
+			});
+
+			// Keep the viewport pinned to the live tail while characters stream in.
+			requestAnimationFrame(() => {
+				if (scrollLogEl) scrollLogEl.scrollTop = scrollLogEl.scrollHeight;
 			});
 
 			const el = history.find((h) => h.id === entryId);
@@ -420,7 +427,9 @@
 	}
 
 	function onInputKeydown(e: KeyboardEvent) {
-		if (lastFeedback?.kind === 'portfolio' && !portfolioInteractive) {
+		const portfolioStillTyping =
+			lastFeedback?.kind === 'portfolio' && !(lastEntry?.typingComplete ?? false);
+		if (portfolioStillTyping) {
 			e.preventDefault();
 			return;
 		}
@@ -547,7 +556,6 @@
 											autocomplete="off"
 											spellcheck={false}
 											aria-describedby={history.length ? outputId : undefined}
-											readonly={lastFeedback?.kind === 'portfolio' && portfolioInteractive}
 											on:focus={syncStartCaret}
 											on:blur={() => (showStartCaret = false)}
 											on:click={() => requestAnimationFrame(syncStartCaret)}
@@ -598,7 +606,6 @@
 								autocomplete="off"
 								spellcheck={false}
 								aria-describedby={history.length ? outputId : undefined}
-								readonly={lastFeedback?.kind === 'portfolio' && portfolioInteractive}
 								on:focus={syncStartCaret}
 								on:blur={() => (showStartCaret = false)}
 								on:click={() => requestAnimationFrame(syncStartCaret)}
