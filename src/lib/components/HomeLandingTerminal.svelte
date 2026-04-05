@@ -225,7 +225,7 @@
 					`--portfolio <name>\n` +
 					`Jump to a piece (partial title ok).\n\n` +
 					`--about\n` +
-					`ASCII art in the terminal below.\n\n` +
+					`Andy Morales Coto's bio.\n\n` +
 					`--contact\n` +
 					`Clickable links (email & socials).\n\n`
 				);
@@ -315,7 +315,7 @@
 					`<span class="cli-t-cmd">--portfolio &lt;name&gt;</span>\n` +
 					`Jump to a piece (partial title ok).\n\n` +
 					`<span class="cli-t-cmd">--about</span>\n` +
-					`ASCII art in the terminal below.\n\n` +
+					`Andy Morales Coto's bio.\n\n` +
 					`<span class="cli-t-cmd">--contact</span>\n` +
 					`Clickable links (email &amp; socials).\n\n`
 				);

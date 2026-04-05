@@ -56,6 +56,7 @@
 	let showToast = false;
 	let toastMessage = '';
 	let activeDetailItem: PortfolioItem | null = null;
+	let activeDetailRevealDelayMs = 1360;
 	let unlockedPieceSlugs = new Set<string>();
 	let unlockedPieceDataBySlug = new Map<string, SecurePortfolioPayloadData>();
 	let detailPieceEl: HTMLDivElement | null = null;
@@ -90,6 +91,7 @@
 	const FRAME_BOTTOM_REST = '0% 50%';
 	const FRAME_RIGHT_REST = '50% 0%';
 	const DETAIL_CONTENT_REVEAL_DELAY_MS = 1360;
+	const DETAIL_CONTENT_REVEAL_SWITCH_DELAY_MS = 220;
 
 	function clearFrameLineInline(el: HTMLDivElement | null) {
 		if (!el) return;
@@ -261,6 +263,13 @@
 				unlockedPieceDataBySlug.set(slug, unlockedData);
 			}
 		}
+		const nextSlug = picked ? toPieceSlug(picked) : null;
+		const currentSlug = activeDetailItem ? toPieceSlug(activeDetailItem) : null;
+		const switchingBetweenOpenPieces =
+			!!activeDetailItem && !!picked && !!currentSlug && currentSlug !== nextSlug;
+		activeDetailRevealDelayMs = switchingBetweenOpenPieces
+			? DETAIL_CONTENT_REVEAL_SWITCH_DELAY_MS
+			: DETAIL_CONTENT_REVEAL_DELAY_MS;
 		activeDetailItem = mergeUnlockedPieceData(picked);
 		updatePieceQuery(activeDetailItem);
 	}
@@ -502,7 +511,7 @@
 												encryptedPayload={activeDetailItem.encryptedPayload}
 												immersive={false}
 												staggerReveal={true}
-												staggerBaseDelayMs={DETAIL_CONTENT_REVEAL_DELAY_MS}
+												staggerBaseDelayMs={activeDetailRevealDelayMs}
 											/>
 										{/key}
 									</div>
