@@ -42,6 +42,8 @@
 	/** After the first `--help` / help, hide Return and expand the CLI. */
 	let showReturnHint = true;
 	let lastTypingStartedId: string | null = null;
+	/** Detect typingComplete edge so we focus the prompt once (not every afterUpdate). */
+	let prevLastEntrySnapshot: { id: string; typingComplete: boolean } | null = null;
 	let typingTimer: ReturnType<typeof setInterval> | null = null;
 	let bottomPromptVisible = false;
 	let showStartCaret = false;
@@ -525,16 +527,30 @@
 			lastTypingStartedId = last.id;
 			startTypingAnimation(last.id);
 		}
+
+		const justFinishedTyping =
+			last?.typingComplete &&
+			(!prevLastEntrySnapshot ||
+				prevLastEntrySnapshot.id !== last.id ||
+				!prevLastEntrySnapshot.typingComplete);
+
 		if (last?.typingComplete) {
 			lastTypingStartedId = null;
 			if (!bottomPromptVisible) {
 				bottomPromptVisible = true;
+			}
+			/* First command sets bottomPromptVisible before streaming; still need focus + blink caret. */
+			if (justFinishedTyping) {
 				tick().then(() => {
 					cliInputEl?.focus();
 					requestAnimationFrame(syncStartCaret);
 				});
 			}
 		}
+
+		prevLastEntrySnapshot = last
+			? { id: last.id, typingComplete: last.typingComplete }
+			: null;
 	});
 </script>
 
