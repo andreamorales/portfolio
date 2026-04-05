@@ -1,5 +1,9 @@
 <script lang="ts">
 	import Label from '$lib/components/ui/input/Label.svelte';
+	import {
+		decryptSecurePortfolioPayload,
+		type SecurePortfolioEncryptedPayload
+	} from '$lib/utils/secureCaseStudy';
 
 	// Props
 	export let projectTitle: string = '';
@@ -22,17 +26,42 @@
 	export let team: Array<{ role: string; name: string; relationship: string }> = [];
 	export let immersive = false;
 	export let locked = false;
-	export let unlockPassword: string = '';
+	export let encryptedPayload: SecurePortfolioEncryptedPayload | null = null;
+	export let staggerReveal = false;
+	export let staggerBaseDelayMs = 0;
 
 	// Initialize the featuredImage variable
 	let featuredImage: string = '';
 	let enteredPassword = '';
 	let passwordError = '';
+	let isUnlocking = false;
 	let isUnlocked = false;
+	let unusedGalleryImages: Array<{ src: string; alt: string; caption?: string }> = [];
+	let effectiveStaggerBaseDelayMs = 0;
+
+	const REVEAL_TIME_SCALE = 1.35;
+	const ms = (value: number) => Math.round(value * REVEAL_TIME_SCALE);
+	const REVEAL_PARENT_DURATION_MS = ms(360);
+	const REVEAL_PARENT_TO_CHILD_GAP_MS = ms(0);
+	const REVEAL_CHILD_STEP_MS = ms(70);
+	const REVEAL_GROUP_GAP_MS = ms(30);
+	const REVEAL_PARENT_FADE_DURATION_MS = ms(620);
+	const REVEAL_CHILD_FADE_DURATION_MS = ms(560);
+
+	type RevealGroup = { parentDelayMs: number; childStartDelayMs: number };
+
+	let introReveal: RevealGroup = { parentDelayMs: 0, childStartDelayMs: 0 };
+	let detailsReveal: RevealGroup | null = null;
+	let heroReveal: RevealGroup | null = null;
+	let contentReveal: RevealGroup | null = null;
+	let lockedReveal: RevealGroup | null = null;
 
 	$: if (!locked) {
 		isUnlocked = true;
 	}
+
+	/* If user unlocks from the page itself, skip the large initial panel delay so content starts right away. */
+	$: effectiveStaggerBaseDelayMs = locked && isUnlocked ? 0 : staggerBaseDelayMs;
 
 	// Computed prop for featured image - use first image from images array
 	$: {
@@ -58,24 +87,111 @@
 		return image?.caption;
 	}
 
+	function revealStyle(delayMs: number): string | undefined {
+		if (!staggerReveal) return undefined;
+		return `--reveal-delay: ${Math.max(0, Math.round(delayMs))}ms;`;
+	}
+
+	function childDelayStyle(group: RevealGroup | null, step: number): string | undefined {
+		const anchor = (group ?? introReveal).childStartDelayMs;
+		return revealStyle(anchor + step * REVEAL_CHILD_STEP_MS);
+	}
+
+	$: {
+		const usedImageSources = new Set([
+			featuredImage,
+			...content
+				.filter((block) => block.type === 'image')
+				.flatMap((block) => {
+					const blockImages = [block.value];
+					if (block.layout === 'side-by-side' && block.sideImage) {
+						blockImages.push(block.sideImage.value);
+					}
+					return blockImages;
+				})
+		]);
+		unusedGalleryImages = images.filter((img) => !usedImageSources.has(img.src));
+	}
+
+	$: {
+		let cursor = effectiveStaggerBaseDelayMs;
+		const schedule = (): RevealGroup => {
+			const parentDelayMs = cursor;
+			const childStartDelayMs =
+				parentDelayMs + REVEAL_PARENT_DURATION_MS + REVEAL_PARENT_TO_CHILD_GAP_MS;
+			const nextGroupStartMs = parentDelayMs + REVEAL_PARENT_DURATION_MS + REVEAL_GROUP_GAP_MS;
+			cursor = Math.max(nextGroupStartMs, childStartDelayMs);
+			return { parentDelayMs, childStartDelayMs };
+		};
+
+		introReveal = schedule();
+		detailsReveal = null;
+		heroReveal = null;
+		contentReveal = null;
+		lockedReveal = null;
+
+		if (locked && !isUnlocked) {
+			lockedReveal = schedule();
+		} else {
+			detailsReveal = schedule();
+			if (featuredImage) {
+				heroReveal = schedule();
+			}
+			contentReveal = schedule();
+		}
+	}
+
 	function unlockCaseStudy() {
 		if (!locked) {
 			return;
 		}
 
-		if (enteredPassword.trim() === unlockPassword) {
-			isUnlocked = true;
-			passwordError = '';
+		if (!encryptedPayload) {
+			passwordError = 'This case study is unavailable right now.';
 			return;
 		}
 
-		passwordError = 'That password does not match.';
+		isUnlocking = true;
+		decryptSecurePortfolioPayload(encryptedPayload, enteredPassword)
+			.then((decrypted) => {
+				if (!decrypted) {
+					passwordError = 'That password does not match.';
+					return;
+				}
+				if (decrypted.projectTitle?.trim()) {
+					projectTitle = decrypted.projectTitle;
+				}
+				if (decrypted.tags?.length) {
+					tags = decrypted.tags;
+				}
+				description = decrypted.description;
+				images = decrypted.images;
+				content = decrypted.content;
+				year = decrypted.year;
+				role = decrypted.role;
+				link = decrypted.link;
+				metrics = decrypted.metrics;
+				team = decrypted.team;
+				enteredPassword = '';
+				passwordError = '';
+				isUnlocked = true;
+			})
+			.finally(() => {
+				isUnlocking = false;
+			});
 	}
 </script>
 
-<div class="portfolio-expanded-view flex-column" class:immersive>
-	<div class="project-intro">
-		<div class="project-title-row">
+<div
+	class="portfolio-expanded-view flex-column"
+	class:immersive
+	class:portfolio-expanded-view--staggered={staggerReveal}
+	style={staggerReveal
+		? `--reveal-parent-duration: ${REVEAL_PARENT_FADE_DURATION_MS}ms; --reveal-child-duration: ${REVEAL_CHILD_FADE_DURATION_MS}ms;`
+		: undefined}
+>
+	<div class="project-intro reveal-parent" style={revealStyle(introReveal.parentDelayMs)}>
+		<div class="project-title-row reveal-child" style={revealStyle(introReveal.childStartDelayMs)}>
 			<h2 id={titleId} class="project-title">{projectTitle}</h2>
 			{#if tags.length > 0}
 				<div class="project-tags">
@@ -86,7 +202,10 @@
 			{/if}
 		</div>
 
-		<div class="hero-description">
+		<div
+			class="hero-description reveal-child"
+			style={revealStyle(introReveal.childStartDelayMs + REVEAL_CHILD_STEP_MS)}
+		>
 			{#each description.split('. ') as line, index (`${line}-${index}`)}
 				<span class="highlight-line">{line}{line.endsWith('.') ? '' : '.'} </span>
 			{/each}
@@ -94,45 +213,89 @@
 	</div>
 
 	{#if locked && !isUnlocked}
-		<div class="locked-gate">
+		<div
+			class="locked-gate reveal-parent"
+			style={revealStyle((lockedReveal ?? introReveal).parentDelayMs)}
+		>
 			<div class="locked-gate-card">
-				<div class="locked-gate-label">Password Protected</div>
-				<p class="locked-gate-copy">
+				<div
+					class="locked-gate-label reveal-child"
+					style={revealStyle((lockedReveal ?? introReveal).childStartDelayMs)}
+				>
+					Pass Protected
+				</div>
+				<p
+					class="locked-gate-copy reveal-child"
+					style={revealStyle(
+						(lockedReveal ?? introReveal).childStartDelayMs + REVEAL_CHILD_STEP_MS
+					)}
+				>
 					This is my most recent case study. Enter the password to unlock the full piece.
 				</p>
-				<div class="locked-gate-controls">
+				<div
+					class="locked-gate-controls reveal-child"
+					style={revealStyle(
+						(lockedReveal ?? introReveal).childStartDelayMs + REVEAL_CHILD_STEP_MS * 2
+					)}
+				>
 					<input
 						class="locked-gate-input"
 						type="password"
 						bind:value={enteredPassword}
+						disabled={isUnlocking}
 						placeholder="Enter password"
 						aria-label="Portfolio password"
 						on:keydown={(event) => event.key === 'Enter' && unlockCaseStudy()}
 					/>
-					<button class="locked-gate-button" type="button" on:click={unlockCaseStudy}>
-						Unlock
+					<button
+						class="locked-gate-button"
+						type="button"
+						disabled={isUnlocking}
+						on:click={unlockCaseStudy}
+					>
+						{isUnlocking ? 'Unlocking...' : 'Unlock'}
 					</button>
 				</div>
 				{#if passwordError}
-					<p class="locked-gate-error">{passwordError}</p>
+					<p
+						class="locked-gate-error reveal-child"
+						style={revealStyle(
+							(lockedReveal ?? introReveal).childStartDelayMs + REVEAL_CHILD_STEP_MS * 3
+						)}
+					>
+						{passwordError}
+					</p>
 				{/if}
 			</div>
 		</div>
 	{:else}
 		<!-- Project details grid -->
-		<div class="project-details-grid">
-			<div class="details-row">
+		<div
+			class="project-details-grid reveal-parent"
+			style={revealStyle((detailsReveal ?? introReveal).parentDelayMs)}
+		>
+			<div class="details-row reveal-child" style={childDelayStyle(detailsReveal, 0)}>
 				<div class="details-cell">
-					<div class="details-label">Year</div>
-					<div class="details-value">{year}</div>
+					<div class="details-label reveal-child" style={childDelayStyle(detailsReveal, 0)}>
+						Year
+					</div>
+					<div class="details-value reveal-child" style={childDelayStyle(detailsReveal, 0)}>
+						{year}
+					</div>
 				</div>
 				<div class="details-cell">
-					<div class="details-label">Role</div>
-					<div class="details-value">{role}</div>
+					<div class="details-label reveal-child" style={childDelayStyle(detailsReveal, 1)}>
+						Role
+					</div>
+					<div class="details-value reveal-child" style={childDelayStyle(detailsReveal, 1)}>
+						{role}
+					</div>
 				</div>
 				<div class="details-cell">
-					<div class="details-label">Link</div>
-					<div class="details-value">
+					<div class="details-label reveal-child" style={childDelayStyle(detailsReveal, 2)}>
+						Link
+					</div>
+					<div class="details-value reveal-child" style={childDelayStyle(detailsReveal, 2)}>
 						{#if link === 'Discontinued'}
 							<span class="discontinued-text">Discontinued</span>
 						{:else if link}
@@ -160,16 +323,31 @@
 					</div>
 				</div>
 			</div>
-			<div class="details-row metrics-row">
+			<div class="details-row metrics-row reveal-child" style={childDelayStyle(detailsReveal, 3)}>
 				{#each metrics.slice(0, 2) as metric, index (`${metric}-${index}`)}
 					<div class="details-cell">
-						<div class="details-label">Impact</div>
-						<div class="details-value">{metric}</div>
+						<div
+							class="details-label reveal-child"
+							style={childDelayStyle(detailsReveal, 3 + index)}
+						>
+							Impact
+						</div>
+						<div
+							class="details-value reveal-child"
+							style={childDelayStyle(detailsReveal, 3 + index)}
+						>
+							{metric}
+						</div>
 					</div>
 				{/each}
 				<div class="details-cell">
-					<div class="details-label">Team</div>
-					<div class="details-value team-list">
+					<div class="details-label reveal-child" style={childDelayStyle(detailsReveal, 5)}>
+						Team
+					</div>
+					<div
+						class="details-value team-list reveal-child"
+						style={childDelayStyle(detailsReveal, 5)}
+					>
 						{#if team && team.length > 0}
 							{#each team as member (`${member.role}-${member.name}`)}
 								<div class="team-member">
@@ -188,8 +366,14 @@
 
 		<!-- Featured hero image -->
 		{#if featuredImage}
-			<div class="hero-image-container">
-				<div class="image-frame">
+			<div
+				class="hero-image-container reveal-parent"
+				style={revealStyle((heroReveal ?? introReveal).parentDelayMs)}
+			>
+				<div
+					class="image-frame reveal-child"
+					style={revealStyle((heroReveal ?? introReveal).childStartDelayMs)}
+				>
 					<img
 						src={featuredImage}
 						alt={projectTitle}
@@ -201,17 +385,32 @@
 		{/if}
 
 		<!-- Content sections -->
-		<div class="content-container flex-column">
+		<div
+			class="content-container flex-column reveal-parent"
+			style={revealStyle((contentReveal ?? introReveal).parentDelayMs)}
+		>
 			<div class="content-view width-100">
 				<!-- Content blocks (text and images) -->
 				<div class="content-blocks">
 					{#each content as block, index (`${block.type}-${block.value}-${index}`)}
 						{#if block.type === 'text'}
-							<div class="text-block">
+							<div
+								class="text-block reveal-child"
+								style={revealStyle(
+									(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
+								)}
+							>
 								<p>{block.value}</p>
 							</div>
 						{:else if block.type === 'image'}
-							<div class="image-block {block.layout === 'side-by-side' ? 'side-by-side' : ''}">
+							<div
+								class="image-block {block.layout === 'side-by-side'
+									? 'side-by-side'
+									: ''} reveal-child"
+								style={revealStyle(
+									(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
+								)}
+							>
 								{#if block.layout === 'side-by-side'}
 									<div class="image-pair">
 										<div class="image-container">
@@ -254,34 +453,25 @@
 				</div>
 
 				<!-- Image gallery - only show unused images -->
-				{#if images.length > 0}
-					{@const usedImages = new Set([
-						featuredImage,
-						...content
-							.filter((block) => block.type === 'image')
-							.flatMap((block) => {
-								const blockImages = [block.value];
-								if (block.layout === 'side-by-side' && block.sideImage) {
-									blockImages.push(block.sideImage.value);
-								}
-								return blockImages;
-							})
-					])}
-					{@const unusedImages = images.filter((img) => !usedImages.has(img.src))}
-					{#if unusedImages.length > 0}
-						<div class="image-gallery">
-							{#each unusedImages as image (image.src)}
-								<div class="gallery-item">
-									<div class="image-frame">
-										<img src={image.src} alt={image.alt} />
-									</div>
-									{#if image.caption}
-										<p class="image-caption">{image.caption}</p>
-									{/if}
+				{#if unusedGalleryImages.length > 0}
+					<div class="image-gallery">
+						{#each unusedGalleryImages as image, index (image.src)}
+							<div
+								class="gallery-item reveal-child"
+								style={revealStyle(
+									(contentReveal ?? introReveal).childStartDelayMs +
+										(content.length + index) * REVEAL_CHILD_STEP_MS
+								)}
+							>
+								<div class="image-frame">
+									<img src={image.src} alt={image.alt} />
 								</div>
-							{/each}
-						</div>
-					{/if}
+								{#if image.caption}
+									<p class="image-caption">{image.caption}</p>
+								{/if}
+							</div>
+						{/each}
+					</div>
 				{/if}
 			</div>
 		</div>
@@ -290,6 +480,16 @@
 
 <style>
 	.portfolio-expanded-view {
+		font-family:
+			'Instrument Sans',
+			-apple-system,
+			BlinkMacSystemFont,
+			'Segoe UI',
+			Roboto,
+			Helvetica,
+			Arial,
+			sans-serif;
+		letter-spacing: -0.01em;
 		width: 100%;
 		max-width: 800px;
 		height: 100%;
@@ -301,6 +501,29 @@
 		margin: 0 auto;
 		padding: 0;
 		border-top: 16px solid var(--text-color);
+	}
+
+	.portfolio-expanded-view--staggered {
+		--reveal-distance: 0px;
+	}
+
+	.portfolio-expanded-view--staggered .reveal-parent,
+	.portfolio-expanded-view--staggered .reveal-child {
+		opacity: 0;
+		transform: none;
+		animation-name: portfolio-reveal-in;
+		animation-timing-function: cubic-bezier(0.22, 0.61, 0.36, 1);
+		animation-fill-mode: forwards;
+		animation-delay: var(--reveal-delay, 0ms);
+		will-change: opacity, transform;
+	}
+
+	.portfolio-expanded-view--staggered .reveal-parent {
+		animation-duration: var(--reveal-parent-duration, 700ms);
+	}
+
+	.portfolio-expanded-view--staggered .reveal-child {
+		animation-duration: var(--reveal-child-duration, 560ms);
 	}
 
 	.content-container {
@@ -345,11 +568,10 @@
 	.content-blocks {
 		display: flex;
 		flex-direction: column;
-		gap: var(--spacing-xl);
+		gap: var(--spacing-sm);
 	}
 
 	.text-block {
-		font-family: var(--font-family);
 		font-size: var(--font-size-base);
 		line-height: 1.6;
 		font-variation-settings:
@@ -383,7 +605,6 @@
 	}
 
 	.image-caption {
-		font-family: var(--font-family);
 		font-size: var(--font-size-sm);
 		font-variation-settings:
 			'CASL' 0,
@@ -437,66 +658,28 @@
 			padding: 0;
 		}
 
-		/* Simple mobile highlight effect */
 		.highlight-line {
 			display: inline;
 			color: var(--text-color);
-			font-family: var(--font-family);
+			font-family: inherit;
 			line-height: 1.6;
 			background: none;
 			-webkit-mask-image: none;
 			mask-image: none;
-			position: relative;
-			padding: 0 0.1em 0 0;
-			box-decoration-break: clone;
-			-webkit-box-decoration-break: clone;
-		}
-
-		.highlight-line::before {
-			content: '';
-			position: absolute;
-			left: 0;
-			right: 0;
-			bottom: 0.1em;
-			height: 0.4em;
-			background-color: rgba(93, 103, 233, 0.12);
-			z-index: -1;
-			transform: rotate(-1deg) translateZ(0);
-			border-radius: 1px;
-		}
-
-		.highlight-line:nth-child(3n + 1)::before {
-			transform: rotate(1deg) translateZ(0);
-			background-color: rgba(93, 103, 233, 0.15);
-			height: 0.45em;
-			bottom: 0.08em;
-		}
-
-		.highlight-line:nth-child(3n + 2)::before {
-			transform: rotate(-0.5deg) translateZ(0);
-			background-color: rgba(93, 103, 233, 0.13);
-			height: 0.42em;
-			bottom: 0.12em;
-		}
-
-		.highlight-line:nth-child(3n + 3)::before {
-			transform: rotate(0.5deg) translateZ(0);
-			background-color: rgba(93, 103, 233, 0.14);
-			height: 0.43em;
-			bottom: 0.09em;
+			padding: 0;
 		}
 	}
 
 	.project-intro {
 		display: flex;
 		flex-direction: column;
-		gap: var(--spacing-md);
+		gap: var(--spacing-xs);
 		padding: var(--spacing-lg) 1.5rem 0;
 	}
 
 	.project-title-row {
 		display: flex;
-		align-items: flex-start;
+		align-items: center;
 		justify-content: flex-start;
 		gap: var(--spacing-md);
 		flex-wrap: wrap;
@@ -504,10 +687,10 @@
 
 	.project-title {
 		margin: 0;
-		font-family: var(--font-family);
-		font-size: clamp(1.5rem, 2vw, 2rem);
+		font-family: 'Instrument Serif', serif;
+		font-size: clamp(2rem, 3vw, 2.8rem);
 		line-height: 1;
-		letter-spacing: -0.08em;
+		letter-spacing: -0.04em;
 		color: var(--text-color);
 		font-variation-settings:
 			'CASL' 0,
@@ -533,7 +716,7 @@
 		padding: var(--spacing-lg);
 		border: 1px solid var(--black);
 		border-radius: var(--border-radius-sm);
-		background: rgba(0, 0, 0, 0.02);
+		background: var(--alpha-black-002);
 	}
 
 	.locked-gate-label {
@@ -545,7 +728,7 @@
 
 	.locked-gate-copy {
 		margin: 0;
-		font-family: var(--font-family);
+		font-family: inherit;
 		font-size: var(--font-size-sm);
 		line-height: 1.5;
 		color: var(--text-color);
@@ -562,27 +745,43 @@
 		min-width: 0;
 		padding: 0.75rem 0.9rem;
 		border: 1px solid var(--black);
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		background: var(--bg-color);
 		color: var(--text-color);
-		font: inherit;
+		font-family: inherit;
+		font-size: var(--font-size-sm);
+		line-height: 1.4;
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 400;
 	}
 
 	.locked-gate-button {
 		padding: 0.75rem 1rem;
 		border: 1px solid var(--black);
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		background: var(--text-color);
 		color: var(--bg-color);
-		font: inherit;
-		font-weight: 600;
+		font-family: inherit;
+		font-size: var(--font-size-sm);
+		line-height: 1.4;
+		font-weight: 500;
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 500;
 		cursor: pointer;
+	}
+
+	.locked-gate-button:disabled,
+	.locked-gate-input:disabled {
+		opacity: 0.7;
+		cursor: not-allowed;
 	}
 
 	.locked-gate-error {
 		margin: 0;
 		font-size: var(--font-size-xs);
-		color: #8b2d2d;
+		color: var(--palette-text-danger);
 	}
 
 	.hero-description,
@@ -599,11 +798,60 @@
 		letter-spacing: -0.01em;
 	}
 
+	:global(html.dark-theme) .hero-description,
+	:global(html.dark-theme) .text-block,
+	:global(html.dark-theme) .image-caption,
+	:global(html.dark-theme) .details-label,
+	:global(html.dark-theme) .details-value,
+	:global(html.dark-theme) .project-link,
+	:global(html.dark-theme) .muted-text,
+	:global(html.dark-theme) .discontinued-text,
+	:global(html.dark-theme) .role,
+	:global(html.dark-theme) .name,
+	:global(html.dark-theme) .relationship {
+		letter-spacing: 0.03em;
+	}
+
+	/* Slightly lighter body weight in dark mode for easier reading on deep backgrounds */
+	:global(html.dark-theme) .hero-description,
+	:global(html.dark-theme) .text-block,
+	:global(html.dark-theme) .project-link,
+	:global(html.dark-theme) .muted-text,
+	:global(html.dark-theme) .discontinued-text,
+	:global(html.dark-theme) .role,
+	:global(html.dark-theme) .name,
+	:global(html.dark-theme) .relationship {
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 360;
+	}
+
+	:global(html.dark-theme) .image-caption,
+	:global(html.dark-theme) .details-label {
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 330;
+	}
+
+	:global(html.dark-theme) .details-label {
+		color: var(--palette-grey-hint);
+	}
+
+	:global(html.dark-theme) .details-value {
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 460;
+	}
+
+	:global(html.dark-theme) .highlight-line {
+		letter-spacing: 0.025em;
+	}
+
 	/* Project details grid */
 	.project-details-grid {
 		width: 100%;
 		background-color: transparent;
-		font-family: var(--font-family);
+		font-family: inherit;
 		border-top: 1px solid var(--black);
 	}
 
@@ -668,6 +916,7 @@
 
 		.project-title-row {
 			flex-direction: column;
+			align-items: flex-start;
 		}
 
 		.project-tags {
@@ -806,7 +1055,7 @@
 	.hero-description {
 		width: 100%;
 		max-width: 65ch;
-		font-family: var(--font-family);
+		font-family: inherit;
 		font-size: var(--font-size-lg);
 		line-height: 1.3;
 		font-variation-settings:
@@ -820,160 +1069,7 @@
 		display: inline;
 		line-height: 1.3;
 		letter-spacing: -0.03em;
-		padding: 0 0.4em;
-		background-repeat: no-repeat;
-		background-image:
-			linear-gradient(var(--random-angle), rgba(93, 103, 233, 0.15), rgba(93, 103, 233, 0.18)),
-			linear-gradient(
-				calc(var(--random-angle) - 0.5deg),
-				rgba(93, 103, 233, 0.12),
-				rgba(93, 103, 233, 0.15)
-			);
-		background-position:
-			0 62%,
-			0 66%;
-		background-size:
-			100% 0.5em,
-			98% 0.45em;
-		-webkit-mask-image:
-			radial-gradient(7px at 92% 65%, transparent 92%, #000 100%),
-			radial-gradient(3px at 88% 63%, transparent 93%, #000 100%),
-			radial-gradient(5px at 82% 67%, transparent 91%, #000 100%),
-			radial-gradient(4px at 75% 64%, transparent 94%, #000 100%),
-			radial-gradient(6px at 68% 66%, transparent 92%, #000 100%),
-			radial-gradient(3px at 60% 63%, transparent 93%, #000 100%),
-			radial-gradient(7px at 52% 67%, transparent 91%, #000 100%),
-			radial-gradient(4px at 45% 64%, transparent 94%, #000 100%),
-			radial-gradient(5px at 38% 66%, transparent 92%, #000 100%),
-			radial-gradient(3px at 30% 63%, transparent 93%, #000 100%),
-			radial-gradient(6px at 22% 67%, transparent 91%, #000 100%),
-			radial-gradient(4px at 15% 64%, transparent 94%, #000 100%),
-			radial-gradient(7px at 8% 66%, transparent 92%, #000 100%),
-			radial-gradient(3px at 2% 63%, transparent 93%, #000 100%), linear-gradient(#000 0 0);
-		mask-image:
-			radial-gradient(7px at 92% 65%, transparent 92%, #000 100%),
-			radial-gradient(3px at 88% 63%, transparent 93%, #000 100%),
-			radial-gradient(5px at 82% 67%, transparent 91%, #000 100%),
-			radial-gradient(4px at 75% 64%, transparent 94%, #000 100%),
-			radial-gradient(6px at 68% 66%, transparent 92%, #000 100%),
-			radial-gradient(3px at 60% 63%, transparent 93%, #000 100%),
-			radial-gradient(7px at 52% 67%, transparent 91%, #000 100%),
-			radial-gradient(4px at 45% 64%, transparent 94%, #000 100%),
-			radial-gradient(5px at 38% 66%, transparent 92%, #000 100%),
-			radial-gradient(3px at 30% 63%, transparent 93%, #000 100%),
-			radial-gradient(6px at 22% 67%, transparent 91%, #000 100%),
-			radial-gradient(4px at 15% 64%, transparent 94%, #000 100%),
-			radial-gradient(7px at 8% 66%, transparent 92%, #000 100%),
-			radial-gradient(3px at 2% 63%, transparent 93%, #000 100%), linear-gradient(#000 0 0);
-	}
-
-	.highlight-line:nth-child(3n + 1) {
-		--random-angle: 2.5deg;
-		background-size:
-			100% 0.52em,
-			97% 0.48em;
-		-webkit-mask-image:
-			radial-gradient(8px at 95% 64%, transparent 91%, #000 100%),
-			radial-gradient(4px at 90% 66%, transparent 93%, #000 100%),
-			radial-gradient(6px at 85% 63%, transparent 92%, #000 100%),
-			radial-gradient(3px at 78% 67%, transparent 94%, #000 100%),
-			radial-gradient(7px at 70% 64%, transparent 91%, #000 100%),
-			radial-gradient(4px at 62% 66%, transparent 93%, #000 100%),
-			radial-gradient(6px at 55% 63%, transparent 92%, #000 100%),
-			radial-gradient(3px at 48% 67%, transparent 94%, #000 100%),
-			radial-gradient(8px at 40% 64%, transparent 91%, #000 100%),
-			radial-gradient(4px at 32% 66%, transparent 93%, #000 100%),
-			radial-gradient(6px at 25% 63%, transparent 92%, #000 100%),
-			radial-gradient(3px at 18% 67%, transparent 94%, #000 100%),
-			radial-gradient(7px at 10% 64%, transparent 91%, #000 100%),
-			radial-gradient(4px at 5% 66%, transparent 93%, #000 100%), linear-gradient(#000 0 0);
-		mask-image:
-			radial-gradient(8px at 95% 64%, transparent 91%, #000 100%),
-			radial-gradient(4px at 90% 66%, transparent 93%, #000 100%),
-			radial-gradient(6px at 85% 63%, transparent 92%, #000 100%),
-			radial-gradient(3px at 78% 67%, transparent 94%, #000 100%),
-			radial-gradient(7px at 70% 64%, transparent 91%, #000 100%),
-			radial-gradient(4px at 62% 66%, transparent 93%, #000 100%),
-			radial-gradient(6px at 55% 63%, transparent 92%, #000 100%),
-			radial-gradient(3px at 48% 67%, transparent 94%, #000 100%),
-			radial-gradient(8px at 40% 64%, transparent 91%, #000 100%),
-			radial-gradient(4px at 32% 66%, transparent 93%, #000 100%),
-			radial-gradient(6px at 25% 63%, transparent 92%, #000 100%),
-			radial-gradient(3px at 18% 67%, transparent 94%, #000 100%),
-			radial-gradient(7px at 10% 64%, transparent 91%, #000 100%),
-			radial-gradient(4px at 5% 66%, transparent 93%, #000 100%), linear-gradient(#000 0 0);
-	}
-
-	.highlight-line:nth-child(3n + 2) {
-		--random-angle: -1.5deg;
-		background-size:
-			99% 0.48em,
-			100% 0.5em;
-		-webkit-mask-image:
-			radial-gradient(7px at 98% 65%, transparent 92%, #000 100%),
-			radial-gradient(4px at 92% 63%, transparent 93%, #000 100%),
-			radial-gradient(6px at 85% 67%, transparent 91%, #000 100%),
-			radial-gradient(3px at 77% 64%, transparent 94%, #000 100%),
-			radial-gradient(8px at 68% 66%, transparent 92%, #000 100%),
-			radial-gradient(4px at 60% 63%, transparent 93%, #000 100%),
-			radial-gradient(6px at 52% 67%, transparent 91%, #000 100%),
-			radial-gradient(3px at 45% 64%, transparent 94%, #000 100%),
-			radial-gradient(7px at 38% 66%, transparent 92%, #000 100%),
-			radial-gradient(4px at 30% 63%, transparent 93%, #000 100%),
-			radial-gradient(6px at 22% 67%, transparent 91%, #000 100%),
-			radial-gradient(3px at 15% 64%, transparent 94%, #000 100%),
-			radial-gradient(8px at 8% 66%, transparent 92%, #000 100%),
-			radial-gradient(4px at 2% 63%, transparent 93%, #000 100%), linear-gradient(#000 0 0);
-		mask-image:
-			radial-gradient(7px at 98% 65%, transparent 92%, #000 100%),
-			radial-gradient(4px at 92% 63%, transparent 93%, #000 100%),
-			radial-gradient(6px at 85% 67%, transparent 91%, #000 100%),
-			radial-gradient(3px at 77% 64%, transparent 94%, #000 100%),
-			radial-gradient(8px at 68% 66%, transparent 92%, #000 100%),
-			radial-gradient(4px at 60% 63%, transparent 93%, #000 100%),
-			radial-gradient(6px at 52% 67%, transparent 91%, #000 100%),
-			radial-gradient(3px at 45% 64%, transparent 94%, #000 100%),
-			radial-gradient(7px at 38% 66%, transparent 92%, #000 100%),
-			radial-gradient(4px at 30% 63%, transparent 93%, #000 100%),
-			radial-gradient(6px at 22% 67%, transparent 91%, #000 100%),
-			radial-gradient(3px at 15% 64%, transparent 94%, #000 100%),
-			radial-gradient(8px at 8% 66%, transparent 92%, #000 100%),
-			radial-gradient(4px at 2% 63%, transparent 93%, #000 100%), linear-gradient(#000 0 0);
-	}
-
-	.highlight-line:nth-child(3n + 3) {
-		--random-angle: 1.8deg;
-		background-size:
-			98% 0.5em,
-			100% 0.45em;
-		-webkit-mask-image:
-			radial-gradient(8px at 96% 66%, transparent 91%, #000 100%),
-			radial-gradient(4px at 88% 63%, transparent 93%, #000 100%),
-			radial-gradient(6px at 80% 67%, transparent 92%, #000 100%),
-			radial-gradient(3px at 72% 64%, transparent 94%, #000 100%),
-			radial-gradient(7px at 64% 66%, transparent 91%, #000 100%),
-			radial-gradient(4px at 56% 63%, transparent 93%, #000 100%),
-			radial-gradient(6px at 48% 67%, transparent 92%, #000 100%),
-			radial-gradient(3px at 40% 64%, transparent 94%, #000 100%),
-			radial-gradient(8px at 32% 66%, transparent 91%, #000 100%),
-			radial-gradient(4px at 24% 63%, transparent 93%, #000 100%),
-			radial-gradient(6px at 16% 67%, transparent 92%, #000 100%),
-			radial-gradient(3px at 8% 64%, transparent 94%, #000 100%),
-			radial-gradient(7px at 2% 66%, transparent 91%, #000 100%), linear-gradient(#000 0 0);
-		mask-image:
-			radial-gradient(8px at 96% 66%, transparent 91%, #000 100%),
-			radial-gradient(4px at 88% 63%, transparent 93%, #000 100%),
-			radial-gradient(6px at 80% 67%, transparent 92%, #000 100%),
-			radial-gradient(3px at 72% 64%, transparent 94%, #000 100%),
-			radial-gradient(7px at 64% 66%, transparent 91%, #000 100%),
-			radial-gradient(4px at 56% 63%, transparent 93%, #000 100%),
-			radial-gradient(6px at 48% 67%, transparent 92%, #000 100%),
-			radial-gradient(3px at 40% 64%, transparent 94%, #000 100%),
-			radial-gradient(8px at 32% 66%, transparent 91%, #000 100%),
-			radial-gradient(4px at 24% 63%, transparent 93%, #000 100%),
-			radial-gradient(6px at 16% 67%, transparent 92%, #000 100%),
-			radial-gradient(3px at 8% 64%, transparent 94%, #000 100%),
-			radial-gradient(7px at 2% 66%, transparent 91%, #000 100%), linear-gradient(#000 0 0);
+		padding: 0;
 	}
 
 	.team-list {
@@ -1047,5 +1143,25 @@
 	.side-by-side .image-caption {
 		margin-top: var(--spacing-xs);
 		flex-shrink: 0;
+	}
+
+	@keyframes portfolio-reveal-in {
+		from {
+			opacity: 0;
+			transform: none;
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.portfolio-expanded-view--staggered .reveal-parent,
+		.portfolio-expanded-view--staggered .reveal-child {
+			opacity: 1;
+			transform: none;
+			animation: none;
+		}
 	}
 </style>

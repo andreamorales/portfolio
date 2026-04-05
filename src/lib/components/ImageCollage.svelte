@@ -100,8 +100,8 @@
 		// Only show highlight if cursor is actively dragging this image
 		if (cursor.isDragging && cursor.targetImage === imageIndex) {
 			return `
-        box-shadow: 0 0 0 4px ${cursor.color}, 0 0 0 6px rgba(255,255,255,0.8);
-        border-radius: 4px;
+        box-shadow: 0 0 0 4px ${cursor.color}, 0 0 0 6px var(--alpha-white-080);
+        border-radius: var(--radius-xs);
         outline: 2px dashed ${cursor.color};
         outline-offset: 2px;
         transition: box-shadow 0.2s ease-in-out, outline 0.2s ease-in-out;
@@ -250,8 +250,8 @@
 		// Sort by area (largest to smallest) for z-index layering
 		const sortedBySize = [...sizedImages].sort((a, b) => b.area - a.area);
 
-		// Define the usable area for desktop (right two-thirds)
-		const desktopLeftBoundary = windowWidth * 0.33; // Start at one-third from left
+		// Let the collage enter further into the left side on desktop.
+		const desktopLeftBoundary = windowWidth * 0.2;
 		const usableWidth = windowWidth - desktopLeftBoundary - 50; // Subtract right margin
 
 		interface Rect {
@@ -288,6 +288,41 @@
 
 		// Track placed images for overlap checking
 		const placedImages: PlacedImage[] = [];
+
+		// Exclusion zones: areas where collage images should never appear
+		const pagePadding = windowWidth > 768 ? 72 : 32;
+		const portfolioSafeWidth = Math.min(windowWidth * 0.38, 640);
+		const exclusionZones: Rect[] = [
+			// Top-right buttons area (generous padding around the fixed buttons)
+			{
+				left: windowWidth * 0.7,
+				right: windowWidth,
+				top: 0,
+				bottom: pagePadding + 60
+			},
+			// Portfolio pieces area (bottom-left, covering the text list)
+			{
+				left: 0,
+				right: portfolioSafeWidth,
+				top: windowHeight * 0.42,
+				bottom: windowHeight
+			}
+		];
+
+		function overlapsExclusionZone(rect: Rect): boolean {
+			for (const zone of exclusionZones) {
+				const xOverlap = Math.max(
+					0,
+					Math.min(rect.right, zone.right) - Math.max(rect.left, zone.left)
+				);
+				const yOverlap = Math.max(
+					0,
+					Math.min(rect.bottom, zone.bottom) - Math.max(rect.top, zone.top)
+				);
+				if (xOverlap > 0 && yOverlap > 0) return true;
+			}
+			return false;
+		}
 
 		return sortedBySize.map((img, index) => {
 			let left = 0;
@@ -378,6 +413,12 @@
 					top,
 					bottom: top + img.height
 				};
+
+				// Skip positions that overlap exclusion zones
+				if (!isMobile && overlapsExclusionZone(newRect)) {
+					attempts++;
+					continue;
+				}
 
 				let maxOverlapWithAny = 0;
 

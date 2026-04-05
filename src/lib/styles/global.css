@@ -2,6 +2,55 @@
 @import './animations.css';
 @import './variables.css';
 
+/* ------------------------------------------------------------------
+   Border radius — site-wide tokens (overrides variables.css aliases)
+   Use --radius-* for new work; --border-radius* stay for compatibility.
+   ------------------------------------------------------------------ */
+:root {
+	/* Light-mode body / headline ink (dark mode uses a separate near-black bg) */
+	--palette-charcoal: #363636;
+
+	/* Alpha overlays — use instead of raw rgba() in components */
+	--alpha-black-002: rgba(0, 0, 0, 0.02);
+	--alpha-black-012: rgba(0, 0, 0, 0.12);
+	--alpha-black-015: rgba(0, 0, 0, 0.15);
+	--alpha-black-020: rgba(0, 0, 0, 0.2);
+	--alpha-black-022: rgba(0, 0, 0, 0.22);
+	--alpha-black-025: rgba(0, 0, 0, 0.25);
+	--alpha-black-030: rgba(0, 0, 0, 0.3);
+	--alpha-white-080: rgba(255, 255, 255, 0.8);
+
+	/* Pure neutrals (masks, focus rings, slider knob) */
+	--palette-black-pure: #000000;
+	--palette-white-pure: #ffffff;
+
+	/* Semantic */
+	--palette-text-danger: #8b2d2d;
+	--palette-focus-ring: #2196f3;
+
+	/* Home portfolio label underline (indigo tint) */
+	--decorative-indigo-012: rgba(93, 103, 233, 0.12);
+	--decorative-indigo-015: rgba(93, 103, 233, 0.15);
+	--decorative-indigo-018: rgba(93, 103, 233, 0.18);
+
+	--radius-hairline: 1px;
+	--radius-2xs: 0.125rem;
+	--radius-xs: 0.25rem;
+	--radius-sm: 0.5rem;
+	--radius-md: 0.625rem;
+	--radius-lg: 0.75rem;
+	--radius-xl: 1rem;
+	--radius-2xl: 1.5rem;
+	--radius-pill: 2.125rem;
+	--radius-full: 9999px;
+	--border-radius-sm: var(--radius-2xs);
+	--border-radius: var(--radius-md);
+	--border-radius-md: var(--radius-sm);
+	--border-radius-lg: var(--radius-md);
+	--border-radius-xl: var(--radius-xl);
+	--border-radius-full: var(--radius-full);
+}
+
 /* Base element styles */
 *,
 *::before,
@@ -17,6 +66,7 @@ body {
 	margin: 0;
 	font-family: var(--font-family);
 	font-size: var(--font-size);
+	letter-spacing: var(--body-letter-spacing, 0);
 }
 
 a {
@@ -322,7 +372,7 @@ button.button-clear {
 	width: 26px;
 	left: 4px;
 	bottom: 4px;
-	background-color: white;
+	background-color: var(--palette-white-pure);
 	transition: 0.4s;
 	-webkit-transition: 0.4s;
 }
@@ -332,7 +382,7 @@ input:checked + .slider {
 }
 
 input:focus + .slider {
-	box-shadow: 0 0 1px #2196f3;
+	box-shadow: 0 0 1px var(--palette-focus-ring);
 }
 
 input:checked + .slider:before {
@@ -342,11 +392,11 @@ input:checked + .slider:before {
 }
 
 .slider.round {
-	border-radius: 34px;
+	border-radius: var(--radius-pill);
 }
 
 .slider.round:before {
-	border-radius: 50%;
+	border-radius: var(--radius-full);
 }
 
 /* Utility classes */
@@ -380,7 +430,7 @@ input:checked + .slider:before {
 	color: var(--text-color) !important;
 	text-align: center;
 	padding: 8px;
-	border-radius: 8px;
+	border-radius: var(--radius-sm);
 	position: absolute;
 	z-index: 1;
 	bottom: 125%;
@@ -434,7 +484,7 @@ input:checked + .slider:before {
 	width: 16px;
 	background-color: transparent;
 	border: 1px solid color-mix(in srgb, var(--text-color) 20%, transparent);
-	border-radius: 3px;
+	border-radius: var(--radius-xs);
 	box-sizing: border-box;
 	display: flex;
 	align-items: center;
@@ -504,8 +554,8 @@ button {
 	--font-size-9xl: 8rem;
 
 	/* Typography */
-	--font-family: 'Recursive';
-	--font-family-display: 'Refract', sans-serif;
+	--font-family: 'IBM Plex Mono', monospace;
+	--font-family-display: 'Instrument Serif', serif;
 	--line-height: 100%;
 
 	/* Spacing */
@@ -524,7 +574,6 @@ button {
 
 	/* Spacing & Layout */
 	--border-width: 0px;
-	--border-radius: 0.65rem;
 	--transition: 0.2s ease-in-out;
 
 	/* Button styles */
@@ -809,4 +858,211 @@ textarea {
 	resize: vertical;
 	min-height: 100px;
 	line-height: 1.4;
+}
+
+/* ------------------------------------------------------------------
+   Site palette — warm cream surface (#f3ead6) + ink (var(--palette-charcoal))
+   Greys bridge bg → type; rainbow accents sit on cream without clashing.
+   Use --palette-* in components; map legacy greys where helpful.
+   ------------------------------------------------------------------ */
+:root,
+:root.light {
+	--palette-bg: #f3ead6;
+	--palette-ink: var(--palette-charcoal);
+
+	/* Warm greys (light = near surface, dark = near ink) */
+	--palette-grey-100: #f7f2e8;
+	--palette-grey-200: #ebe4d6;
+	--palette-grey-300: #cfc7b8;
+	--palette-grey-400: #a8a091;
+	--palette-grey-500: #7f786f;
+	--palette-grey-600: #5c564f;
+	--palette-grey-700: #3d3a38;
+	--palette-grey-muted: #8a847a;
+	--palette-grey-hint: #9d968b;
+
+	/* Rainbow — slightly desaturated so they read on cream + next to charcoal */
+	--palette-rainbow-1: #c45a5a;
+	--palette-rainbow-2: #d4823a;
+	--palette-rainbow-3: #c9a63a;
+	--palette-rainbow-4: #4f8f6a;
+	--palette-rainbow-5: #3a8f8f;
+	--palette-rainbow-6: #5a7fb8;
+	--palette-rainbow-7: #8b6fb8;
+	--palette-rainbow-8: #b06a8f;
+
+	--palette-rainbow-gradient-h: linear-gradient(
+		90deg,
+		var(--palette-rainbow-1),
+		var(--palette-rainbow-2),
+		var(--palette-rainbow-3),
+		var(--palette-rainbow-4),
+		var(--palette-rainbow-5),
+		var(--palette-rainbow-6),
+		var(--palette-rainbow-7),
+		var(--palette-rainbow-1)
+	);
+	--palette-rainbow-gradient-v: linear-gradient(
+		180deg,
+		var(--palette-rainbow-8),
+		var(--palette-rainbow-1),
+		var(--palette-rainbow-2),
+		var(--palette-rainbow-3),
+		var(--palette-rainbow-4),
+		var(--palette-rainbow-5),
+		var(--palette-rainbow-6),
+		var(--palette-rainbow-8)
+	);
+
+	/* CLI portfolio list — active row (not part of gradient ramp) */
+	--palette-rainbow-cli-active: #62d98c;
+
+	/* Rainbow edge glow (CLI + portfolio shell) — overridden in dark theme */
+	--glow-cli-opacity: 0.9;
+	--glow-cli-opacity-rm: 0.08;
+	--glow-portfolio-opacity: 0.9;
+	--glow-portfolio-opacity-rm: 0.12;
+
+	--body-letter-spacing: 0;
+
+	/* Align core tokens with this palette (overrides earlier :root layers) */
+	--bg-color: var(--palette-bg);
+	--text-color: var(--palette-ink);
+	--muted-text: var(--palette-grey-500);
+
+	/*
+	  CLI terminal (HomeLandingHero): fill = --text-color (charcoal), type mostly = --bg-color (cream).
+	  Muted / hint text must meet WCAG AA (~4.5:1) on charcoal ~#363636.
+	*/
+	--cli-terminal-body-fg: var(--palette-bg);
+	--cli-terminal-muted-fg: #d4cfc4;
+	--cli-terminal-subtle-fg: #c9c3b8;
+	--cli-terminal-placeholder-fg: #c4beb3;
+	--cli-terminal-dim-fg: #a39a8f;
+	--cli-terminal-scrollbar-thumb-fg: #8a8278;
+	--cli-terminal-scrollbar-thumb-hover-fg: #9a9288;
+	--cli-terminal-divider-fg: rgba(255, 255, 255, 0.22);
+}
+
+/* ------------------------------------------------------------------ */
+/* Dark theme                                                           */
+/* ------------------------------------------------------------------ */
+:root.dark-theme {
+	/* Dark warm grey (not pure black — a step lighter than near-black) */
+	--palette-bg: #141312;
+
+	/* Primary type: warm beige, dimmer than paper-white (easier on eyes in dark UI) */
+	--palette-ink: #c4b6a4;
+
+	/* Warm greys — surfaces sit above page bg (#141312) */
+	--palette-grey-100: #1c1a18;
+	--palette-grey-200: #22201d;
+	--palette-grey-300: #2a2724;
+	--palette-grey-400: #34302c;
+	--palette-grey-500: #403c38;
+	--palette-grey-600: #524d48;
+	--palette-grey-700: #645e58;
+	--palette-grey-muted: #6b655e;
+	/* Placeholders / subtle hints — must read on --palette-grey-100 inputs */
+	--palette-grey-hint: #8a8378;
+
+	/* Rainbow — deep/muted accents (beige + greys unchanged) */
+	--palette-rainbow-1: #5c3432;
+	--palette-rainbow-2: #6a4424;
+	--palette-rainbow-3: #5e4c22;
+	--palette-rainbow-4: #234838;
+	--palette-rainbow-5: #1c4e56;
+	--palette-rainbow-6: #2c3f62;
+	--palette-rainbow-7: #443c58;
+	--palette-rainbow-8: #5a3648;
+
+	--palette-rainbow-gradient-h: linear-gradient(
+		90deg,
+		var(--palette-rainbow-1),
+		var(--palette-rainbow-2),
+		var(--palette-rainbow-3),
+		var(--palette-rainbow-4),
+		var(--palette-rainbow-5),
+		var(--palette-rainbow-6),
+		var(--palette-rainbow-7),
+		var(--palette-rainbow-1)
+	);
+	--palette-rainbow-gradient-v: linear-gradient(
+		180deg,
+		var(--palette-rainbow-8),
+		var(--palette-rainbow-1),
+		var(--palette-rainbow-2),
+		var(--palette-rainbow-3),
+		var(--palette-rainbow-4),
+		var(--palette-rainbow-5),
+		var(--palette-rainbow-6),
+		var(--palette-rainbow-8)
+	);
+
+	/* Softer edge glows on dark (rainbow reads against deep surfaces) */
+	--glow-cli-opacity: 0.26;
+	--glow-cli-opacity-rm: 0.04;
+	--glow-portfolio-opacity: 0.26;
+	--glow-portfolio-opacity-rm: 0.06;
+
+	--palette-rainbow-cli-active: #2f8f58;
+
+	/*
+	  Accents on warm ink (#palette-ink) — CLI inverts to beige fill; page --palette-rainbow-* stays dark for gradients.
+	  These mirror light-mode saturation so type stays legible on the terminal.
+	*/
+	--palette-rainbow-on-ink-1: #c45a5a;
+	/* Darker greens/blues for AA normal text on warm beige (#c4b6a4) */
+	--palette-rainbow-on-ink-4: #285a44;
+	--palette-rainbow-on-ink-6: #2a4f7a;
+	--palette-rainbow-on-ink-err: #8f2828;
+
+	/*
+	  CLI terminal: fill = --text-color (warm beige ink), type mostly = --bg-color (near-black).
+	  Muted / hint text must meet WCAG AA on beige ~#c4b6a4.
+	*/
+	--cli-terminal-body-fg: var(--palette-bg);
+	--cli-terminal-muted-fg: #2a241c;
+	--cli-terminal-subtle-fg: #2f2a22;
+	--cli-terminal-placeholder-fg: #3a3329;
+	--cli-terminal-dim-fg: #4a4036;
+	--cli-terminal-scrollbar-thumb-fg: #5c5348;
+	--cli-terminal-scrollbar-thumb-hover-fg: #6d6358;
+	--cli-terminal-divider-fg: rgba(0, 0, 0, 0.18);
+
+	/* Body tracking matches light mode; portfolio case studies widen locally */
+	--body-letter-spacing: 0;
+
+	/* Core tokens */
+	--bg-color: var(--palette-bg);
+	--text-color: var(--palette-ink);
+	--muted-text: var(--palette-grey-muted);
+
+	/* Text gradient */
+	--text-gradient: linear-gradient(180deg, var(--palette-ink) 70%, var(--palette-bg) 120%);
+
+	/* Buttons */
+	--button-primary-bg: var(--palette-ink);
+	--button-primary-text: var(--palette-bg);
+	--button-primary-border: var(--palette-ink);
+	--button-secondary-bg: var(--palette-bg);
+	--button-secondary-text: var(--palette-ink);
+	--button-secondary-border: var(--palette-grey-500);
+	--button-bg-color: var(--palette-bg);
+	--button-text-color: var(--palette-ink);
+	--button-secondary-shadow: var(--palette-grey-300);
+	--button-tertiary-text: var(--palette-ink);
+
+	/* Inputs */
+	--input-bg-color: var(--palette-grey-100);
+	--input-text-color: var(--palette-ink);
+	--input-border-color: var(--palette-grey-400);
+	--input-placeholder-color: var(--palette-grey-hint);
+
+	/* Misc */
+	--inverse-bg: var(--palette-ink);
+	--inverse-content: var(--palette-bg);
+	--logo-filter: invert(1);
+	--icon-filter: invert(6%) sepia(6%) saturate(150%) hue-rotate(325deg) brightness(86%)
+		contrast(94%);
 }

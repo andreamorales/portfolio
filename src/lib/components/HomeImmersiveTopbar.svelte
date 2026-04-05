@@ -69,14 +69,14 @@
 <style>
 	.immersive-topbar {
 		position: sticky;
-		top: 1.5rem;
+		top: 2rem;
 		z-index: 12;
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
 		gap: 0.75rem;
 		width: fit-content;
-		margin-bottom: 1.5rem;
+		margin-bottom: 2rem;
 	}
 
 	.immersive-brand {
@@ -84,12 +84,12 @@
 		align-items: center;
 		gap: 0.5rem;
 		min-height: 40px;
-		padding: 0.75rem 1rem;
-		background-color: var(--bg-color);
+		padding: 0;
+		background: none;
 		color: var(--text-color);
-		border: 2px solid var(--text-color);
-		border-radius: 4px;
-		box-shadow: 4px 4px 0px 0px var(--grey-mid);
+		border: none;
+		border-radius: 0;
+		box-shadow: none;
 		font-family: var(--font-recursive);
 		font-variation-settings:
 			'CASL' 0,
@@ -140,9 +140,9 @@
 		padding: 0;
 		background-color: var(--bg-color);
 		color: var(--text-color);
-		border: 2px solid var(--text-color);
-		border-radius: 4px;
-		box-shadow: 4px 4px 0px 0px var(--grey-mid);
+		border: none;
+		border-radius: var(--radius-xs);
+		box-shadow: none;
 		overflow: hidden;
 	}
 
@@ -214,7 +214,7 @@
 		flex: 0 0 auto;
 		margin-left: auto;
 		aspect-ratio: 14 / 11;
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		overflow: hidden;
 		background-color: var(--grey-lighter);
 		display: flex;

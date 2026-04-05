@@ -1,4 +1,6 @@
 import { writable } from 'svelte/store';
+import mostRecentEncrypted from '$lib/data/secure/most-recent1.encrypted.json';
+import type { SecurePortfolioEncryptedPayload } from '$lib/utils/secureCaseStudy';
 
 interface PortfolioImage {
 	src: string;
@@ -25,6 +27,7 @@ interface TeamMember {
 
 export interface PortfolioItem {
 	title: string;
+	slug?: string;
 	tags: string[];
 	expanded: boolean;
 	description: string;
@@ -38,44 +41,27 @@ export interface PortfolioItem {
 	metrics: string[];
 	team?: TeamMember[];
 	locked?: boolean;
-	unlockPassword?: string;
+	encryptedPayload?: SecurePortfolioEncryptedPayload;
 }
 
 const initialPortfolioItems = [
 	{
-		title: 'Layer Health: Full Product',
-		tags: ['UX/UI', 'Frontend'],
+		title: '█ █ █ █',
+		slug: 'most-recent1',
+		tags: ['UX/UI', 'FRONTEND'],
 		expanded: false,
-		description:
-			'A password-protected case study for my most recent end-to-end product work across UX/UI and frontend engineering.',
+		description: 'Password-protected case study for my most recent product work.',
 		videoUrl: '',
-		quickNavThumbnail: '/images/portfolio/layer-health/thumbnail.png',
-		images: [
-			{
-				src: '/images/portfolio/layer-health/hero.png',
-				alt: 'Layer Health product interface',
-				caption: 'A recent Layer Health product screen.'
-			}
-		],
-		content: [
-			{
-				type: 'text',
-				value:
-					'This case study covers recent product work I designed and implemented across the full experience, from concept framing to high-fidelity interface details.'
-			},
-			{
-				type: 'text',
-				value:
-					'It includes product strategy, interaction design, systems thinking, and frontend implementation details, and is intentionally password protected while the work is still recent.'
-			}
-		],
-		year: '2026',
-		role: 'UX/UI Designer & Frontend Engineer',
+		quickNavThumbnail: '/images/portfolio/most-recent/thumbnail.svg',
+		images: [],
+		content: [],
+		year: 'Most Recent',
+		role: 'Pass Protected',
 		link: '',
-		metrics: ['End-to-end product ownership', 'Design and frontend implementation'],
-		team: [{ role: 'Status', name: 'Password protected', relationship: 'recent work' }],
+		metrics: [],
+		team: [],
 		locked: true,
-		unlockPassword: 'mostrecent2026'
+		encryptedPayload: mostRecentEncrypted
 	},
 	{
 		title: 'MongoDB: Realm Schema',
@@ -475,7 +461,7 @@ const initialPortfolioItems = [
 		]
 	},
 	{
-		title: 'Panto: Full Product',
+		title: 'Panto',
 		tags: ['UX/UI', 'FRONTEND'],
 		expanded: false,
 		description:
@@ -596,7 +582,7 @@ const initialPortfolioItems = [
 		team: [{ role: 'Backend Engineer', name: "Kenan O'Neal", relationship: 'co-founder' }]
 	},
 	{
-		title: 'La Güila Toys: Full Product',
+		title: 'La Güila Toys',
 		tags: ['TOY DESIGN'],
 		expanded: false,
 		description:
@@ -689,7 +675,7 @@ const initialPortfolioItems = [
 		]
 	},
 	{
-		title: 'Torch: Full Product',
+		title: 'Torch',
 		tags: ['GAME DESIGN'],
 		expanded: false,
 		description:

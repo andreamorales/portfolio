@@ -1,4 +1,4 @@
-import colibri from '$lib/images/colibri.png';
+import colibri from '$lib/images/pixel_art_small (1).svg';
 import beetle from '$lib/images/beetle.png';
 import dahlia from '$lib/images/dahlia.png';
 import knight from '$lib/images/knight.png';

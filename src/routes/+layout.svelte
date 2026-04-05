@@ -1,13 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import '../lib/styles/global.css';
+	import { theme } from '$lib/stores/theme';
 
 	onMount(() => {
-		// Always set light theme
-		if (typeof window !== 'undefined') {
-			localStorage.setItem('theme', 'light-theme');
-			document.documentElement.className = 'light-theme';
-		}
+		const stored = (localStorage.getItem('theme') as 'light-theme' | 'dark-theme') ?? 'light-theme';
+		theme.set(stored);
 	});
 </script>
 

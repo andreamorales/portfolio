@@ -96,17 +96,17 @@
 	.label {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.5rem;
-		padding: 4px 12px;
-		border-radius: 16px;
-		font-size: 0.75rem;
+		gap: 0.35rem;
+		padding: 2px 8px;
+		border-radius: var(--radius-lg);
+		font-size: 0.625rem;
 		font-weight: 700;
 		letter-spacing: 0.05em;
 		border: 1px solid var(--text-color);
 		color: var(--text-color);
 		width: fit-content;
 		white-space: nowrap;
-		font-family: 'Recursive', monospace;
+		font-family: 'IBM Plex Mono', monospace;
 		font-variation-settings:
 			'MONO' 1,
 			'CASL' 0,
@@ -115,9 +115,9 @@
 
 	@media (max-width: 768px) {
 		.label {
-			font-size: 0.625rem; /* Even smaller text for mobile */
-			padding: 3px 8px;
-			border-radius: 12px;
+			font-size: 0.55rem;
+			padding: 2px 6px;
+			border-radius: 10px;
 		}
 	}
 
@@ -184,7 +184,7 @@
 
 	.confetti {
 		position: absolute;
-		border-radius: 1px;
+		border-radius: var(--radius-hairline);
 		opacity: 0;
 		will-change: transform;
 		left: 0;

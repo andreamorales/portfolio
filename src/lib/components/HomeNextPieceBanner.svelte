@@ -26,7 +26,7 @@
 		background-color: var(--bg-color);
 		color: var(--text-color);
 		border: 2px solid var(--text-color);
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 		box-shadow: 4px 4px 0px 0px var(--grey-mid);
 		font-family: var(--font-recursive);
 		font-size: 1rem;

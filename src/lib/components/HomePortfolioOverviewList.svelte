@@ -35,7 +35,7 @@
 	.portfolio-list {
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: var(--spacing-md);
 		font-family: var(--font-recursive);
 		font-variation-settings:
 			'CASL' 0,
@@ -63,13 +63,16 @@
 		border: none;
 		width: 100%;
 		font-family: var(--font-recursive);
-		padding: var(--spacing-xs) var(--spacing-sm) var(--spacing-xs) 0;
-		margin: 0;
+		padding: 0 var(--spacing-sm) 0 0 !important;
+		margin: 0 !important;
 		text-align: left;
-		gap: var(--spacing-md);
-		border-radius: 4px;
+		gap: 0.45rem;
+		border-radius: var(--radius-xs);
 		flex-wrap: nowrap;
 		min-width: 0;
+		min-height: 0 !important;
+		height: auto !important;
+		line-height: 1;
 	}
 
 	.portfolio-header:hover h2 {
@@ -79,33 +82,68 @@
 	.portfolio-header h2 {
 		color: var(--text-color);
 		font-family: var(--font-family);
-		font-size: 18px;
+		font-size: 17px;
 		font-style: normal;
 		font-weight: 370;
-		line-height: 18px;
-		letter-spacing: 0.4px;
-		text-decoration-line: underline;
+		line-height: 17px;
+		letter-spacing: 0.35px;
+		text-decoration: none;
 		margin: 0;
 		transition: color var(--transition);
 		font-variation-settings:
 			'CASL' 0,
 			'wght' 370;
 		background-color: var(--bg-color);
-		padding: var(--spacing-xxs) 0;
-		border-radius: 2px;
+		padding: 0;
+		border-radius: var(--radius-2xs);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		flex-shrink: 1;
 		min-width: 0;
+		background-repeat: no-repeat;
+		background-image:
+			linear-gradient(2deg, var(--decorative-indigo-015), var(--decorative-indigo-018)),
+			linear-gradient(1.5deg, var(--decorative-indigo-012), var(--decorative-indigo-015));
+		background-position:
+			0 62%,
+			0 66%;
+		background-size:
+			100% 0.5em,
+			98% 0.45em;
+		-webkit-mask-image:
+			radial-gradient(5px at 92% 65%, transparent 92%, var(--palette-black-pure) 100%),
+			radial-gradient(3px at 78% 63%, transparent 93%, var(--palette-black-pure) 100%),
+			radial-gradient(4px at 62% 67%, transparent 91%, var(--palette-black-pure) 100%),
+			radial-gradient(3px at 45% 64%, transparent 94%, var(--palette-black-pure) 100%),
+			radial-gradient(5px at 30% 66%, transparent 92%, var(--palette-black-pure) 100%),
+			radial-gradient(3px at 15% 63%, transparent 93%, var(--palette-black-pure) 100%),
+			radial-gradient(4px at 5% 67%, transparent 91%, var(--palette-black-pure) 100%),
+			linear-gradient(var(--palette-black-pure) 0 0);
+		mask-image:
+			radial-gradient(5px at 92% 65%, transparent 92%, var(--palette-black-pure) 100%),
+			radial-gradient(3px at 78% 63%, transparent 93%, var(--palette-black-pure) 100%),
+			radial-gradient(4px at 62% 67%, transparent 91%, var(--palette-black-pure) 100%),
+			radial-gradient(3px at 45% 64%, transparent 94%, var(--palette-black-pure) 100%),
+			radial-gradient(5px at 30% 66%, transparent 92%, var(--palette-black-pure) 100%),
+			radial-gradient(3px at 15% 63%, transparent 93%, var(--palette-black-pure) 100%),
+			radial-gradient(4px at 5% 67%, transparent 91%, var(--palette-black-pure) 100%),
+			linear-gradient(var(--palette-black-pure) 0 0);
 	}
 
 	.tags {
 		display: flex;
 		align-items: center;
-		gap: var(--spacing-sm);
+		gap: 0.2rem;
 		flex-wrap: nowrap;
 		flex-shrink: 0;
+	}
+
+	.tags :global(.label) {
+		padding: 0 6px;
+		border-radius: var(--radius-md);
+		font-size: 0.55rem;
+		line-height: 1;
 	}
 
 	@media (max-width: 768px) {
@@ -115,20 +153,20 @@
 
 		.portfolio-header {
 			padding-right: 0;
-			gap: var(--spacing-sm);
+			gap: 0.25rem;
 			align-items: flex-start;
 			flex-direction: column;
 		}
 
 		.portfolio-header h2 {
 			font-size: 1rem;
-			line-height: 1em;
+			line-height: 1.2em;
 			margin: 0;
 			min-width: 0;
 		}
 
 		.tags {
-			gap: 0.25rem;
+			gap: 0.15rem;
 			flex-wrap: wrap;
 			flex-shrink: 1;
 		}

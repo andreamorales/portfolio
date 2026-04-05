@@ -44,3 +44,4 @@ lerna-debug.log*
 # Local files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+private/*.plain.json

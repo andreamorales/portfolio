@@ -1,263 +1,197 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
-	import { Mail, Linkedin, Github } from 'lucide-svelte';
+	import type { PortfolioItem } from '$lib/data/portfolio-items.js';
+	import type { SecurePortfolioPayloadData } from '$lib/utils/secureCaseStudy';
+	import HomeLandingTerminal from '$lib/components/HomeLandingTerminal.svelte';
 
-	export let colibri: string;
-	export let consensysLogo: string;
-	export let mongodbLogo: string;
-	export let robloxLogo: string;
-	export let pantoLogo: string;
-	export let onCopyEmail: () => void;
-	export let onOpenLinkedIn: () => void;
-	export let onOpenResume: () => void;
-	export let onOpenGithub: () => void;
+	export let portfolioItems: PortfolioItem[] = [];
+	export let onOpenPortfolio: (
+		index: number,
+		unlocked?: boolean,
+		unlockedData?: SecurePortfolioPayloadData
+	) => void = () => {};
+	export let onCopyEmail: () => void = () => {};
+	export let onGoHome: () => void = () => {};
+	export let introTypewriterActive = false;
+	export let introTerminalVisible = true;
 </script>
 
-<div class="header flex-column-left gap-large">
-	<div class="title-container" in:fade={{ duration: 600, delay: 200 }}>
-		<h1 class="title">Andy<br />Morales</h1>
-		<div class="colibri-container">
-			<img src={colibri} alt="Colibri" class="colibri-image" />
-		</div>
-	</div>
-	<div class="flex-column-left gap-small" in:fade={{ duration: 600, delay: 400 }}>
-		<div class="description">I lead the design of creative and technical products.</div>
-		<div class="company-logos">
-			<span in:fade={{ duration: 400, delay: 600 }}>
-				{@html consensysLogo}
-			</span>
-			<span in:fade={{ duration: 400, delay: 750 }}>
-				{@html mongodbLogo}
-			</span>
-			<span in:fade={{ duration: 400, delay: 900 }}>
-				{@html robloxLogo}
-			</span>
-			<span in:fade={{ duration: 400, delay: 1050 }}>
-				{@html pantoLogo}
-			</span>
-		</div>
+<div class="hero-intro-stack">
+	<!-- svelte-ignore a11y-click-events-have-key-events -->
+	<div
+		class="description"
+		class:description--rainbow-ready={!introTypewriterActive}
+		on:click={onGoHome}
+		role="button"
+		tabindex="0"
+	>
+		<span class="description-layers">
+			<span class="description-base" class:description-base--typing={introTypewriterActive}
+				>I design tools.</span
+			>
+			<span class="description-shimmer" aria-hidden="true">I design tools.</span>
+			{#if introTypewriterActive}
+				<span class="description-typewriter-caret" aria-hidden="true"></span>
+			{/if}
+		</span>
 	</div>
 
-	<div class="cta" in:fade={{ duration: 600, delay: 1200 }}>
-		<button class="button-secondary" on:click={onCopyEmail}>
-			<Mail size={18} class="icon" />
-			<span>Email</span>
-		</button>
-		<button class="button-secondary" on:click={onOpenLinkedIn}>
-			<Linkedin size={18} class="icon" />
-			<span>LinkedIn</span>
-		</button>
-		<button class="button-secondary" on:click={onOpenResume}>
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				width="18"
-				height="18"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-			>
-				<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-				<polyline points="14 2 14 8 20 8"></polyline>
-				<line x1="16" y1="13" x2="8" y2="13"></line>
-				<line x1="16" y1="17" x2="8" y2="17"></line>
-				<polyline points="10 9 9 9 8 9"></polyline>
-			</svg>
-			<span>CV</span>
-		</button>
-		<button class="button-secondary" on:click={onOpenGithub}>
-			<Github size={18} class="icon" />
-			<span>GitHub</span>
-		</button>
-	</div>
+	<HomeLandingTerminal
+		{portfolioItems}
+		{onOpenPortfolio}
+		{onCopyEmail}
+		introVisible={introTerminalVisible}
+	/>
 </div>
 
 <style>
-	.title-container {
-		position: relative;
-		display: inline-block;
-	}
-
-	.colibri-container {
-		position: absolute;
-		top: 0;
-		right: 0;
-		width: 236px;
-		height: auto;
-		transform: translate(29%, -4.5%) scale(0.86);
-		transform-origin: top right;
-		z-index: 3;
-		pointer-events: none;
-	}
-
-	.colibri-image {
-		width: 100%;
-		height: auto;
-		display: block;
-	}
-
-	.title {
-		font-family: var(--font-refract);
-		font-size: 112px;
-		font-style: normal;
-		font-weight: 400;
-		line-height: 90px;
-		letter-spacing: -1.12px;
-		font-feature-settings:
-			'dlig' on,
-			'ss01' on;
-		position: relative;
-		z-index: 2;
+	.hero-intro-stack {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.35rem;
+		width: fit-content;
+		max-width: 100%;
 	}
 
 	.description {
-		font-family: var(--font-recursive);
-		font-size: 24px;
+		font-family: 'Instrument Serif', serif;
+		font-size: clamp(3.52rem, 5.6vw, 5.44rem);
 		font-style: normal;
-		font-weight: 370;
-		line-height: 24px;
-		letter-spacing: 0.28px;
-		font-variation-settings:
-			'CASL' 0,
-			'wght' 370;
+		font-weight: 400;
+		/* Bit looser than 1.08 so “g” isn’t clipped; avoid extra padding (adds gap to terminal) */
+		line-height: 1.12;
+		letter-spacing: -0.02em;
 		position: relative;
 		z-index: 2;
-		color: var(--text-color);
+		width: 100%;
+		white-space: nowrap;
+		overflow: visible;
+		cursor: default;
+		box-decoration-break: clone;
+		-webkit-box-decoration-break: clone;
 	}
 
-	.company-logos {
-		display: inline-flex;
-		align-items: center;
-		gap: 1rem;
-	}
-
-	.company-logos span {
-		display: flex;
-		align-items: center;
-	}
-
-	.company-logos :global(svg) {
-		height: 24px;
-		width: auto;
-		color: var(--text-color);
-		fill: currentColor;
-	}
-
-	.company-logos :global(svg:first-child) {
-		height: 22px;
-	}
-
-	.company-logos :global(svg:nth-child(2)) {
-		height: 25.2px;
-	}
-
-	.company-logos :global(svg:nth-child(3)) {
-		height: 15px;
-	}
-
-	.company-logos :global(svg:last-child) {
-		height: 20px;
-	}
-
-	.cta {
+	.description-layers {
 		position: relative;
-		z-index: 5;
-		display: flex;
-		gap: 1rem;
-		justify-content: center;
+		display: inline-block;
+		max-width: 100%;
+		overflow: visible;
 	}
 
-	.button-secondary {
+	.description-base {
+		display: block;
+		color: var(--text-color);
+		transition: opacity 0.45s cubic-bezier(0.33, 1, 0.68, 1);
+	}
+
+	.description-base--typing {
+		display: inline-block;
+		white-space: nowrap;
+		width: max-content;
+		overflow: hidden;
+		clip-path: inset(0 100% 0 0);
+		animation: hero-typewriter 0.95s steps(15, end) forwards;
+	}
+
+	/* Separate from clipped text: border on the text stays outside the clip and only appears at the end. */
+	.description-typewriter-caret {
+		position: absolute;
+		left: 0;
+		top: 0.12em;
+		width: 1px;
+		height: 0.78em;
+		background: currentColor;
+		pointer-events: none;
+		animation: hero-caret-move 0.95s steps(15, end) forwards;
+	}
+
+	.description-shimmer {
+		display: block;
+		position: absolute;
+		left: 0;
+		top: 0;
+		white-space: nowrap;
+		color: transparent;
+		-webkit-text-fill-color: transparent;
+		background-image: var(--palette-rainbow-gradient-h);
+		background-size: 460% 130%;
+		background-position: 0% 42%;
+		background-clip: text;
+		-webkit-background-clip: text;
+		opacity: 0;
+		transition: opacity 0.45s cubic-bezier(0.33, 1, 0.68, 1);
+		pointer-events: none;
+		animation: description-rainbow 8s linear infinite;
+		overflow: visible;
+	}
+
+	.description:hover,
+	.description:focus-visible {
 		cursor: pointer;
-		position: relative;
-		z-index: 5;
-		padding: 0.75rem 1.5rem;
-		border: 2px solid var(--text-color);
-		border-radius: 4px;
-		font-weight: 600;
-		font-size: 1rem;
-		transition: all 0.3s ease;
-		pointer-events: auto;
-		font-family: var(--font-recursive);
-		font-variation-settings:
-			'CASL' 0,
-			'wght' 600;
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		background-color: var(--bg-color);
-		color: var(--text-color);
 	}
 
-	.button-secondary:hover {
-		background-color: var(--text-color);
-		color: var(--bg-color);
+	.description--rainbow-ready:hover .description-base,
+	.description--rainbow-ready:focus-visible .description-base {
+		opacity: 0;
+	}
+
+	.description--rainbow-ready:hover .description-shimmer,
+	.description--rainbow-ready:focus-visible .description-shimmer {
+		opacity: 1;
+	}
+
+	@keyframes description-rainbow {
+		0% {
+			background-position: 0% 45%;
+		}
+		100% {
+			background-position: 520% 45%;
+		}
+	}
+
+	@keyframes hero-typewriter {
+		from {
+			clip-path: inset(0 100% 0 0);
+		}
+		to {
+			clip-path: inset(0 0 0 0);
+		}
+	}
+
+	@keyframes hero-caret-move {
+		from {
+			left: 0;
+			transform: translateX(0);
+		}
+		to {
+			left: 100%;
+			transform: translateX(-100%);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.description-shimmer {
+			animation: none;
+		}
+
+		.description--rainbow-ready:hover .description-shimmer,
+		.description--rainbow-ready:focus-visible .description-shimmer {
+			background-position: 0% 45%;
+		}
+
+		.description-typewriter-caret {
+			animation: none;
+			left: 100%;
+			transform: translateX(-100%);
+		}
 	}
 
 	@media (max-width: 768px) {
-		.title {
-			font-size: 72px;
-			line-height: 60px;
-			letter-spacing: -0.72px;
-		}
-
-		.colibri-container {
-			transform: translate(17.5%, 4%) scale(0.5);
-		}
-
 		.description {
-			font-size: 18px;
-			line-height: 20px;
-			letter-spacing: 0.22px;
-		}
-
-		.company-logos {
-			display: flex;
-			align-items: center;
-			gap: 0.75rem;
-			width: 100%;
-		}
-
-		.company-logos :global(svg) {
-			height: 16px;
-		}
-
-		.company-logos :global(svg:first-child) {
-			height: 15px;
-		}
-
-		.company-logos :global(svg:nth-child(2)) {
-			height: 17px;
-		}
-
-		.company-logos :global(svg:nth-child(3)) {
-			height: 12px;
-		}
-
-		.company-logos :global(svg:last-child) {
-			height: 14px;
-		}
-
-		.cta {
-			width: 100%;
-			flex-direction: row;
-			gap: 0.5rem;
-		}
-
-		.button-secondary {
-			flex: 1;
-			padding: 0.6rem 0.5rem;
-			font-size: 0.875rem;
-			justify-content: center;
-			gap: 0.25rem;
-		}
-	}
-
-	@media (max-width: 548px) {
-		.colibri-container {
-			transform: translate(17.5%, 4%) scale(0.5);
+			font-size: clamp(2.32rem, 8vw, 3.6rem);
+			line-height: 1.12;
+			letter-spacing: -0.02em;
 		}
 	}
 </style>
