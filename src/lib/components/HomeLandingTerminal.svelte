@@ -78,7 +78,9 @@
 		lastFeedback?.kind === 'portfolio' &&
 		(lastEntry?.typingComplete ?? false) &&
 		commandLine.trim().length === 0;
-	$: if (introVisible && !introSequenceStarted) {
+	$: if (introVisible && !introSequenceStarted) startIntroSequence();
+
+	function startIntroSequence() {
 		introSequenceStarted = true;
 		introBgVisible = true;
 		introTypingVisible = false;
@@ -124,7 +126,11 @@
 	function portfolioListPlainText(items: PortfolioItem[], activeIndex: number): string {
 		const entries = getPortfolioDisplayEntries(items);
 		const productCount = entries.filter((entry) => !isSideProject(entry.item)).length;
-		const lines: string[] = ['↑↓ = select | ENTER/SPACE = open | ESC = cancel', '', 'Product Design'];
+		const lines: string[] = [
+			'↑↓ = select | ENTER/SPACE = open | ESC = cancel',
+			'',
+			'Product Design'
+		];
 		entries.forEach((entry, i) => {
 			if (i === productCount) {
 				lines.push('', 'Side Projects');
@@ -132,9 +138,7 @@
 			const labels = entry.item.tags?.length ? ` (${entry.item.tags.join(' · ')})` : '';
 			lines.push(`${i === activeIndex ? '●' : '•'} ${entry.item.title}${labels}`);
 		});
-		return (
-			lines.join('\n') + '\n\n'
-		);
+		return lines.join('\n') + '\n\n';
 	}
 
 	function portfolioListStyledHtml(items: PortfolioItem[], activeIndex: number): string {
@@ -159,15 +163,13 @@
 				`<span class="cli-t-portfolio-row" data-portfolio-index="${i}"><span class="${bulletClass}" data-portfolio-index="${i}">${bullet}</span> <span class="${itemClass}" data-portfolio-index="${i}">${esc(entry.item.title)}</span>${labels}</span>`
 			);
 		});
-		return (
-			rows.join('\n') + '\n\n'
-		);
+		return rows.join('\n') + '\n\n';
 	}
 
 	/** Text nodes have no closest(); resolve to parent element first. */
 	function getPointerTargetElement(e: MouseEvent): Element | null {
 		const raw = e.target;
-		return raw instanceof Element ? raw : (raw as Node | null)?.parentElement ?? null;
+		return raw instanceof Element ? raw : ((raw as Node | null)?.parentElement ?? null);
 	}
 
 	function getPortfolioIndexFromPointerEvent(e: MouseEvent): number | null {
@@ -201,8 +203,7 @@
 			const rect = row.getBoundingClientRect();
 			const parsed = Number.parseInt(row.dataset.portfolioIndex ?? '', 10);
 			if (Number.isNaN(parsed)) continue;
-			const distance =
-				y < rect.top ? rect.top - y : y > rect.bottom ? y - rect.bottom : 0;
+			const distance = y < rect.top ? rect.top - y : y > rect.bottom ? y - rect.bottom : 0;
 			if (distance < bestDistance) {
 				bestDistance = distance;
 				bestIndex = parsed;
@@ -500,7 +501,10 @@
 				pendingLockedPortfolioIndex = null;
 				return;
 			}
-			const decrypted = await decryptSecurePortfolioPayload(piece.encryptedPayload, passwordAttempt);
+			const decrypted = await decryptSecurePortfolioPayload(
+				piece.encryptedPayload,
+				passwordAttempt
+			);
 			if (!decrypted) {
 				pushEntry('password', {
 					kind: 'error',
@@ -650,8 +654,15 @@
 		for (const timer of introTimers) clearTimeout(timer);
 	});
 
-	$: if (lastFeedback?.kind === 'portfolio' && portfolioDisplayEntries.length && portfolioInteractive) {
-		portfolioPickIndex = Math.max(0, Math.min(portfolioPickIndex, portfolioDisplayEntries.length - 1));
+	$: if (
+		lastFeedback?.kind === 'portfolio' &&
+		portfolioDisplayEntries.length &&
+		portfolioInteractive
+	) {
+		portfolioPickIndex = Math.max(
+			0,
+			Math.min(portfolioPickIndex, portfolioDisplayEntries.length - 1)
+		);
 	}
 
 	afterUpdate(() => {
@@ -685,9 +696,7 @@
 			}
 		}
 
-		prevLastEntrySnapshot = last
-			? { id: last.id, typingComplete: last.typingComplete }
-			: null;
+		prevLastEntrySnapshot = last ? { id: last.id, typingComplete: last.typingComplete } : null;
 	});
 </script>
 

@@ -51,7 +51,11 @@ function b64ToBytes(base64: string): Uint8Array {
 	return bytes;
 }
 
-async function deriveAesKey(password: string, salt: Uint8Array, iterations: number): Promise<CryptoKey> {
+async function deriveAesKey(
+	password: string,
+	salt: Uint8Array,
+	iterations: number
+): Promise<CryptoKey> {
 	const encoder = new TextEncoder();
 	const keyMaterial = await crypto.subtle.importKey(
 		'raw',

@@ -50,8 +50,7 @@ const initialPortfolioItems = [
 		slug: 'most-recent1',
 		tags: ['UX/UI', 'FRONTEND'],
 		expanded: false,
-		description:
-			'Password-protected case study for my most recent product work.',
+		description: 'Password-protected case study for my most recent product work.',
 		videoUrl: '',
 		quickNavThumbnail: '/images/portfolio/most-recent/thumbnail.svg',
 		images: [],

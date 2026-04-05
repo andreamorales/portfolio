@@ -117,7 +117,8 @@
 		let cursor = effectiveStaggerBaseDelayMs;
 		const schedule = (): RevealGroup => {
 			const parentDelayMs = cursor;
-			const childStartDelayMs = parentDelayMs + REVEAL_PARENT_DURATION_MS + REVEAL_PARENT_TO_CHILD_GAP_MS;
+			const childStartDelayMs =
+				parentDelayMs + REVEAL_PARENT_DURATION_MS + REVEAL_PARENT_TO_CHILD_GAP_MS;
 			const nextGroupStartMs = parentDelayMs + REVEAL_PARENT_DURATION_MS + REVEAL_GROUP_GAP_MS;
 			cursor = Math.max(nextGroupStartMs, childStartDelayMs);
 			return { parentDelayMs, childStartDelayMs };
@@ -185,11 +186,9 @@
 	class="portfolio-expanded-view flex-column"
 	class:immersive
 	class:portfolio-expanded-view--staggered={staggerReveal}
-	style={
-		staggerReveal
-			? `--reveal-parent-duration: ${REVEAL_PARENT_FADE_DURATION_MS}ms; --reveal-child-duration: ${REVEAL_CHILD_FADE_DURATION_MS}ms;`
-			: undefined
-	}
+	style={staggerReveal
+		? `--reveal-parent-duration: ${REVEAL_PARENT_FADE_DURATION_MS}ms; --reveal-child-duration: ${REVEAL_CHILD_FADE_DURATION_MS}ms;`
+		: undefined}
 >
 	<div class="project-intro reveal-parent" style={revealStyle(introReveal.parentDelayMs)}>
 		<div class="project-title-row reveal-child" style={revealStyle(introReveal.childStartDelayMs)}>
@@ -227,13 +226,17 @@
 				</div>
 				<p
 					class="locked-gate-copy reveal-child"
-					style={revealStyle((lockedReveal ?? introReveal).childStartDelayMs + REVEAL_CHILD_STEP_MS)}
+					style={revealStyle(
+						(lockedReveal ?? introReveal).childStartDelayMs + REVEAL_CHILD_STEP_MS
+					)}
 				>
 					This is my most recent case study. Enter the password to unlock the full piece.
 				</p>
 				<div
 					class="locked-gate-controls reveal-child"
-					style={revealStyle((lockedReveal ?? introReveal).childStartDelayMs + REVEAL_CHILD_STEP_MS * 2)}
+					style={revealStyle(
+						(lockedReveal ?? introReveal).childStartDelayMs + REVEAL_CHILD_STEP_MS * 2
+					)}
 				>
 					<input
 						class="locked-gate-input"
@@ -271,10 +274,7 @@
 			class="project-details-grid reveal-parent"
 			style={revealStyle((detailsReveal ?? introReveal).parentDelayMs)}
 		>
-			<div
-				class="details-row reveal-child"
-				style={childDelayStyle(detailsReveal, 0)}
-			>
+			<div class="details-row reveal-child" style={childDelayStyle(detailsReveal, 0)}>
 				<div class="details-cell">
 					<div class="details-label reveal-child" style={childDelayStyle(detailsReveal, 0)}>
 						Year
@@ -323,10 +323,7 @@
 					</div>
 				</div>
 			</div>
-			<div
-				class="details-row metrics-row reveal-child"
-				style={childDelayStyle(detailsReveal, 3)}
-			>
+			<div class="details-row metrics-row reveal-child" style={childDelayStyle(detailsReveal, 3)}>
 				{#each metrics.slice(0, 2) as metric, index (`${metric}-${index}`)}
 					<div class="details-cell">
 						<div
@@ -347,7 +344,10 @@
 					<div class="details-label reveal-child" style={childDelayStyle(detailsReveal, 5)}>
 						Team
 					</div>
-					<div class="details-value team-list reveal-child" style={childDelayStyle(detailsReveal, 5)}>
+					<div
+						class="details-value team-list reveal-child"
+						style={childDelayStyle(detailsReveal, 5)}
+					>
 						{#if team && team.length > 0}
 							{#each team as member (`${member.role}-${member.name}`)}
 								<div class="team-member">
@@ -366,8 +366,14 @@
 
 		<!-- Featured hero image -->
 		{#if featuredImage}
-			<div class="hero-image-container reveal-parent" style={revealStyle((heroReveal ?? introReveal).parentDelayMs)}>
-				<div class="image-frame reveal-child" style={revealStyle((heroReveal ?? introReveal).childStartDelayMs)}>
+			<div
+				class="hero-image-container reveal-parent"
+				style={revealStyle((heroReveal ?? introReveal).parentDelayMs)}
+			>
+				<div
+					class="image-frame reveal-child"
+					style={revealStyle((heroReveal ?? introReveal).childStartDelayMs)}
+				>
 					<img
 						src={featuredImage}
 						alt={projectTitle}
@@ -379,7 +385,10 @@
 		{/if}
 
 		<!-- Content sections -->
-		<div class="content-container flex-column reveal-parent" style={revealStyle((contentReveal ?? introReveal).parentDelayMs)}>
+		<div
+			class="content-container flex-column reveal-parent"
+			style={revealStyle((contentReveal ?? introReveal).parentDelayMs)}
+		>
 			<div class="content-view width-100">
 				<!-- Content blocks (text and images) -->
 				<div class="content-blocks">
@@ -387,14 +396,20 @@
 						{#if block.type === 'text'}
 							<div
 								class="text-block reveal-child"
-								style={revealStyle((contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS)}
+								style={revealStyle(
+									(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
+								)}
 							>
 								<p>{block.value}</p>
 							</div>
 						{:else if block.type === 'image'}
 							<div
-								class="image-block {block.layout === 'side-by-side' ? 'side-by-side' : ''} reveal-child"
-								style={revealStyle((contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS)}
+								class="image-block {block.layout === 'side-by-side'
+									? 'side-by-side'
+									: ''} reveal-child"
+								style={revealStyle(
+									(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
+								)}
 							>
 								{#if block.layout === 'side-by-side'}
 									<div class="image-pair">
@@ -439,24 +454,24 @@
 
 				<!-- Image gallery - only show unused images -->
 				{#if unusedGalleryImages.length > 0}
-						<div class="image-gallery">
-							{#each unusedGalleryImages as image, index (image.src)}
-								<div
-									class="gallery-item reveal-child"
-									style={revealStyle(
-										(contentReveal ?? introReveal).childStartDelayMs +
-											(content.length + index) * REVEAL_CHILD_STEP_MS
-									)}
-								>
-									<div class="image-frame">
-										<img src={image.src} alt={image.alt} />
-									</div>
-									{#if image.caption}
-										<p class="image-caption">{image.caption}</p>
-									{/if}
+					<div class="image-gallery">
+						{#each unusedGalleryImages as image, index (image.src)}
+							<div
+								class="gallery-item reveal-child"
+								style={revealStyle(
+									(contentReveal ?? introReveal).childStartDelayMs +
+										(content.length + index) * REVEAL_CHILD_STEP_MS
+								)}
+							>
+								<div class="image-frame">
+									<img src={image.src} alt={image.alt} />
 								</div>
-							{/each}
-						</div>
+								{#if image.caption}
+									<p class="image-caption">{image.caption}</p>
+								{/if}
+							</div>
+						{/each}
+					</div>
 				{/if}
 			</div>
 		</div>

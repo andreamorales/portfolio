@@ -431,7 +431,7 @@
 		>
 			<div
 				class="viewport-frame-line viewport-frame-line--bottom"
-					class:viewport-frame-line--intro-visible={introLinesVisible}
+				class:viewport-frame-line--intro-visible={introLinesVisible}
 				bind:this={frameBottomLineEl}
 				on:transitionend={onFrameLineTransitionEnd}
 			></div>
@@ -444,7 +444,7 @@
 		>
 			<div
 				class="viewport-frame-line viewport-frame-line--right"
-					class:viewport-frame-line--intro-visible={introLinesVisible}
+				class:viewport-frame-line--intro-visible={introLinesVisible}
 				bind:this={frameRightLineEl}
 				on:transitionend={onFrameLineTransitionEnd}
 			></div>
@@ -473,8 +473,8 @@
 							portfolioItems={sortedPortfolioItems}
 							onOpenPortfolio={openPortfolioPiece}
 							onCopyEmail={copyEmailToClipboard}
-							introTypewriterActive={introTypewriterActive}
-							introTerminalVisible={introTerminalVisible}
+							{introTypewriterActive}
+							{introTerminalVisible}
 							onGoHome={() => {
 								activeDetailItem = null;
 								updatePieceQuery(null);
