@@ -340,6 +340,7 @@
 <Toast message={toastMessage} bind:visible={showToast} />
 <div class="corner-controls" class:corner-controls--cluster={!!activeDetailItem && !immersiveMode}>
 	<ThemeToggle />
+	<div class="corner-controls-spacer" aria-hidden="true"></div>
 	<FloatingContactDock visible={!immersiveMode} onCopyEmail={copyEmailToClipboard} />
 </div>
 
@@ -501,15 +502,24 @@
 		bottom: max(calc(2rem + 1px + var(--spacing-sm)), env(safe-area-inset-bottom));
 		display: flex;
 		align-items: flex-end;
-		justify-content: space-between;
+		justify-content: flex-start;
 		z-index: 10050;
 		pointer-events: none;
 	}
 
+	.corner-controls-spacer {
+		flex: 1 1 auto;
+		min-width: 0;
+		max-width: 100vw;
+		transition: max-width 1600ms cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
 	.corner-controls--cluster {
-		right: auto;
-		justify-content: flex-start;
-		gap: 0.7rem;
+		gap: 0;
+	}
+
+	.corner-controls--cluster .corner-controls-spacer {
+		max-width: var(--spacing-xs);
 	}
 
 	.corner-controls :global(.theme-toggle),
@@ -688,7 +698,9 @@
 			6px 100%;
 		background-repeat: no-repeat;
 		filter: blur(12px);
-		opacity: var(--glow-portfolio-opacity, 0.9);
+		opacity: 0;
+		animation: detail-glow-in 560ms ease forwards;
+		animation-delay: 1520ms;
 	}
 
 	@media (prefers-reduced-motion: reduce) {
@@ -755,8 +767,10 @@
 
 	.detail-panel-grid--enter {
 		opacity: 0;
-		animation: detail-content-fade-in 420ms ease forwards;
-		animation-delay: 1650ms;
+		transform: scaleY(0.8);
+		transform-origin: top center;
+		animation: detail-content-fill-in 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+		animation-delay: 1420ms;
 	}
 
 	.detail-panel-piece {
@@ -972,6 +986,26 @@
 		}
 		to {
 			opacity: 1;
+		}
+	}
+
+	@keyframes detail-content-fill-in {
+		0% {
+			opacity: 0;
+			transform: scaleY(0.8);
+		}
+		100% {
+			opacity: 1;
+			transform: scaleY(1);
+		}
+	}
+
+	@keyframes detail-glow-in {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: var(--glow-portfolio-opacity, 0.9);
 		}
 	}
 

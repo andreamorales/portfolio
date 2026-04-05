@@ -135,7 +135,7 @@
 	.floating-contact-dock {
 		display: inline-flex;
 		align-items: flex-end;
-		gap: 0.7rem;
+		gap: var(--spacing-sm);
 		pointer-events: auto;
 		opacity: 1;
 		transition: opacity 0.18s ease;
@@ -181,7 +181,7 @@
 
 	@media (max-width: 768px) {
 		.floating-contact-dock {
-			gap: 0.55rem;
+			gap: var(--spacing-sm);
 		}
 	}
 </style>
