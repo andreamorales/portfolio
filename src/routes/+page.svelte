@@ -55,6 +55,10 @@
 	let toastMessage = '';
 	let activeDetailItem: PortfolioItem | null = null;
 	let detailPieceEl: HTMLDivElement | null = null;
+	let introTypewriterActive = true;
+	let introLinesVisible = false;
+	let introControlsVisible = false;
+	let introTerminalVisible = false;
 
 	async function copyEmailToClipboard() {
 		const email = 'andreamoralescoto@gmail.com';
@@ -257,6 +261,23 @@
 	onMount(() => {
 		mounted = true;
 		openPieceFromUrl();
+		const introTimers: ReturnType<typeof setTimeout>[] = [];
+		introTypewriterActive = true;
+		introLinesVisible = false;
+		introControlsVisible = false;
+		introTerminalVisible = false;
+		introTimers.push(
+			setTimeout(() => {
+				introTerminalVisible = true;
+				introTypewriterActive = false;
+			}, 1050),
+			setTimeout(() => {
+				introLinesVisible = true;
+			}, 1650),
+			setTimeout(() => {
+				introControlsVisible = true;
+			}, 2300)
+		);
 
 		const handleScroll = () => {
 			if (isActivatingImmersive) return;
@@ -318,6 +339,7 @@
 		document.body.classList.add('js-enabled');
 
 		return () => {
+			for (const timer of introTimers) clearTimeout(timer);
 			window.removeEventListener('scroll', handleScroll);
 			document.removeEventListener('wheel', handleWheel, { capture: true });
 			document.removeEventListener('click', handleDocumentClick);
@@ -338,7 +360,11 @@
 </svelte:head>
 
 <Toast message={toastMessage} bind:visible={showToast} />
-<div class="corner-controls" class:corner-controls--cluster={!!activeDetailItem && !immersiveMode}>
+<div
+	class="corner-controls"
+	class:corner-controls--cluster={!!activeDetailItem && !immersiveMode}
+	class:corner-controls--visible={introControlsVisible}
+>
 	<ThemeToggle />
 	<div class="corner-controls-spacer" aria-hidden="true"></div>
 	<FloatingContactDock visible={!immersiveMode} onCopyEmail={copyEmailToClipboard} />
@@ -354,6 +380,7 @@
 		>
 			<div
 				class="viewport-frame-line viewport-frame-line--bottom"
+					class:viewport-frame-line--intro-visible={introLinesVisible}
 				bind:this={frameBottomLineEl}
 				on:transitionend={onFrameLineTransitionEnd}
 			></div>
@@ -366,6 +393,7 @@
 		>
 			<div
 				class="viewport-frame-line viewport-frame-line--right"
+					class:viewport-frame-line--intro-visible={introLinesVisible}
 				bind:this={frameRightLineEl}
 				on:transitionend={onFrameLineTransitionEnd}
 			></div>
@@ -394,6 +422,8 @@
 							portfolioItems={sortedPortfolioItems}
 							onOpenPortfolio={openPortfolioPiece}
 							onCopyEmail={copyEmailToClipboard}
+							introTypewriterActive={introTypewriterActive}
+							introTerminalVisible={introTerminalVisible}
 							onGoHome={() => {
 								activeDetailItem = null;
 								updatePieceQuery(null);
@@ -505,6 +535,12 @@
 		justify-content: flex-start;
 		z-index: 10050;
 		pointer-events: none;
+		opacity: 0;
+		transition: opacity 420ms ease;
+	}
+
+	.corner-controls--visible {
+		opacity: 1;
 	}
 
 	.corner-controls-spacer {
@@ -588,6 +624,11 @@
 		background-image: var(--palette-rainbow-gradient-h);
 		background-size: 240% 100%;
 		background-position: 0% 50%;
+		transform-origin: left center;
+		transform: scaleX(0);
+		transition:
+			transform 900ms cubic-bezier(0.16, 1, 0.3, 1),
+			background-position 1.1s cubic-bezier(0.22, 1, 0.36, 1);
 	}
 
 	.viewport-frame-line--right {
@@ -597,6 +638,19 @@
 		background-image: var(--palette-rainbow-gradient-v);
 		background-size: 100% 240%;
 		background-position: 50% 0%;
+		transform-origin: center top;
+		transform: scaleY(0);
+		transition:
+			transform 900ms cubic-bezier(0.16, 1, 0.3, 1),
+			background-position 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+	}
+
+	.viewport-frame-line--bottom.viewport-frame-line--intro-visible {
+		transform: scaleX(1);
+	}
+
+	.viewport-frame-line--right.viewport-frame-line--intro-visible {
+		transform: scaleY(1);
 	}
 
 	.viewport-frame-hit--bottom:hover .viewport-frame-line--bottom {

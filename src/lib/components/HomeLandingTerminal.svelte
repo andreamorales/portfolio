@@ -13,6 +13,7 @@
 	export let portfolioItems: PortfolioItem[] = [];
 	export let onOpenPortfolio: (index: number) => void = () => {};
 	export let onCopyEmail: () => void = () => {};
+	export let introVisible = true;
 
 	type Feedback =
 		| { kind: 'help' }
@@ -44,6 +45,13 @@
 	let typingTimer: ReturnType<typeof setInterval> | null = null;
 	let bottomPromptVisible = false;
 	let showStartCaret = false;
+	let introSequenceStarted = false;
+	let introBgVisible = false;
+	let introTypingVisible = false;
+	let introTypingDone = false;
+	let introReturnVisible = false;
+	let introGlowVisible = false;
+	const introTimers: ReturnType<typeof setTimeout>[] = [];
 
 	$: lastEntry = history.length ? history[history.length - 1] : null;
 	$: lastFeedback = lastEntry?.feedback ?? null;
@@ -51,6 +59,26 @@
 		lastFeedback?.kind === 'portfolio' &&
 		(lastEntry?.typingComplete ?? false) &&
 		commandLine.trim().length === 0;
+	$: if (introVisible && !introSequenceStarted) {
+		introSequenceStarted = true;
+		introBgVisible = true;
+		introTypingVisible = false;
+		introTypingDone = false;
+		introReturnVisible = false;
+		introGlowVisible = false;
+		introTimers.push(
+			setTimeout(() => {
+				introTypingVisible = true;
+			}, 260),
+			setTimeout(() => {
+				introTypingDone = true;
+				introReturnVisible = true;
+			}, 1240),
+			setTimeout(() => {
+				introGlowVisible = true;
+			}, 1660)
+		);
+	}
 
 	function esc(s: string): string {
 		return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -179,6 +207,9 @@
 			result += ch;
 			visible++;
 		}
+
+		/* Inline at the slice point so the caret follows the last typed character (incl. multi-line --about). */
+		result += '<span class="cli-type-cursor" aria-hidden="true"></span>';
 
 		for (let j = openTags.length - 1; j >= 0; j--) {
 			result += `</${openTags[j]}>`;
@@ -477,6 +508,7 @@
 	onDestroy(() => {
 		window.removeEventListener('keydown', onGlobalKeydown);
 		clearTypingTimer();
+		for (const timer of introTimers) clearTimeout(timer);
 	});
 
 	$: if (lastFeedback?.kind === 'portfolio' && portfolioItems.length && portfolioInteractive) {
@@ -506,7 +538,11 @@
 	});
 </script>
 
-<div class="cli-block" in:fade={{ duration: 600, delay: 380 }}>
+<div
+	class="cli-block"
+	class:cli-block--intro-bg={introBgVisible}
+	class:cli-block--intro-glow={introGlowVisible}
+>
 	<!-- svelte-ignore a11y-click-events-have-key-events -->
 	<!-- svelte-ignore a11y-mouse-events-have-key-events -->
 	<!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -551,6 +587,9 @@
 									bind:this={cliInputEl}
 									type="text"
 									class="cli-input"
+									class:cli-input--intro-hidden={showReturnHint &&
+										introSequenceStarted &&
+										!introTypingDone}
 									class:cli-input--at-start={showStartCaret}
 									bind:value={commandLine}
 									autocomplete="off"
@@ -564,13 +603,19 @@
 									on:select={() => requestAnimationFrame(syncStartCaret)}
 									on:keydown={onInputKeydown}
 								/>
+								{#if showReturnHint && introTypingVisible && !introTypingDone}
+									<span class="cli-intro-typed" aria-hidden="true">--help</span>
+								{/if}
 								{#if showStartCaret}
 									<span class="cli-start-caret" aria-hidden="true"></span>
 								{/if}
 							</div>
 						</div>
 					</div>
-					<div class="cli-return-hint">
+					<div
+						class="cli-return-hint"
+						class:cli-return-hint--visible={!introSequenceStarted || introReturnVisible}
+					>
 						<span class="cli-return-label">Return</span>
 						<CornerDownLeft size={11} strokeWidth={1.5} aria-hidden="true" />
 					</div>
@@ -639,6 +684,14 @@
 		position: relative;
 		z-index: 0;
 		isolation: isolate;
+		opacity: 0;
+		transition: opacity 760ms ease;
+		pointer-events: none;
+	}
+
+	.cli-block--intro-bg {
+		opacity: 1;
+		pointer-events: auto;
 	}
 
 	/* Rainbow glow from the edges outward (no center hotspot) */
@@ -664,6 +717,11 @@
 			5px 100%;
 		background-repeat: no-repeat;
 		filter: blur(10px);
+		opacity: 0;
+		transition: opacity 520ms ease;
+	}
+
+	.cli-block--intro-glow::before {
 		opacity: var(--glow-cli-opacity, 0.9);
 	}
 
@@ -774,6 +832,24 @@
 		color: var(--cli-terminal-placeholder-fg);
 	}
 
+	.cli-input--intro-hidden {
+		color: transparent;
+		caret-color: transparent;
+	}
+
+	.cli-intro-typed {
+		position: absolute;
+		left: 0.18em;
+		top: 50%;
+		transform: translateY(-53%);
+		color: var(--bg-color);
+		white-space: nowrap;
+		overflow: hidden;
+		width: 0;
+		pointer-events: none;
+		animation: cli-intro-type 920ms steps(6, end) forwards;
+	}
+
 	.cli-input:read-only {
 		cursor: default;
 	}
@@ -806,6 +882,15 @@
 		}
 	}
 
+	@keyframes cli-intro-type {
+		from {
+			width: 0;
+		}
+		to {
+			width: 6ch;
+		}
+	}
+
 	.cli-return-hint {
 		display: inline-flex;
 		align-items: center;
@@ -818,6 +903,12 @@
 		text-transform: uppercase;
 		color: var(--cli-terminal-subtle-fg);
 		white-space: nowrap;
+		opacity: 0;
+		transition: opacity 320ms ease;
+	}
+
+	.cli-return-hint--visible {
+		opacity: 1;
 	}
 
 	.cli-return-hint :global(svg) {

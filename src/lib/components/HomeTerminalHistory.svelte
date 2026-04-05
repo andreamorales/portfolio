@@ -30,7 +30,7 @@
 							<pre class="cli-typewriter">{@html sliceStyledHtml(
 									entry.styledHtml,
 									entry.typingProgress
-								)}<span class="cli-type-cursor" aria-hidden="true"></span></pre>
+								)}</pre>
 						{:else}
 							<pre class="cli-typewriter cli-typewriter--done">{@html entry.styledHtml}</pre>
 						{/if}
@@ -44,7 +44,7 @@
 							<pre class="cli-typewriter">{@html sliceStyledHtml(
 									entry.styledHtml,
 									entry.typingProgress
-								)}<span class="cli-type-cursor" aria-hidden="true"></span></pre>
+								)}</pre>
 						{:else}
 							<pre class="cli-typewriter cli-typewriter--done">{@html entry.feedback.kind ===
 									'portfolio' && entry.id === lastEntry?.id
@@ -281,7 +281,8 @@
 		word-break: break-word;
 	}
 
-	.cli-type-cursor {
+	/* :global — cursor HTML is injected via sliceStyledHtml so it sits in-flow at the slice point */
+	.cli-typewriter :global(.cli-type-cursor) {
 		display: inline-block;
 		width: max(2px, 0.4ch);
 		height: 1.15em;

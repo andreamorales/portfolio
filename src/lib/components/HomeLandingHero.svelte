@@ -7,24 +7,35 @@
 	export let onOpenPortfolio: (index: number) => void = () => {};
 	export let onCopyEmail: () => void = () => {};
 	export let onGoHome: () => void = () => {};
+	export let introTypewriterActive = false;
+	export let introTerminalVisible = true;
 </script>
 
 <div class="hero-intro-stack">
 	<!-- svelte-ignore a11y-click-events-have-key-events -->
 	<div
 		class="description"
-		in:fade={{ duration: 600, delay: 300 }}
 		on:click={onGoHome}
 		role="button"
 		tabindex="0"
 	>
 		<span class="description-layers">
-			<span class="description-base">I design tools.</span>
+			<span class="description-base" class:description-base--typing={introTypewriterActive}
+				>I design tools.</span
+			>
 			<span class="description-shimmer" aria-hidden="true">I design tools.</span>
+			{#if introTypewriterActive}
+				<span class="description-typewriter-caret" aria-hidden="true"></span>
+			{/if}
 		</span>
 	</div>
 
-	<HomeLandingTerminal {portfolioItems} {onOpenPortfolio} {onCopyEmail} />
+	<HomeLandingTerminal
+		{portfolioItems}
+		{onOpenPortfolio}
+		{onCopyEmail}
+		introVisible={introTerminalVisible}
+	/>
 </div>
 
 <style>
@@ -66,6 +77,27 @@
 		display: block;
 		color: var(--text-color);
 		transition: opacity 0.45s cubic-bezier(0.33, 1, 0.68, 1);
+	}
+
+	.description-base--typing {
+		display: inline-block;
+		white-space: nowrap;
+		width: max-content;
+		overflow: hidden;
+		clip-path: inset(0 100% 0 0);
+		animation: hero-typewriter 0.95s steps(15, end) forwards;
+	}
+
+	/* Separate from clipped text: border on the text stays outside the clip and only appears at the end. */
+	.description-typewriter-caret {
+		position: absolute;
+		left: 0;
+		top: 0.12em;
+		width: 1px;
+		height: 0.78em;
+		background: currentColor;
+		pointer-events: none;
+		animation: hero-caret-move 0.95s steps(15, end) forwards;
 	}
 
 	.description-shimmer {
@@ -112,6 +144,26 @@
 		}
 	}
 
+	@keyframes hero-typewriter {
+		from {
+			clip-path: inset(0 100% 0 0);
+		}
+		to {
+			clip-path: inset(0 0 0 0);
+		}
+	}
+
+	@keyframes hero-caret-move {
+		from {
+			left: 0;
+			transform: translateX(0);
+		}
+		to {
+			left: 100%;
+			transform: translateX(-100%);
+		}
+	}
+
 	@media (prefers-reduced-motion: reduce) {
 		.description-shimmer {
 			animation: none;
@@ -120,6 +172,12 @@
 		.description:hover .description-shimmer,
 		.description:focus-visible .description-shimmer {
 			background-position: 0% 45%;
+		}
+
+		.description-typewriter-caret {
+			animation: none;
+			left: 100%;
+			transform: translateX(-100%);
 		}
 	}
 
