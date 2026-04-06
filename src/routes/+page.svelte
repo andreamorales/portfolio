@@ -823,7 +823,9 @@
 				if (detailVideoEl) {
 					try {
 						detailVideoEl.currentTime = currentSeconds;
-					} catch { /* browser may reject seeks before metadata */ }
+					} catch {
+						/* browser may reject seeks before metadata */
+					}
 				}
 			} else {
 				if (detailVideoEl && !detailVideoEl.paused) detailVideoEl.pause();
@@ -831,7 +833,9 @@
 				if (target) {
 					try {
 						target.currentTime = currentSeconds;
-					} catch { /* browser may reject seeks before metadata */ }
+					} catch {
+						/* browser may reject seeks before metadata */
+					}
 				}
 			}
 
