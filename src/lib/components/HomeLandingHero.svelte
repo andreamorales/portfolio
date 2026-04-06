@@ -160,16 +160,15 @@
 	}
 
 	.description-base {
-		display: block;
+		display: inline-block;
+		white-space: nowrap;
+		width: max-content;
+		line-height: inherit;
 		color: var(--text-color);
 		transition: opacity 0.45s cubic-bezier(0.33, 1, 0.68, 1);
 	}
 
 	.description-base--typing {
-		display: inline-block;
-		white-space: nowrap;
-		width: max-content;
-		overflow: hidden;
 		clip-path: inset(0 100% 0 0);
 		animation: hero-typewriter 0.95s steps(15, end) forwards;
 	}
@@ -291,8 +290,15 @@
 	@media (max-width: 768px) {
 		.description {
 			font-size: 16vw;
-			line-height: 1.05;
+			line-height: 1.12;
 			letter-spacing: -0.03em;
+			/* One full line: keeps height stable while typewriter clip-path reveals text */
+			min-height: calc(16vw * 1.12);
+		}
+
+		.description-layers {
+			min-height: calc(16vw * 1.12);
+			vertical-align: top;
 		}
 
 		.hero-intro-stack {
