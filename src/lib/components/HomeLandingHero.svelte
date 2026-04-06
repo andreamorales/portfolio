@@ -3,6 +3,7 @@
 	import type { PortfolioItem } from '$lib/data/portfolio-items.js';
 	import type { SecurePortfolioPayloadData } from '$lib/utils/secureCaseStudy';
 	import HomeLandingTerminal from '$lib/components/HomeLandingTerminal.svelte';
+	import FloatingContactDock from '$lib/components/ui/FloatingContactDock.svelte';
 
 	export let portfolioItems: PortfolioItem[] = [];
 	export let onOpenPortfolio: (
@@ -14,26 +15,35 @@
 	export let onGoHome: () => void = () => {};
 	export let introTypewriterActive = false;
 	export let introTerminalVisible = true;
+	export let mobileTerminalDrawerOpen = false;
+	export let onToggleMobileTerminal: () => void = () => {};
+
 </script>
 
 <div class="hero-intro-stack">
-	<!-- svelte-ignore a11y-click-events-have-key-events -->
-	<div
-		class="description"
-		class:description--rainbow-ready={!introTypewriterActive}
-		on:click={onGoHome}
-		role="button"
-		tabindex="0"
-	>
-		<span class="description-layers">
-			<span class="description-base" class:description-base--typing={introTypewriterActive}
-				>I design tools.</span
-			>
-			<span class="description-shimmer" aria-hidden="true">I design tools.</span>
-			{#if introTypewriterActive}
-				<span class="description-typewriter-caret" aria-hidden="true"></span>
-			{/if}
-		</span>
+	<div class="hero-heading-group">
+		<!-- svelte-ignore a11y-click-events-have-key-events -->
+		<div
+			class="description"
+			class:description--rainbow-ready={!introTypewriterActive}
+			on:click={onGoHome}
+			role="button"
+			tabindex="0"
+		>
+			<span class="description-layers">
+				<span class="description-base" class:description-base--typing={introTypewriterActive}
+					>I design tools.</span
+				>
+				<span class="description-shimmer" aria-hidden="true">I design tools.</span>
+				{#if introTypewriterActive}
+					<span class="description-typewriter-caret" aria-hidden="true"></span>
+				{/if}
+			</span>
+		</div>
+
+		<div class="mobile-hero-icons">
+			<FloatingContactDock visible={true} onCopyEmail={onCopyEmail} />
+		</div>
 	</div>
 
 	<HomeLandingTerminal
@@ -43,6 +53,47 @@
 		introVisible={introTerminalVisible}
 	/>
 </div>
+
+<!-- Mobile terminal trigger (fixed at bottom) -->
+<!-- svelte-ignore a11y-click-events-have-key-events -->
+<div
+	class="mobile-terminal-tab"
+	class:mobile-terminal-tab--hidden={mobileTerminalDrawerOpen}
+	on:click={onToggleMobileTerminal}
+	role="button"
+	tabindex="0"
+	aria-label="Open terminal"
+>
+	<span class="mobile-terminal-tab__prompt" aria-hidden="true">$</span>
+	<span class="mobile-terminal-tab__label">Terminal</span>
+</div>
+
+<!-- Mobile terminal drawer — only mount the terminal when open to avoid duplicate IDs / listeners -->
+{#if mobileTerminalDrawerOpen}
+	<!-- svelte-ignore a11y-click-events-have-key-events -->
+	<!-- svelte-ignore a11y-no-static-element-interactions -->
+	<div class="mobile-terminal-backdrop" on:click={onToggleMobileTerminal}></div>
+	<div class="mobile-terminal-drawer mobile-terminal-drawer--open">
+		<!-- svelte-ignore a11y-click-events-have-key-events -->
+		<div
+			class="mobile-terminal-drawer__handle"
+			on:click={onToggleMobileTerminal}
+			role="button"
+			tabindex="0"
+			aria-label="Close terminal"
+		>
+			<span class="mobile-terminal-drawer__handle-bar"></span>
+		</div>
+		<div class="mobile-terminal-drawer__content">
+			<HomeLandingTerminal
+				{portfolioItems}
+				{onOpenPortfolio}
+				{onCopyEmail}
+				introVisible={true}
+			/>
+		</div>
+	</div>
+{/if}
 
 <style>
 	.hero-intro-stack {
@@ -187,11 +238,176 @@
 		}
 	}
 
+	.hero-heading-group {
+		display: contents;
+	}
+
+	.mobile-hero-icons {
+		display: none;
+	}
+
+	/* ---- Mobile terminal tab (fixed bottom bar) ---- */
+	.mobile-terminal-tab {
+		display: none;
+	}
+
+	.mobile-terminal-backdrop {
+		display: none;
+	}
+
+	.mobile-terminal-drawer {
+		display: none;
+	}
+
 	@media (max-width: 768px) {
 		.description {
-			font-size: clamp(2.32rem, 8vw, 3.6rem);
-			line-height: 1.12;
+			font-size: clamp(2.8rem, 12vw, 4.4rem);
+			line-height: 1.1;
 			letter-spacing: -0.02em;
+		}
+
+		.hero-intro-stack {
+			min-height: 0;
+			justify-content: flex-start;
+		}
+
+		.hero-heading-group {
+			display: flex;
+			flex-direction: column;
+			align-items: flex-start;
+			gap: var(--spacing-xs);
+		}
+
+		.hero-intro-stack > :global(.cli-block) {
+			display: none;
+		}
+
+		.mobile-hero-icons {
+			display: flex;
+		}
+
+		.mobile-hero-icons :global(.floating-contact-dock) {
+			display: inline-flex;
+			align-items: center;
+			gap: var(--spacing-sm);
+			pointer-events: auto;
+			opacity: 1;
+		}
+
+		.mobile-hero-icons :global(.floating-contact-dock__link) {
+			align-items: center;
+			line-height: 0;
+			padding: 0;
+		}
+
+		.mobile-hero-icons :global(.floating-contact-dock__link svg),
+		.mobile-hero-icons :global(.floating-contact-dock__link) :global(svg) {
+			width: 16px !important;
+			height: 16px !important;
+		}
+
+		/* ---- Mobile terminal tab ---- */
+		.mobile-terminal-tab {
+			display: flex;
+			position: fixed;
+			bottom: 0;
+			left: 0;
+			right: 0;
+			z-index: 10100;
+			align-items: center;
+			gap: 0.5rem;
+			padding: 0.65rem 1.25rem;
+			padding-bottom: calc(0.65rem + env(safe-area-inset-bottom, 0px));
+			background: var(--bg-color);
+			border-top: 1px solid var(--alpha-black-015);
+			cursor: pointer;
+			transition: transform 0.25s ease;
+		}
+
+		.mobile-terminal-tab--hidden {
+			transform: translateY(100%);
+			pointer-events: none;
+		}
+
+		.mobile-terminal-tab__prompt {
+			font-family: 'IBM Plex Mono', ui-monospace, monospace;
+			font-size: 0.82rem;
+			font-weight: 500;
+			color: var(--text-color);
+			opacity: 0.5;
+		}
+
+		.mobile-terminal-tab__label {
+			font-family: 'IBM Plex Mono', ui-monospace, monospace;
+			font-size: 0.75rem;
+			font-weight: 400;
+			color: var(--text-color);
+			opacity: 0.4;
+		}
+
+		/* ---- Mobile terminal backdrop ---- */
+		.mobile-terminal-backdrop {
+			display: block;
+			position: fixed;
+			inset: 0;
+			z-index: 10199;
+			background: rgba(0, 0, 0, 0.35);
+			animation: mobile-backdrop-in 0.2s ease forwards;
+		}
+
+		/* ---- Mobile terminal drawer ---- */
+		.mobile-terminal-drawer {
+			display: flex;
+			flex-direction: column;
+			position: fixed;
+			bottom: 0;
+			left: 0;
+			right: 0;
+			z-index: 10200;
+			max-height: 70vh;
+			background: var(--bg-color);
+			border-top: 1px solid var(--alpha-black-015);
+			border-radius: 12px 12px 0 0;
+			transform: translateY(100%);
+			transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+			padding-bottom: env(safe-area-inset-bottom, 0px);
+		}
+
+		.mobile-terminal-drawer--open {
+			transform: translateY(0);
+		}
+
+		.mobile-terminal-drawer__handle {
+			display: flex;
+			justify-content: center;
+			padding: 0.6rem 0 0.35rem;
+			cursor: pointer;
+			flex-shrink: 0;
+		}
+
+		.mobile-terminal-drawer__handle-bar {
+			width: 2.2rem;
+			height: 3px;
+			border-radius: 999px;
+			background: var(--text-color);
+			opacity: 0.18;
+		}
+
+		.mobile-terminal-drawer__content {
+			flex: 1 1 auto;
+			min-height: 0;
+			overflow-y: auto;
+			overscroll-behavior: contain;
+			padding: 0 0.25rem 0.25rem;
+		}
+	}
+
+	@keyframes mobile-backdrop-in {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
 		}
 	}
 </style>

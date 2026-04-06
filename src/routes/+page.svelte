@@ -64,6 +64,11 @@
 	let introLinesVisible = false;
 	let introControlsVisible = false;
 	let introTerminalVisible = false;
+	let mobileTerminalDrawerOpen = false;
+
+	function toggleMobileTerminal() {
+		mobileTerminalDrawerOpen = !mobileTerminalDrawerOpen;
+	}
 
 	async function copyEmailToClipboard() {
 		const email = 'andreamoralescoto@gmail.com';
@@ -471,10 +476,15 @@
 					<div class="landing-hero-anchor" bind:this={landingHeroElement}>
 						<HomeLandingHero
 							portfolioItems={sortedPortfolioItems}
-							onOpenPortfolio={openPortfolioPiece}
+							onOpenPortfolio={(idx, unlocked, data) => {
+								mobileTerminalDrawerOpen = false;
+								openPortfolioPiece(idx, unlocked, data);
+							}}
 							onCopyEmail={copyEmailToClipboard}
 							{introTypewriterActive}
 							{introTerminalVisible}
+							{mobileTerminalDrawerOpen}
+							onToggleMobileTerminal={toggleMobileTerminal}
 							onGoHome={() => {
 								activeDetailItem = null;
 								updatePieceQuery(null);
@@ -1022,53 +1032,69 @@
 	}
 
 	@media (max-width: 768px) {
+		.landing-page {
+			--landing-inset: 1rem;
+			padding: var(--landing-inset);
+			padding-bottom: calc(var(--landing-inset) + 3rem);
+		}
+
+		.corner-controls :global(.floating-contact-dock) {
+			display: none !important;
+		}
+
 		.landing-landing-row {
 			flex-direction: column;
 			align-items: stretch;
-			gap: var(--spacing-md);
+			gap: 0;
+			height: auto;
+			max-height: none;
+			overflow: visible;
+		}
+
+		:global(body.detail-panel-open) .landing-landing-row {
+			height: auto;
 		}
 
 		.landing-hero-anchor {
 			width: 100%;
+			flex: 0 0 auto;
 		}
 
 		.landing-portfolio-shell {
 			flex: 1 1 auto;
-			min-height: min(70vh, 32rem);
+			min-height: 0;
 			width: 100%;
+			margin-top: var(--spacing-md);
+		}
+
+		.detail-panel {
+			max-height: none;
 		}
 
 		.detail-panel-grid {
 			grid-template-columns: 1fr;
-			grid-template-rows: 1fr auto auto;
+			grid-template-rows: auto;
+			height: auto;
+		}
+
+		.detail-panel-grid--enter {
+			animation-delay: 220ms;
 		}
 
 		.detail-panel-piece {
 			border: 1px solid var(--text-color);
 			border-radius: 0;
+			overflow-y: visible;
+			height: auto;
+			max-height: none;
 		}
 
 		.detail-panel-sidebar {
-			grid-template-rows: auto auto;
-		}
-
-		.detail-panel-sidebar::before,
-		.detail-panel-sidebar::after {
 			display: none;
 		}
 
-		.detail-panel-video {
-			border: 1px solid var(--text-color);
-			border-top: none;
-			border-left-color: var(--text-color);
-			min-height: 8rem;
-		}
-
-		.detail-panel-transcript {
-			border-radius: 0;
-			border-left-color: var(--text-color);
-			border-top-color: var(--text-color);
-			min-height: 6rem;
+		.detail-panel-rainbow--left {
+			display: none;
 		}
 	}
 
@@ -1136,9 +1162,8 @@
 			padding-top: 0;
 		}
 
-		.landing-page {
-			--landing-inset: 2rem;
-			padding: var(--landing-inset);
+		:global(body.detail-panel-open) {
+			overflow: auto;
 		}
 
 		.mobile-immersive-nav {
