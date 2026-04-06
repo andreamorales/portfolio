@@ -10,13 +10,15 @@
 </script>
 
 <svelte:head>
-	<link rel="icon" href="/favicon.png" type="image/svg+xml" />
 	<meta property="og:title" content="Andrea Morales - Product Design Leader" />
 	<meta
 		property="og:description"
 		content="Produce Designer focused on creative and technical tools."
 	/>
-	<meta property="og:image" content="https://www.andreamoralescoto.com/images/og-preview.png?v=9" />
+	<meta
+		property="og:image"
+		content="https://www.andreamoralescoto.com/images/og-preview.png?v=9"
+	/>
 	<meta property="og:image:width" content="1200" />
 	<meta property="og:image:height" content="630" />
 	<meta
@@ -26,6 +28,10 @@
 	<meta property="og:url" content="https://www.andreamoralescoto.com" />
 	<meta property="og:type" content="website" />
 	<meta name="twitter:card" content="summary_large_image" />
+	<meta
+		name="twitter:image"
+		content="https://www.andreamoralescoto.com/images/og-preview.png?v=9"
+	/>
 </svelte:head>
 
 <div class="app-container">

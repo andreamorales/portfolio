@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+	<circle cx="16" cy="16" r="15" fill="#f3ead6" />
+	<!-- Smaller face: 0.75× around bbox center (12,13) in local coords -->
+	<g
+		fill="#363636"
+		shape-rendering="crispEdges"
+		transform="translate(16 16) scale(0.75) translate(-12 -13)"
+	>
+		<rect x="5" y="2" width="4" height="8" />
+		<rect x="15" y="2" width="4" height="8" />
+		<rect x="0" y="14" width="2" height="4" />
+		<rect x="2" y="16" width="2" height="4" />
+		<rect x="4" y="18" width="2" height="4" />
+		<rect x="6" y="20" width="12" height="4" />
+		<rect x="18" y="18" width="2" height="4" />
+		<rect x="20" y="16" width="2" height="4" />
+		<rect x="22" y="14" width="2" height="4" />
+	</g>
+</svg>
