@@ -32,7 +32,7 @@
 		return /\.(mp4|webm|ogg|mov|m4v)$/i.test(path);
 	}
 
-	function normalizeTranscriptSnippet(text: string): string {
+	function normalizeTranscriptText(text: string): string {
 		return text
 			.replace(/\s+([,.;!?])/g, '$1')
 			.replace(/\(\s+/g, '(')
@@ -46,32 +46,46 @@
 		if (!trimmed) return true;
 		if (/blank\s*_?\s*audio/i.test(trimmed)) return true;
 		const normalized = trimmed.replace(/\s+/g, '').toUpperCase();
-		return normalized === '[' || normalized === ']' || normalized === '_' || ['BL', 'ANK', 'AUD', 'IO'].includes(normalized);
+		return (
+			normalized === '[' ||
+			normalized === ']' ||
+			normalized === '_' ||
+			['BL', 'ANK', 'AUD', 'IO'].includes(normalized)
+		);
 	}
 
-	function getTranscriptTickerText(
+	function buildTranscriptLines(
 		cues: Array<{ text: string; startMs: number; endMs: number }>,
-		currentMs: number
-	): string {
-		if (!cues.length) return '';
-		if (currentMs > cues[cues.length - 1].endMs + 350) return '';
+		maxCharsPerLine = 110
+	): Array<{ text: string; startMs: number; endMs: number }> {
+		if (!cues.length) return [];
 
-		const snippet = cues
-			.filter((cue) => cue.endMs >= currentMs - 1600 && cue.startMs <= currentMs + 120)
-			.map((cue) => cue.text)
-			.join('');
+		const lines: Array<{ text: string; startMs: number; endMs: number }> = [];
 
-		if (snippet.trim().length > 0) {
-			return normalizeTranscriptSnippet(snippet);
-		}
+		for (let i = 0; i < cues.length; i++) {
+			const cue = cues[i];
+			const text = normalizeTranscriptText(cue.text);
+			if (!text) continue;
 
-		for (let i = cues.length - 1; i >= 0; i--) {
-			if (cues[i].startMs <= currentMs) {
-				return normalizeTranscriptSnippet(cues[i].text);
+			// Keep punctuation attached to the previous token instead of becoming its own row.
+			if (/^[,.;!?]+$/.test(text) && lines.length) {
+				lines[lines.length - 1] = {
+					...lines[lines.length - 1],
+					text: normalizeTranscriptText(`${lines[lines.length - 1].text}${text}`),
+					endMs: cue.endMs
+				};
+				continue;
 			}
+
+			lines.push({
+				text,
+				startMs: cue.startMs,
+				endMs: cue.endMs
+			});
 		}
 
-		return normalizeTranscriptSnippet(cues[0].text);
+		// Keep previous behavior contract while now using word-level rows.
+		return maxCharsPerLine > 0 ? lines : [];
 	}
 
 	$: sortedPortfolioItems = [...$portfolioItems].sort(
@@ -99,9 +113,13 @@
 	let toastMessage = '';
 	let activeDetailItem: PortfolioItem | null = null;
 	let detailVideoEl: HTMLVideoElement | null = null;
+	let detailTranscriptEl: HTMLDivElement | null = null;
 	let detailVideoCurrentMs = 0;
 	let detailTranscriptCues: Array<{ text: string; startMs: number; endMs: number }> = [];
-	let detailTranscriptTicker = '';
+	let detailTranscriptLines: Array<{ text: string; startMs: number; endMs: number }> = [];
+	let detailVisibleTranscriptLines: Array<{ text: string; startMs: number; endMs: number }> = [];
+	let shouldStickTranscriptToBottom = true;
+	let detailTranscriptCanScrollUp = false;
 	let activeDetailRevealDelayMs = 1360;
 	let unlockedPieceSlugs = new Set<string>();
 	let unlockedPieceDataBySlug = new Map<string, SecurePortfolioPayloadData>();
@@ -112,8 +130,34 @@
 	let introTerminalVisible = false;
 	let mobileTerminalDrawerOpen = false;
 
+	function syncTranscriptScrollIndicators() {
+		if (!detailTranscriptEl) {
+			detailTranscriptCanScrollUp = false;
+			return;
+		}
+		detailTranscriptCanScrollUp = detailTranscriptEl.scrollTop > 6;
+	}
+
 	function handleDetailVideoTimeUpdate() {
 		detailVideoCurrentMs = detailVideoEl ? detailVideoEl.currentTime * 1000 : 0;
+		if (detailTranscriptEl && shouldStickTranscriptToBottom) {
+			requestAnimationFrame(() => {
+				if (detailTranscriptEl && shouldStickTranscriptToBottom) {
+					detailTranscriptEl.scrollTop = detailTranscriptEl.scrollHeight;
+					syncTranscriptScrollIndicators();
+				}
+			});
+		}
+	}
+
+	function handleTranscriptScroll() {
+		if (!detailTranscriptEl) return;
+		const distanceFromBottom =
+			detailTranscriptEl.scrollHeight -
+			detailTranscriptEl.scrollTop -
+			detailTranscriptEl.clientHeight;
+		shouldStickTranscriptToBottom = distanceFromBottom < 24;
+		syncTranscriptScrollIndicators();
 	}
 
 	$: {
@@ -130,9 +174,10 @@
 				startMs: cue.startMs,
 				endMs: cue.endMs
 			}));
-		detailTranscriptTicker = detailTranscriptCues.length
-			? getTranscriptTickerText(detailTranscriptCues, detailVideoCurrentMs)
-			: '';
+		detailTranscriptLines = buildTranscriptLines(detailTranscriptCues);
+		detailVisibleTranscriptLines = detailTranscriptLines.filter(
+			(line) => line.startMs <= detailVideoCurrentMs + 120
+		);
 	}
 
 	function toggleMobileTerminal() {
@@ -533,7 +578,6 @@
 	class:mobile-rainbow-bar--nav={!!activeDetailItem}
 >
 	{#if activeDetailItem}
-		<!-- svelte-ignore a11y-click-events-have-key-events -->
 		<button
 			class="mobile-nav__home"
 			on:click={() => {
@@ -709,11 +753,28 @@
 												<span class="detail-panel-placeholder">Video</span>
 											{/if}
 										</div>
-										<div class="detail-panel-transcript">
-											{#if detailTranscriptCues.length && detailTranscriptTicker}
-												<p class="detail-panel-transcript-line">
-													{detailTranscriptTicker}
+										<div
+											class="detail-panel-transcript"
+											class:detail-panel-transcript--can-scroll-up={detailTranscriptCanScrollUp}
+											bind:this={detailTranscriptEl}
+											on:scroll={handleTranscriptScroll}
+										>
+											{#if detailVisibleTranscriptLines.length}
+												<p class="detail-panel-transcript-flow">
+													{#each detailVisibleTranscriptLines as line, index (`${line.startMs}-${index}`)}
+														<span
+															class="detail-panel-transcript-line"
+															class:detail-panel-transcript-line--active={index ===
+																detailVisibleTranscriptLines.length - 1}
+														>
+															{line.text}
+														</span>
+													{/each}
 												</p>
+											{:else if detailTranscriptLines.length}
+												<span class="detail-panel-placeholder">
+													Transcript will appear as the video plays
+												</span>
 											{:else}
 												<span class="detail-panel-placeholder">Transcript</span>
 											{/if}
@@ -1171,7 +1232,7 @@
 		width: 100%;
 		height: 100%;
 		border: none;
-		object-fit: contain;
+		object-fit: cover;
 		vertical-align: middle;
 	}
 
@@ -1183,19 +1244,52 @@
 		border-top-color: transparent;
 		border-radius: 0;
 		overflow-y: auto;
-		display: flex;
-		align-items: flex-start;
-		justify-content: flex-start;
+		display: block;
+		position: relative;
+		height: 100%;
+		max-height: 100%;
+		min-height: 0;
 		padding: 1rem;
 		background: var(--bg-color);
 	}
 
-	.detail-panel-transcript-line {
+	.detail-panel-transcript::before {
+		content: '';
+		position: sticky;
+		top: 0;
+		display: block;
+		height: 1.1rem;
+		margin: -1rem -1rem 0;
+		background: linear-gradient(
+			to bottom,
+			var(--bg-color) 0%,
+			color-mix(in srgb, var(--bg-color) 0%, transparent) 100%
+		);
+		pointer-events: none;
+		opacity: 0;
+		transition: opacity 140ms ease;
+		z-index: 2;
+	}
+
+	.detail-panel-transcript--can-scroll-up::before {
+		opacity: 1;
+	}
+
+	.detail-panel-transcript-flow {
 		margin: 0;
 		font-size: var(--font-size-sm);
 		line-height: 1.55;
+	}
+
+	.detail-panel-transcript-line {
+		display: inline;
+		margin-right: 0.36ch;
 		color: var(--text-color);
-		opacity: 0.9;
+		opacity: 0.72;
+	}
+
+	.detail-panel-transcript-line--active {
+		opacity: 0.98;
 	}
 
 	.detail-panel-placeholder {
@@ -1211,7 +1305,7 @@
 	@media (max-width: 1180px) and (min-width: 769px) {
 		.detail-panel-grid {
 			grid-template-columns: 1fr;
-			grid-template-rows: minmax(0, 1fr) auto;
+			grid-template-rows: minmax(0, 1fr) minmax(220px, 34vh);
 		}
 
 		.detail-panel-piece {
@@ -1222,6 +1316,7 @@
 			grid-template-columns: 1fr 1fr;
 			grid-template-rows: 1fr;
 			min-height: 220px;
+			height: 100%;
 		}
 
 		/* Replace the sidebar's vertical divider with a horizontal divider above this row. */

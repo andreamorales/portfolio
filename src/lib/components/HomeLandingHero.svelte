@@ -81,7 +81,7 @@
 >
 	{#if mobileTerminalUsed}
 		<div class="mobile-terminal-tab__tail">
-			{#each mobileOutputTailLines as line}
+			{#each mobileOutputTailLines as line, index (`${line}-${index}`)}
 				<div class="mobile-terminal-tab__tail-line">{line}</div>
 			{/each}
 		</div>
