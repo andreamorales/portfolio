@@ -110,6 +110,15 @@
 		return revealStyle(anchor + step * REVEAL_CHILD_STEP_MS);
 	}
 
+	/** First segment includes the colon; second is trimmed (mobile stacks on two lines). */
+	$: titleColonIdx = projectTitle.indexOf(':');
+	$: titleHasColonSplit =
+		titleColonIdx !== -1 && projectTitle.slice(titleColonIdx + 1).trim().length > 0;
+	$: titleBeforeColon = titleHasColonSplit ? projectTitle.slice(0, titleColonIdx + 1) : '';
+	$: titleAfterColon = titleHasColonSplit
+		? projectTitle.slice(titleColonIdx + 1).trim()
+		: '';
+
 	$: {
 		const usedImageSources = new Set([
 			featuredImage,
@@ -205,7 +214,15 @@
 >
 	<div class="project-intro reveal-parent" style={revealStyle(introReveal.parentDelayMs)}>
 		<div class="project-title-row reveal-child" style={revealStyle(introReveal.childStartDelayMs)}>
-			<h2 id={titleId} class="project-title">{projectTitle}</h2>
+			<h2 id={titleId} class="project-title">
+				{#if titleHasColonSplit}
+					<span class="project-title__line project-title__line--first">{titleBeforeColon}</span><span
+						class="project-title__line project-title__line--second">{titleAfterColon}</span
+					>
+				{:else}
+					{projectTitle}
+				{/if}
+			</h2>
 			{#if tags.length > 0}
 				<div class="project-tags">
 					{#each tags as tag (`${projectTitle}-${tag}`)}
@@ -655,10 +672,6 @@
 	}
 
 	@media (max-width: 768px) {
-		.text-block {
-			font-size: 15px;
-		}
-
 		.image-gallery {
 			grid-template-columns: 1fr;
 		}
@@ -676,17 +689,11 @@
 			max-width: 100%;
 		}
 
-		.hero-description {
-			font-size: var(--font-size-base);
-			line-height: 1.6;
-			padding: 0;
-		}
-
 		.highlight-line {
 			display: inline;
 			color: var(--text-color);
 			font-family: inherit;
-			line-height: 1.6;
+			line-height: 1.75;
 			background: none;
 			-webkit-mask-image: none;
 			mask-image: none;
@@ -719,6 +726,10 @@
 		font-variation-settings:
 			'CASL' 0,
 			'wght' 420;
+	}
+
+	.project-title__line {
+		display: inline;
 	}
 
 	.project-tags {
@@ -934,10 +945,74 @@
 		word-wrap: break-word;
 	}
 
+	@media (max-width: 768px) {
+		.project-title {
+			font-size: clamp(3.25rem, 15vw, 5rem);
+			line-height: 1;
+			letter-spacing: -0.045em;
+		}
+
+		.project-title__line--second {
+			display: block;
+			margin-top: 0.04em;
+		}
+
+		/* Override Label.svelte’s smaller mobile pill size for portfolio context only */
+		.project-tags :global(.label) {
+			font-size: var(--font-size-sm);
+			padding: 5px 11px;
+		}
+
+		.text-block {
+			font-size: var(--font-size-base);
+			line-height: 1.78;
+		}
+
+		.text-block :global(p) {
+			line-height: inherit;
+		}
+
+		.image-caption {
+			font-size: var(--font-size-base);
+			line-height: 1.62;
+		}
+
+		.details-label {
+			font-size: var(--font-size-base);
+			line-height: 1.55;
+		}
+
+		.details-value {
+			font-size: var(--font-size-base);
+			line-height: 1.68;
+		}
+
+		.locked-gate-label {
+			font-size: var(--font-size-sm);
+			line-height: 1.5;
+		}
+
+		.locked-gate-copy {
+			font-size: var(--font-size-base);
+			line-height: 1.72;
+		}
+
+		.locked-gate-error {
+			font-size: var(--font-size-sm);
+			line-height: 1.5;
+		}
+
+		.locked-gate-input,
+		.locked-gate-button {
+			font-size: var(--font-size-base);
+			line-height: 1.5;
+		}
+	}
+
 	/* Make sure the grid is responsive */
 	@media (max-width: 600px) {
 		.project-intro {
-			padding: 1rem 1rem 0;
+			padding: 1rem 0 0;
 		}
 
 		.content-view {
@@ -958,6 +1033,11 @@
 
 		.project-tags {
 			justify-content: flex-start;
+		}
+
+		.project-details-grid {
+			border-left: 1px solid var(--black);
+			border-right: 1px solid var(--black);
 		}
 
 		.details-row {
@@ -1184,6 +1264,16 @@
 	}
 
 	@media (max-width: 768px) {
+		.hero-description {
+			font-size: var(--font-size-xl);
+			line-height: 1.72;
+		}
+
+		.team-member {
+			font-size: var(--font-size-base);
+			line-height: 1.62;
+		}
+
 		/* Stack side-by-side images vertically on mobile. */
 		.image-pair {
 			flex-direction: column;

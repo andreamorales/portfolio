@@ -1119,6 +1119,67 @@
 		letter-spacing: 0.08em;
 	}
 
+	/* Tablet: move video/transcript below the main terminal content. */
+	@media (max-width: 1180px) and (min-width: 769px) {
+		.detail-panel-grid {
+			grid-template-columns: 1fr;
+			grid-template-rows: minmax(0, 1fr) auto;
+		}
+
+		.detail-panel-piece {
+			min-height: 0;
+		}
+
+		.detail-panel-sidebar {
+			grid-template-columns: 1fr 1fr;
+			grid-template-rows: 1fr;
+			min-height: 220px;
+		}
+
+		/* Replace the sidebar's vertical divider with a horizontal divider above this row. */
+		.detail-panel-sidebar::before {
+			left: 0;
+			right: 0;
+			top: 0;
+			bottom: auto;
+			width: auto;
+			height: 1px;
+			background-image: var(--palette-rainbow-gradient-h);
+			background-size: 240% 100%;
+			background-position: 0% 50%;
+		}
+
+		/* Inner divider between video and transcript in the bottom row. */
+		.detail-panel-sidebar::after {
+			left: calc(50% - 0.5px);
+			right: auto;
+			top: 0;
+			bottom: 0;
+			width: 1px;
+			height: auto;
+			background-image: var(--palette-rainbow-gradient-v);
+			background-size: 100% 240%;
+			background-position: 50% 0%;
+		}
+
+		.detail-panel-video,
+		.detail-panel-transcript {
+			border-top: 1px solid var(--text-color);
+			border-left: none;
+		}
+
+		.detail-panel-video {
+			border-right: none;
+			border-bottom: none;
+			min-height: 220px;
+		}
+
+		.detail-panel-transcript {
+			border-right: none;
+			border-bottom: none;
+		}
+	}
+
 	@media (max-width: 768px) {
 		.landing-page {
 			--landing-inset: 1rem;
