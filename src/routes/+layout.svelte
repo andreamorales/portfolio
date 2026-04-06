@@ -16,7 +16,13 @@
 		property="og:description"
 		content="Produce Designer focused on creative and technical tools."
 	/>
-	<meta property="og:image" content="/images/og-preview.png" />
+	<meta property="og:image" content="https://www.andreamoralescoto.com/images/og-preview.png?v=9" />
+	<meta property="og:image:width" content="1200" />
+	<meta property="og:image:height" content="630" />
+	<meta
+		property="og:image:alt"
+		content="Andy Morales — beige background with stacked name, homepage-style terminal reading I design tools., and a small pixel smiley in the lower right"
+	/>
 	<meta property="og:url" content="https://www.andreamoralescoto.com" />
 	<meta property="og:type" content="website" />
 	<meta name="twitter:card" content="summary_large_image" />
