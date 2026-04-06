@@ -12,7 +12,7 @@
 	import HomeTerminalHistory from '$lib/components/HomeTerminalHistory.svelte';
 
 	const aboutBio =
-		"I lead the design of creative and technical products. I lead the design of tools for devs and creatives, all through the lens of play. I started my career in 2010 as a filmmaker and game designer, which gave me a sharp eye for storytelling, and 12 years ago delved into product design and game design. I've worked at MongoDB, Roblox, ConsenSys, and was the CEO and co-founder of my own AI startup, Panto. I currently work at a healthcare AI company bringing AI to medical chart review.";
+		"I lead the design of tools for devs and creatives, all through the lens of play. I started my career in 2010 as a filmmaker and game designer, which gave me a sharp eye for storytelling, and 12 years ago delved into product design and game design. I've worked at MongoDB, Roblox, ConsenSys, and was the CEO and co-founder of my own AI startup, Panto. I currently work at a healthcare AI company bringing AI to medical chart review.";
 
 	export let portfolioItems: PortfolioItem[] = [];
 	export let onOpenPortfolio: (
@@ -23,6 +23,7 @@
 	export let onCopyEmail: () => void = () => {};
 	export let introVisible = true;
 	export let skipIntro = false;
+	export let onCommandRun: ((cmd: string, outputPreview: string) => void) | null = null;
 
 	type Feedback =
 		| { kind: 'help' }
@@ -448,6 +449,7 @@
 				typingComplete: fullText.length === 0
 			}
 		];
+		onCommandRun?.(cmd, fullText);
 	}
 
 	function popLast() {

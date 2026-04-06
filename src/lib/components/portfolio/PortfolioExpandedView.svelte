@@ -301,21 +301,6 @@
 						{:else if link}
 							<a href={link} target="_blank" rel="noopener noreferrer" class="project-link">
 								View Project
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									width="14"
-									height="14"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
-									stroke-linecap="round"
-									stroke-linejoin="round"
-								>
-									<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-									<polyline points="15 3 21 3 21 9"></polyline>
-									<line x1="10" y1="14" x2="21" y2="3"></line>
-								</svg>
 							</a>
 						{:else}
 							<span class="muted-text">Not Available</span>
@@ -1027,16 +1012,14 @@
 	}
 
 	.project-link {
-		color: var(--text-color);
-		text-decoration: none;
-		display: inline-flex;
-		align-items: center;
-		gap: var(--spacing-xxs);
-		transition: color var(--transition);
+		color: var(--palette-rainbow-6);
+		text-decoration: underline;
+		text-underline-offset: 3px;
+		transition: opacity var(--transition);
 	}
 
 	.project-link:hover {
-		color: var(--cursor-indigo);
+		opacity: 0.75;
 	}
 
 	.muted-text {

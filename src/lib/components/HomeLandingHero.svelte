@@ -20,6 +20,17 @@
 	export let mobileTerminalDrawerOpen = false;
 	export let onToggleMobileTerminal: () => void = () => {};
 
+	let mobileTerminalEverOpened = false;
+	let mobileTerminalUsed = false;
+	let mobileOutputTailLines: string[] = [];
+
+	$: if (mobileTerminalDrawerOpen) mobileTerminalEverOpened = true;
+
+	function onMobileCommandRun(_cmd: string, fullOutput: string) {
+		mobileTerminalUsed = true;
+		const lines = fullOutput.split('\n').filter((l) => l.trim());
+		mobileOutputTailLines = lines.slice(-3);
+	}
 </script>
 
 <div class="hero-intro-stack">
@@ -62,27 +73,43 @@
 <div
 	class="mobile-terminal-tab"
 	class:mobile-terminal-tab--hidden={mobileTerminalDrawerOpen}
+	class:mobile-terminal-tab--tail={mobileTerminalUsed}
 	on:click={onToggleMobileTerminal}
 	role="button"
 	tabindex="0"
 	aria-label="Open terminal"
 >
-	<div class="mobile-terminal-tab__row">
-		<span class="mobile-terminal-tab__prompt" aria-hidden="true">$</span>
-		<span class="mobile-terminal-tab__command">--help</span>
-	</div>
-	<div class="mobile-terminal-tab__return">
-		<span class="mobile-terminal-tab__return-label">Return</span>
-		<CornerDownLeft size={11} strokeWidth={1.5} aria-hidden="true" />
-	</div>
+	{#if mobileTerminalUsed}
+		<div class="mobile-terminal-tab__tail">
+			{#each mobileOutputTailLines as line}
+				<div class="mobile-terminal-tab__tail-line">{line}</div>
+			{/each}
+		</div>
+	{:else}
+		<div class="mobile-terminal-tab__row">
+			<span class="mobile-terminal-tab__prompt" aria-hidden="true">$</span>
+			<span class="mobile-terminal-tab__command">--help</span>
+		</div>
+		<div class="mobile-terminal-tab__return">
+			<span class="mobile-terminal-tab__return-label">Return</span>
+			<CornerDownLeft size={11} strokeWidth={1.5} aria-hidden="true" />
+		</div>
+	{/if}
 </div>
 
-<!-- Mobile terminal drawer — only mount the terminal when open to avoid duplicate IDs / listeners -->
+<!-- Mobile terminal backdrop -->
 {#if mobileTerminalDrawerOpen}
 	<!-- svelte-ignore a11y-click-events-have-key-events -->
 	<!-- svelte-ignore a11y-no-static-element-interactions -->
 	<div class="mobile-terminal-backdrop" on:click={onToggleMobileTerminal} transition:fade={{ duration: 200 }}></div>
-	<div class="mobile-terminal-drawer" transition:fly={{ y: '100%', duration: 300, easing: (t) => 1 - Math.pow(1 - t, 3) }}>
+{/if}
+
+<!-- Mobile terminal drawer — keep mounted once opened so history persists -->
+{#if mobileTerminalEverOpened}
+	<div
+		class="mobile-terminal-drawer"
+		class:mobile-terminal-drawer--open={mobileTerminalDrawerOpen}
+	>
 		<div class="mobile-terminal-drawer__content">
 			<HomeLandingTerminal
 				{portfolioItems}
@@ -90,6 +117,7 @@
 				{onCopyEmail}
 				introVisible={true}
 				skipIntro={true}
+				onCommandRun={onMobileCommandRun}
 			/>
 		</div>
 	</div>
@@ -331,6 +359,7 @@
 			z-index: 10100;
 			align-items: center;
 			justify-content: space-between;
+			min-height: calc(3.375rem + env(safe-area-inset-bottom, 0px));
 			padding: 0.55rem 0.85rem 0.55rem 0.75rem;
 			padding-bottom: calc(0.55rem + env(safe-area-inset-bottom, 0px));
 			background-color: var(--text-color);
@@ -339,6 +368,28 @@
 			cursor: pointer;
 			transition: transform 0.25s ease;
 			font-family: 'IBM Plex Mono', ui-monospace, monospace;
+		}
+
+		.mobile-terminal-tab--tail {
+			flex-direction: column;
+			align-items: stretch;
+			justify-content: flex-end;
+		}
+
+		.mobile-terminal-tab__tail {
+			display: flex;
+			flex-direction: column;
+			gap: 0;
+		}
+
+		.mobile-terminal-tab__tail-line {
+			font-size: 0.75rem;
+			font-weight: 400;
+			color: var(--cli-terminal-body-fg);
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			line-height: 1.5;
 		}
 
 		.mobile-terminal-tab::before {
@@ -382,15 +433,13 @@
 		.mobile-terminal-tab__prompt {
 			font-size: 0.82rem;
 			font-weight: 500;
-			color: inherit;
-			opacity: 0.5;
+			color: var(--cli-terminal-muted-fg);
 		}
 
 		.mobile-terminal-tab__command {
 			font-size: 0.82rem;
 			font-weight: 400;
-			color: inherit;
-			opacity: 0.85;
+			color: var(--cli-terminal-body-fg);
 		}
 
 		.mobile-terminal-tab__return {
@@ -401,8 +450,7 @@
 			font-weight: 500;
 			letter-spacing: 0.06em;
 			text-transform: uppercase;
-			color: inherit;
-			opacity: 0.4;
+			color: var(--cli-terminal-subtle-fg);
 		}
 
 		.mobile-terminal-tab__return-label {
@@ -435,6 +483,12 @@
 			border-radius: 0;
 			padding-bottom: env(safe-area-inset-bottom, 0px);
 			overflow: hidden;
+			transform: translateY(100%);
+			transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+		}
+
+		.mobile-terminal-drawer--open {
+			transform: translateY(0);
 		}
 
 		.mobile-terminal-drawer::before {
