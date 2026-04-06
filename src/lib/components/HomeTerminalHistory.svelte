@@ -304,6 +304,10 @@
 			font-size: calc(1.45 * 1.5 * clamp(0.07rem, 0.1vw + 0.04rem, 0.16rem));
 		}
 
+		.cli-typewriter :global(.cli-t-portfolio-hint) {
+			display: none;
+		}
+
 		.cli-typewriter :global(.cli-t-portfolio-row) {
 			display: flex;
 			align-items: center;
@@ -311,6 +315,7 @@
 		}
 
 		.cli-typewriter :global(.cli-t-portfolio-row .cli-t-item) {
+			color: var(--palette-rainbow-on-ink-6, var(--palette-rainbow-6));
 			text-decoration: underline;
 			text-underline-offset: 3px;
 		}

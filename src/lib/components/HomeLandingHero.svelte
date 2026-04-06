@@ -324,11 +324,13 @@
 			opacity: 1;
 		}
 
-		.mobile-hero-icons :global(.floating-contact-dock__link) {
+		.mobile-hero-icons :global(.floating-contact-dock__link),
+		.mobile-hero-icons :global(.floating-contact-dock__button) {
 			display: flex;
 			align-items: center;
 			line-height: 0;
 			padding: 0;
+			opacity: 1;
 		}
 
 		.mobile-hero-icons :global(.floating-contact-dock__link svg),
@@ -342,6 +344,7 @@
 			align-items: center;
 			line-height: 0;
 			padding: 0;
+			opacity: 1;
 		}
 
 		.mobile-hero-icons :global(.theme-toggle) :global(svg) {
@@ -360,7 +363,7 @@
 			align-items: center;
 			justify-content: space-between;
 			min-height: calc(3.375rem + env(safe-area-inset-bottom, 0px));
-			padding: 0.55rem 0.85rem 0.55rem 0.75rem;
+			padding: 0.55rem 1rem;
 			padding-bottom: calc(0.55rem + env(safe-area-inset-bottom, 0px));
 			background-color: var(--text-color);
 			color: var(--bg-color);

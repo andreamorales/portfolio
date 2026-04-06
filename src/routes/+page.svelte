@@ -426,20 +426,38 @@
 	<FloatingContactDock visible={!immersiveMode} onCopyEmail={copyEmailToClipboard} />
 </div>
 
-<!-- svelte-ignore a11y-click-events-have-key-events -->
+<!-- Mobile top bar: thin rainbow on home, full nav bar on portfolio piece -->
 <div
 	class="mobile-rainbow-bar"
 	class:mobile-rainbow-bar--home={!activeDetailItem}
-	role="button"
-	tabindex="0"
-	aria-label="Back to home"
-	on:click={() => {
-		if (activeDetailItem) {
-			activeDetailItem = null;
-			updatePieceQuery(null);
-		}
-	}}
-></div>
+	class:mobile-rainbow-bar--nav={!!activeDetailItem}
+>
+	{#if activeDetailItem}
+		<!-- svelte-ignore a11y-click-events-have-key-events -->
+		<button
+			class="mobile-nav__home"
+			on:click={() => {
+				activeDetailItem = null;
+				updatePieceQuery(null);
+			}}
+			aria-label="Back to home"
+		>
+			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" width="24" height="24" fill="currentColor" aria-hidden="true" style="image-rendering: pixelated">
+				<!-- : eyes -->
+				<rect x="0" y="0" width="2" height="2" />
+				<rect x="0" y="6" width="2" height="2" />
+				<!-- ) smile -->
+				<rect x="4" y="0" width="2" height="2" />
+				<rect x="6" y="2" width="2" height="4" />
+				<rect x="4" y="6" width="2" height="2" />
+			</svg>
+		</button>
+		<div class="mobile-nav__icons">
+			<ThemeToggle />
+			<FloatingContactDock visible={true} onCopyEmail={copyEmailToClipboard} />
+		</div>
+	{/if}
+</div>
 
 <div class="landing-page">
 	<div class="viewport-frame-lines" aria-hidden="true">
@@ -1080,11 +1098,26 @@
 			flex: 0 0 auto;
 		}
 
+		:global(body.detail-panel-open) .landing-hero-anchor {
+			height: 0;
+			overflow: hidden;
+			flex: 0 0 0px;
+		}
+
+		:global(body.detail-panel-open) .landing-portfolio-shell {
+			margin-top: 0;
+			padding-top: 3rem;
+		}
+
 		.landing-portfolio-shell {
 			flex: 1 1 auto;
 			min-height: 0;
 			width: 100%;
 			margin-top: var(--spacing-md);
+		}
+
+		.landing-portfolio-shell::before {
+			display: none;
 		}
 
 		.detail-panel {
@@ -1103,11 +1136,12 @@
 		}
 
 		.detail-panel-piece {
-			border: 1px solid var(--text-color);
+			border: none;
 			border-radius: 0;
 			overflow-y: visible;
 			height: auto;
 			max-height: none;
+			background: transparent;
 		}
 
 		.detail-panel-sidebar {
@@ -1130,7 +1164,6 @@
 			left: 0;
 			right: 0;
 			width: 100%;
-			height: 8px;
 			z-index: 10050;
 			background-image: var(--palette-rainbow-gradient-h);
 			background-size: 240% 100%;
@@ -1138,8 +1171,90 @@
 			-webkit-tap-highlight-color: transparent;
 		}
 
-		.mobile-rainbow-bar:not(.mobile-rainbow-bar--home) {
+		.mobile-rainbow-bar--home {
+			height: 5px;
+		}
+
+		.mobile-rainbow-bar--nav {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			height: auto;
+			padding: 0.5rem var(--landing-inset, 1rem);
+			padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
+		}
+
+		.mobile-nav__home {
+			display: flex;
+			align-items: center;
+			line-height: 0;
+			background: none;
+			border: none;
+			padding: 0;
 			cursor: pointer;
+			color: var(--bg-color);
+			opacity: 0.9;
+			-webkit-tap-highlight-color: transparent;
+		}
+
+		.mobile-nav__home:hover {
+			opacity: 1;
+		}
+
+		.mobile-nav__home :global(svg) {
+			display: block;
+			transform: rotate(90deg);
+		}
+
+		.mobile-nav__icons {
+			display: flex;
+			align-items: center;
+			gap: 1.1rem;
+		}
+
+		.mobile-nav__icons :global(.theme-toggle) {
+			color: var(--bg-color);
+			opacity: 1;
+			display: flex;
+			align-items: center;
+			line-height: 0;
+			padding: 0;
+		}
+
+		.mobile-nav__icons :global(.theme-toggle) :global(svg) {
+			width: 24px !important;
+			height: 24px !important;
+		}
+
+		.mobile-nav__icons :global(.floating-contact-dock) {
+			display: inline-flex !important;
+			align-items: center;
+			gap: 1.1rem;
+			pointer-events: auto;
+			opacity: 1;
+		}
+
+		.mobile-nav__icons :global(.floating-contact-dock__link),
+		.mobile-nav__icons :global(.floating-contact-dock__button) {
+			color: var(--bg-color);
+			opacity: 1;
+			display: flex;
+			align-items: center;
+			line-height: 0;
+			padding: 0;
+		}
+
+		.mobile-nav__icons :global(.floating-contact-dock__link:hover),
+		.mobile-nav__icons :global(.floating-contact-dock__button:hover) {
+			opacity: 1;
+		}
+
+		.mobile-nav__icons :global(.floating-contact-dock__link svg),
+		.mobile-nav__icons :global(.floating-contact-dock__button svg),
+		.mobile-nav__icons :global(.floating-contact-dock__link) :global(svg),
+		.mobile-nav__icons :global(.floating-contact-dock__button) :global(svg) {
+			width: 24px !important;
+			height: 24px !important;
 		}
 	}
 

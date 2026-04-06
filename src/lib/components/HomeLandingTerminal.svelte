@@ -148,7 +148,7 @@
 		const entries = getPortfolioDisplayEntries(items);
 		const productCount = entries.filter((entry) => !isSideProject(entry.item)).length;
 		const rows: string[] = [
-			'↑↓ = select | ENTER/SPACE = open | ESC = cancel',
+			'<span class="cli-t-portfolio-hint">↑↓ = select | ENTER/SPACE = open | ESC = cancel</span>',
 			'',
 			'<span class="cli-t-portfolio-heading">Product Design</span>'
 		];

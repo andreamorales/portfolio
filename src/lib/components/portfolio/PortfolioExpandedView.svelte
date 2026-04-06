@@ -628,6 +628,10 @@
 			grid-template-columns: 1fr;
 		}
 
+		.portfolio-expanded-view {
+			border-top: none;
+		}
+
 		.portfolio-expanded-view,
 		.content-container,
 		.content-view,
