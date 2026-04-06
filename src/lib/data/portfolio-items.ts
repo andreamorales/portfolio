@@ -82,10 +82,10 @@ const initialPortfolioItems = [
 			"Reimagining MongoDB's Realm Schema designer with a focus on tackling mobile developers unfamiliar with database schemas.",
 		videoUrl: testVideoUrl,
 		transcriptCues: testCaptions.captions,
-		quickNavThumbnail: '/images/portfolio/mongodb/thumbnail.png',
+		quickNavThumbnail: '/images/portfolio/mongodb/thumbnail.webp',
 		images: [
 			{
-				src: '/images/portfolio/mongodb/hero.png',
+				src: '/images/portfolio/mongodb/hero.webp',
 				alt: 'Schema Designer Interface',
 				caption: 'The redesigned schema designer interface.'
 			},
@@ -95,12 +95,12 @@ const initialPortfolioItems = [
 				caption: 'Blue Sky workshop and prototyping.'
 			},
 			{
-				src: '/images/portfolio/mongodb/before.png',
+				src: '/images/portfolio/mongodb/before.webp',
 				alt: 'Previous Interface',
 				caption: 'The previous interface before redesign.'
 			},
 			{
-				src: '/images/portfolio/mongodb/uxr.png',
+				src: '/images/portfolio/mongodb/uxr.webp',
 				alt: 'User Research',
 				caption: 'User research findings and insights.'
 			},
@@ -110,17 +110,17 @@ const initialPortfolioItems = [
 				caption: 'Collaborative design workshop with the team.'
 			},
 			{
-				src: '/images/portfolio/mongodb/figma.png',
+				src: '/images/portfolio/mongodb/figma.webp',
 				alt: 'Figma Components',
 				caption: 'Component library in Figma.'
 			},
 			{
-				src: '/images/portfolio/mongodb/handoff.png',
+				src: '/images/portfolio/mongodb/handoff.webp',
 				alt: 'Design Handoff',
 				caption: 'Design to development handoff process.'
 			},
 			{
-				src: '/images/portfolio/mongodb/results.png',
+				src: '/images/portfolio/mongodb/results.webp',
 				alt: 'Results Dashboard',
 				caption: 'Project results and metrics.'
 			}
@@ -136,7 +136,7 @@ const initialPortfolioItems = [
 				value:
 					'During those workshops, Design came up with a hunch: the Schema feature –the first feature any user of Realm has to contend with – was difficult to use, and not designed for easy context switching.\n\nThe PMs bought into the core hunch, and after seeing our blue sky prototype, slotted all of Q3 of 2020 to re-design the feature ahead of midQ4.\n\nThe question became: how can we prove that design hunch and ensure the schema feature is as user-friendly as possible?'
 			},
-			{ type: 'image', value: '/images/portfolio/mongodb/before.png' },
+			{ type: 'image', value: '/images/portfolio/mongodb/before.webp' },
 			{
 				type: 'text',
 				value:
@@ -150,7 +150,7 @@ const initialPortfolioItems = [
 			},
 			{
 				type: 'image',
-				value: '/images/portfolio/mongodb/uxr.png',
+				value: '/images/portfolio/mongodb/uxr.webp',
 				layout: 'side-by-side',
 				sideImage: {
 					value: '/images/portfolio/mongodb/workshop.gif'
@@ -161,19 +161,19 @@ const initialPortfolioItems = [
 				value:
 					'Our hunch was right! So now I began iterating on designs with the triad. Throughout 5 months, design iteration of wireframes began, informed by the past research, ongoing user research, and input from designers, PMs, and engineers.'
 			},
-			{ type: 'image', value: '/images/portfolio/mongodb/figma.png' },
+			{ type: 'image', value: '/images/portfolio/mongodb/figma.webp' },
 			{
 				type: 'text',
 				value:
 					'Finally! We arrived at a winning version. As we moved along into the scoping and specing process with engineering, it became clear that we needed to cut down scope even more or else this project would be too big a bet.'
 			},
-			{ type: 'image', value: '/images/portfolio/mongodb/handoff.png' },
+			{ type: 'image', value: '/images/portfolio/mongodb/handoff.webp' },
 			{
 				type: 'text',
 				value:
 					'With that in mind, I began cutting down the project where I could, while at the same time advocating for user delight: animated empty states, clearer copy, and "short-cuts" for more experienced users.'
 			},
-			{ type: 'image', value: '/images/portfolio/mongodb/results.png' },
+			{ type: 'image', value: '/images/portfolio/mongodb/results.webp' },
 			{
 				type: 'text',
 				value:
@@ -202,67 +202,67 @@ const initialPortfolioItems = [
 		expanded: false,
 		description: 'Increasing the quality of design systemically, in the most efficient way',
 		videoUrl: '/videos/firehydrant-design-system.mp4',
-		quickNavThumbnail: '/images/portfolio/firehydrant/thumbnail.png',
+		quickNavThumbnail: '/images/portfolio/firehydrant/thumbnail.webp',
 		images: [
 			{
-				src: '/images/portfolio/firehydrant/hero.png',
+				src: '/images/portfolio/firehydrant/hero.webp',
 				alt: 'Design System Overview',
 				caption: 'Overview of the design system.'
 			},
 			{
-				src: '/images/portfolio/firehydrant/before.png',
+				src: '/images/portfolio/firehydrant/before.webp',
 				alt: 'Previous Design',
 				caption: 'Interface before the design system changes.'
 			},
 			{
-				src: '/images/portfolio/firehydrant/brief.png',
+				src: '/images/portfolio/firehydrant/brief.webp',
 				alt: 'Project Brief',
 				caption: 'Initial project brief.'
 			},
 			{
-				src: '/images/portfolio/firehydrant/consultant.png',
+				src: '/images/portfolio/firehydrant/consultant.webp',
 				alt: 'Consulting',
 				caption: 'Design system consulting results.'
 			},
 			{
-				src: '/images/portfolio/firehydrant/cards.png',
+				src: '/images/portfolio/firehydrant/cards.webp',
 				alt: 'Component Cards',
 				caption:
 					"Component card designs, made by two designers, that didn't quite match other, because there were no guidelines."
 			},
 			{
-				src: '/images/portfolio/firehydrant/uxr.png',
+				src: '/images/portfolio/firehydrant/uxr.webp',
 				alt: 'User Research',
 				caption: 'Interviews with stakeholders to understand the ideal state of the design system.'
 			},
 			{
-				src: '/images/portfolio/firehydrant/planning.png',
+				src: '/images/portfolio/firehydrant/planning.webp',
 				alt: 'Planning Phase',
 				caption: 'Initial planning and strategy.'
 			},
 			{
-				src: '/images/portfolio/firehydrant/planning_2.png',
+				src: '/images/portfolio/firehydrant/planning_2.webp',
 				alt: 'Planning Details',
 				caption: 'Detailed planning process with visuals to get stakeholders on board.'
 			},
 			{
-				src: '/images/portfolio/firehydrant/vision.png',
+				src: '/images/portfolio/firehydrant/vision.webp',
 				alt: 'Vision',
 				caption: 'A vision of what the brand could be, which trickled down to the design system.'
 			},
 			{
-				src: '/images/portfolio/firehydrant/figma.png',
+				src: '/images/portfolio/firehydrant/figma.webp',
 				alt: 'Figma Setup',
 				caption:
 					"A design system designed by 'primitives' for dev tools, like forms, tables, analytics, etc."
 			},
 			{
-				src: '/images/portfolio/firehydrant/results.png',
+				src: '/images/portfolio/firehydrant/results.webp',
 				alt: 'Results',
 				caption: 'The design system then inspired the re-design of the landing page.'
 			},
 			{
-				src: '/images/portfolio/firehydrant/system.png',
+				src: '/images/portfolio/firehydrant/system.webp',
 				alt: 'System Architecture',
 				caption: 'One final screen, implementing the design system.'
 			}
@@ -273,7 +273,7 @@ const initialPortfolioItems = [
 				value:
 					'When I first came to FireHydrant as a Sr. Director of Design, a design system already existed. Unfortunately, it had been created with lots of CSS wrapping over OSS components, way too early into the product-market fit process.\n\nWe also had the issue that there were no guidelines for its usage, and no clear ownership of it on the eng side. This lead to poor performance of the system and of the design ICs.\n\nHow could we raise the bar of UX, while improving the design system, in a resource-efficient way?'
 			},
-			{ type: 'image', value: '/images/portfolio/firehydrant/before.png' },
+			{ type: 'image', value: '/images/portfolio/firehydrant/before.webp' },
 			{
 				type: 'text',
 				value:
@@ -281,10 +281,10 @@ const initialPortfolioItems = [
 			},
 			{
 				type: 'image',
-				value: '/images/portfolio/firehydrant/brief.png',
+				value: '/images/portfolio/firehydrant/brief.webp',
 				layout: 'side-by-side',
 				sideImage: {
-					value: '/images/portfolio/firehydrant/consultant.png'
+					value: '/images/portfolio/firehydrant/consultant.webp'
 				}
 			},
 			{
@@ -292,49 +292,49 @@ const initialPortfolioItems = [
 				value:
 					'Still, we needed more cohesion. Even if I hired someone to make patterns, the process would take too long. In the mean time, I had to start finding a way to get all our partners to agree on a governance style for our design system...'
 			},
-			{ type: 'image', value: '/images/portfolio/firehydrant/cards.png' },
+			{ type: 'image', value: '/images/portfolio/firehydrant/cards.webp' },
 			{
 				type: 'text',
 				value:
 					'I set out to listen to every partner. I gathered their requirements, attended FE Guild meetings, and listened to them. Consensus arose: ChakraUI, the OSS system, without embellishments, could probably do the trick.'
 			},
-			{ type: 'image', value: '/images/portfolio/firehydrant/uxr.png' },
+			{ type: 'image', value: '/images/portfolio/firehydrant/uxr.webp' },
 			{
 				type: 'text',
 				value:
 					'Now I had to get the resources to make it happen...\nOkay, what is the actual plan to make that reversal to OSS happen? Since we had no FE Lead assigned to the project, I had to convince my CTO by speaking his language: memos and pro/con plans.'
 			},
-			{ type: 'image', value: '/images/portfolio/firehydrant/planning.png' },
+			{ type: 'image', value: '/images/portfolio/firehydrant/planning.webp' },
 			{
 				type: 'text',
 				value:
 					'But it was hard to get resources without a visual guide. Even if in theory both the FE Guild, Design, the founders and the CTO agreed on the need to devolve to pure OSS, there was confusion around what that future could look like when it came down to the specifics.\n\nIn conjunction with my newly hired Staff and Sr Designer, we set out to build a tangible vision.'
 			},
-			{ type: 'image', value: '/images/portfolio/firehydrant/planning_2.png' },
+			{ type: 'image', value: '/images/portfolio/firehydrant/planning_2.webp' },
 			{
 				type: 'text',
 				value:
 					'We started off with a really broad idea of the future\nI made sure my Sr Designer, who had the most experience with visual design, had at least a week to work on this with me...'
 			},
-			{ type: 'image', value: '/images/portfolio/firehydrant/vision.png' },
+			{ type: 'image', value: '/images/portfolio/firehydrant/vision.webp' },
 			{
 				type: 'text',
 				value:
 					'From there, I took it on myself. Since all the designers were busy at work, and we needed a quick turnaround on the vision, I decided to work on this myself. I began creating what I called "Dev SaaS templates": a table template, an analytics template, a form template, a specific item template, and a settings template, plus a specific to FH dashboard template.'
 			},
-			{ type: 'image', value: '/images/portfolio/firehydrant/figma.png' },
+			{ type: 'image', value: '/images/portfolio/firehydrant/figma.webp' },
 			{
 				type: 'text',
 				value:
 					'Our efforts influenced marketing heavily. As marketing began recruiting brand designers and FE engineers, they were onboarded unto our work and that quickly influenced the new landing page they were creating, which pushed our work further since everyone began to see the vision as integral to their own work.'
 			},
-			{ type: 'image', value: '/images/portfolio/firehydrant/results.png' },
+			{ type: 'image', value: '/images/portfolio/firehydrant/results.webp' },
 			{
 				type: 'text',
 				value:
 					'Not only did we do a great job convincing all partners of the importance of this work, but we got approval for a Design System Eng, and we got 3 engineers internally assigned to work on the migration back to vanilla ChakraUI.\n\nBecause of that, we eliminated all P0 and P1 usability bugs in less than 2 weeks (after years of not working on them).'
 			},
-			{ type: 'image', value: '/images/portfolio/firehydrant/system.png' },
+			{ type: 'image', value: '/images/portfolio/firehydrant/system.webp' },
 			{
 				type: 'text',
 				value:
@@ -365,46 +365,46 @@ const initialPortfolioItems = [
 		description:
 			'Teaching Roblox devs how to use API keys, whether they are beginners or advanced users.',
 		videoUrl: '/videos/roblox-creator-hub.mp4',
-		quickNavThumbnail: '/images/portfolio/roblox/thumbnail.png',
+		quickNavThumbnail: '/images/portfolio/roblox/thumbnail.webp',
 		images: [
 			{
-				src: '/images/portfolio/roblox/hero.png',
+				src: '/images/portfolio/roblox/hero.webp',
 				alt: 'Creator Hub Interface',
 				caption: 'The new Creator Hub interface.'
 			},
 			{
-				src: '/images/portfolio/roblox/before.png',
+				src: '/images/portfolio/roblox/before.webp',
 				alt: 'Previous Interface',
 				caption: 'The original PM sketches, made because he did not have a designer.'
 			},
 			{
-				src: '/images/portfolio/roblox/before2.png',
+				src: '/images/portfolio/roblox/before2.webp',
 				alt: 'Legacy Interface',
 				caption: 'Another view of a PM sketch for the UI, before I came into the project.'
 			},
 			{
-				src: '/images/portfolio/roblox/scopes.png',
+				src: '/images/portfolio/roblox/scopes.webp',
 				alt: 'API Scopes',
 				caption: 'API scope management interface.'
 			},
 			{
-				src: '/images/portfolio/roblox/scopesfinal.png',
+				src: '/images/portfolio/roblox/scopesfinal.webp',
 				alt: 'Final Scopes',
 				caption: 'Final API scope design, with a focus on the user giving permissions.'
 			},
 			{
-				src: '/images/portfolio/roblox/designsystems.png',
+				src: '/images/portfolio/roblox/designsystems.webp',
 				alt: 'Design Systems',
 				caption:
 					'Several of the new design system components and guidelines created for stepper flows.'
 			},
 			{
-				src: '/images/portfolio/roblox/uxr.png',
+				src: '/images/portfolio/roblox/uxr.webp',
 				alt: 'User Research',
 				caption: 'User research findings from focus groups in which we showeed the designs.'
 			},
 			{
-				src: '/images/portfolio/roblox/figma.png',
+				src: '/images/portfolio/roblox/figma.webp',
 				alt: 'Figma Components',
 				caption: 'The full final Figma flow.'
 			}
@@ -420,43 +420,43 @@ const initialPortfolioItems = [
 				value:
 					"The PM had an overall idea of what he wanted, but before my arrival at Roblox hadn't had any design counterparts.\n\nThere were two main issues with this project:\nFrom a PM pov: what is the ideal flow to teach people how to use OAuth2?\nFrom a design pov: wait, do users even know how to use API keys, let alone OAuth2?"
 			},
-			{ type: 'image', value: '/images/portfolio/roblox/before.png' },
+			{ type: 'image', value: '/images/portfolio/roblox/before.webp' },
 			{
 				type: 'text',
 				value:
 					"As soon as I saw what the PM had worked on, I started thinking about the average Roblox dev. I asked him if we had any data on who would use this; we didn't. But it was an overall strategy to make things that would work for beginners and experts."
 			},
-			{ type: 'image', value: '/images/portfolio/roblox/before2.png' },
+			{ type: 'image', value: '/images/portfolio/roblox/before2.webp' },
 			{
 				type: 'text',
 				value:
 					"But we needed to deliver in a matter of two weeks.\nIn a day, I created advanced wireframes with a couple of provocations in IA, naming, and visuals, to test what questions would come from PMs and Engineers. The results: oh, I hadn't thought about it that way. These are good points!"
 			},
-			{ type: 'image', value: '/images/portfolio/roblox/scopes.png' },
+			{ type: 'image', value: '/images/portfolio/roblox/scopes.webp' },
 			{
 				type: 'text',
 				value:
 					'That gave me an opening for research. The PM invited me to show my designs to users he was going to interview for a separate project.\n\nI accepted and made 4 more versions of my designs to try out.'
 			},
-			{ type: 'image', value: '/images/portfolio/roblox/figma.png' },
+			{ type: 'image', value: '/images/portfolio/roblox/figma.webp' },
 			{
 				type: 'text',
 				value:
 					'The results came in. One version was an obvious winner over others: the one that was most friendly to new users by having access to docs, simpler wording, and clear IA.\n\nI still did the appropriate results analysis to cover my bases (and hacked my way to some simple quant results by asking people to "respond" to variants in Zoom chat, at the same time).'
 			},
-			{ type: 'image', value: '/images/portfolio/roblox/uxr.png' },
+			{ type: 'image', value: '/images/portfolio/roblox/uxr.webp' },
 			{
 				type: 'text',
 				value:
 					'Through 4 internal reviews, in the expanse of two weeks, we got to final results that were vetted by engineering and PM, before starting development.'
 			},
-			{ type: 'image', value: '/images/portfolio/roblox/scopesfinal.png' },
+			{ type: 'image', value: '/images/portfolio/roblox/scopesfinal.webp' },
 			{
 				type: 'text',
 				value:
 					"In this case, metrics were not well defined by PM. Since this was a 0->1 case, and I had just started at Roblox, I didn't push too harshly for them.\n\nBut I did get other amazing results: this process set a precedent for other designers in the company, who started doing this kind of fast research on the fly, and contributed to a design system plan that emerged as a part of this project (by showing how patterns would make overall development faster)."
 			},
-			{ type: 'image', value: '/images/portfolio/roblox/designsystems.png' }
+			{ type: 'image', value: '/images/portfolio/roblox/designsystems.webp' }
 		],
 		year: '2021',
 		role: 'Principal Designer',
@@ -479,45 +479,45 @@ const initialPortfolioItems = [
 		description:
 			'Panto helps AI app layer companies evaluate the true usefulness of their data in order to post-train better AI models.',
 		videoUrl: '/videos/panto-demo.mp4',
-		quickNavThumbnail: '/images/portfolio/panto/thumbnail.png',
+		quickNavThumbnail: '/images/portfolio/panto/thumbnail.webp',
 		images: [
 			{
-				src: '/images/portfolio/panto/hero.png',
+				src: '/images/portfolio/panto/hero.webp',
 				alt: 'Panto Interface',
 				caption: 'Main Panto interface.'
 			},
 			{
-				src: '/images/portfolio/panto/before.png',
+				src: '/images/portfolio/panto/before.webp',
 				alt: 'Original Landing',
 				caption: 'The original landing page.'
 			},
 			{
-				src: '/images/portfolio/panto/landing.png',
+				src: '/images/portfolio/panto/landing.webp',
 				alt: 'Landing Page',
 				caption: 'The second landing page of Panto, developed by me.'
 			},
 			{
-				src: '/images/portfolio/panto/analysis.png',
+				src: '/images/portfolio/panto/analysis.webp',
 				alt: 'Analysis View',
 				caption: 'Data analysis visualization.'
 			},
 			{
-				src: '/images/portfolio/panto/charts.png',
+				src: '/images/portfolio/panto/charts.webp',
 				alt: 'Charts Dark',
 				caption: 'Data visualization in dark mode.'
 			},
 			{
-				src: '/images/portfolio/panto/charts_light.png',
+				src: '/images/portfolio/panto/charts_light.webp',
 				alt: 'Charts Light',
 				caption: 'Data visualization in light mode.'
 			},
 			{
-				src: '/images/portfolio/panto/table.png',
+				src: '/images/portfolio/panto/table.webp',
 				alt: 'Data Table',
 				caption: 'Developer-friendly data table view.'
 			},
 			{
-				src: '/images/portfolio/panto/form.png',
+				src: '/images/portfolio/panto/form.webp',
 				alt: 'Form Interface',
 				caption: 'Optimized form interface.'
 			}
@@ -538,13 +538,13 @@ const initialPortfolioItems = [
 				value:
 					"At first, people won't be able to pre-train models from scratch. Instead, they will post-train models that offer open weights. For that purpose, understanding how that data influences model behavior will be key."
 			},
-			{ type: 'image', value: '/images/portfolio/panto/before.png' },
+			{ type: 'image', value: '/images/portfolio/panto/before.webp' },
 			{
 				type: 'text',
 				value:
 					'Originally, this project was meant to focus on the licensing of IP for the age of AI. But as we did more research, my cofounder and I realized that the main problem was the evaluation of what IP was valuable to AI to begin with.'
 			},
-			{ type: 'image', value: '/images/portfolio/panto/landing.png' },
+			{ type: 'image', value: '/images/portfolio/panto/landing.webp' },
 			{
 				type: 'text',
 				value:
@@ -555,19 +555,19 @@ const initialPortfolioItems = [
 				value:
 					"Panto is made up of two features. The first one is data scoring. Data is live-streamed from the company into Panto. As the data trickles in, we compare it to a baseline of data and crack open the black-box of models to see how they react to the company's data. We give each data point a novelty score."
 			},
-			{ type: 'image', value: '/images/portfolio/panto/analysis.png' },
+			{ type: 'image', value: '/images/portfolio/panto/analysis.webp' },
 			{
 				type: 'text',
 				value:
 					'The analysis is then visualized in charts. These charts help explain the complex inner workings of LLMs to users that are technical (developers), but not experienced in machine learning.'
 			},
-			{ type: 'image', value: '/images/portfolio/panto/charts.png' },
+			{ type: 'image', value: '/images/portfolio/panto/charts.webp' },
 			{
 				type: 'text',
 				value:
 					'And of course, to keep the experience dev friendly, I implemented light mode and dark mode out of the gate.'
 			},
-			{ type: 'image', value: '/images/portfolio/panto/charts_light.png' },
+			{ type: 'image', value: '/images/portfolio/panto/charts_light.webp' },
 			{
 				type: 'text',
 				value:
@@ -575,10 +575,10 @@ const initialPortfolioItems = [
 			},
 			{
 				type: 'image',
-				value: '/images/portfolio/panto/table.png',
+				value: '/images/portfolio/panto/table.webp',
 				layout: 'side-by-side',
 				sideImage: {
-					value: '/images/portfolio/panto/form.png'
+					value: '/images/portfolio/panto/form.webp'
 				}
 			},
 			{
@@ -600,45 +600,45 @@ const initialPortfolioItems = [
 		description:
 			"La Güila Toys is a line of toys that explore death and the passage of time, making bleak topics playful. I've created more than 20 toys in total.",
 		videoUrl: '/videos/laguila-product-showcase.mp4',
-		quickNavThumbnail: '/images/portfolio/laguila/thumbnail.png',
+		quickNavThumbnail: '/images/portfolio/laguila/thumbnail.webp',
 		images: [
 			{
-				src: '/images/portfolio/laguila/hero.png',
+				src: '/images/portfolio/laguila/hero.webp',
 				alt: 'Toy Collection',
 				caption: 'Complete toy collection.'
 			},
 			{
-				src: '/images/portfolio/laguila/armadillos.png',
+				src: '/images/portfolio/laguila/armadillos.webp',
 				alt: 'Armadillos',
 				caption: 'The Armadillo toy series, inspired by Mexican alebrijes.'
 			},
 			{
-				src: '/images/portfolio/laguila/draft.png',
+				src: '/images/portfolio/laguila/draft.webp',
 				alt: 'Initial Drafts',
 				caption: 'Initial toy design drafts from FIT class.'
 			},
 			{
-				src: '/images/portfolio/laguila/sculpt.png',
+				src: '/images/portfolio/laguila/sculpt.webp',
 				alt: 'Sculpting Process',
 				caption: 'Self-taught toy sculpting process.'
 			},
 			{
-				src: '/images/portfolio/laguila/pour.png',
+				src: '/images/portfolio/laguila/pour.webp',
 				alt: 'Mold Pouring',
 				caption: 'Self-taught mold pouring process.'
 			},
 			{
-				src: '/images/portfolio/laguila/stump.png',
+				src: '/images/portfolio/laguila/stump.webp',
 				alt: 'Stump Toy',
 				caption: 'The Stump toy design.'
 			},
 			{
-				src: '/images/portfolio/laguila/bigghost.png',
+				src: '/images/portfolio/laguila/bigghost.webp',
 				alt: 'Big Ghost',
 				caption: 'The Big Ghost toy.'
 			},
 			{
-				src: '/images/portfolio/laguila/lilghost.png',
+				src: '/images/portfolio/laguila/lilghost.webp',
 				alt: 'Little Ghost',
 				caption: 'The Little Ghost toy.'
 			}
@@ -649,23 +649,23 @@ const initialPortfolioItems = [
 				value:
 					'In 2023, in an effort to continue my exploration into designing playful interfaces and products, I became very interested in learning how to design resin toys.'
 			},
-			{ type: 'image', value: '/images/portfolio/laguila/armadillos.png' },
+			{ type: 'image', value: '/images/portfolio/laguila/armadillos.webp' },
 			{
 				type: 'text',
 				value:
 					'I began by attending a toy design class at FIT, in Manhattan. I learned the basics of 3D drawn design focused on children toys.'
 			},
-			{ type: 'image', value: '/images/portfolio/laguila/draft.png' },
+			{ type: 'image', value: '/images/portfolio/laguila/draft.webp' },
 			{
 				type: 'text',
 				value: 'After that, I self-taught the basics of sculpting and resin pouring.'
 			},
 			{
 				type: 'image',
-				value: '/images/portfolio/laguila/sculpt.png',
+				value: '/images/portfolio/laguila/sculpt.webp',
 				layout: 'side-by-side',
 				sideImage: {
-					value: '/images/portfolio/laguila/pour.png'
+					value: '/images/portfolio/laguila/pour.webp'
 				}
 			},
 			{
@@ -673,9 +673,9 @@ const initialPortfolioItems = [
 				value:
 					'All of this resulted in 20+ toy designs, two of which have been featured in art galleries.'
 			},
-			{ type: 'image', value: '/images/portfolio/laguila/stump.png' },
-			{ type: 'image', value: '/images/portfolio/laguila/bigghost.png' },
-			{ type: 'image', value: '/images/portfolio/laguila/lilghost.png' }
+			{ type: 'image', value: '/images/portfolio/laguila/stump.webp' },
+			{ type: 'image', value: '/images/portfolio/laguila/bigghost.webp' },
+			{ type: 'image', value: '/images/portfolio/laguila/lilghost.webp' }
 		],
 		year: '2023-2025',
 		role: 'Toy Designer',
@@ -693,31 +693,31 @@ const initialPortfolioItems = [
 		description:
 			'Torch is a freeform Live Action Roleplaying game exploring themes of multigenerational storytelling and collective memory.',
 		videoUrl: '/videos/torch-gameplay.mp4',
-		quickNavThumbnail: '/images/portfolio/torch/thumbnail.png',
+		quickNavThumbnail: '/images/portfolio/torch/thumbnail.webp',
 		images: [
 			{
-				src: '/images/portfolio/torch/hero.png',
+				src: '/images/portfolio/torch/hero.webp',
 				alt: 'First page of the game, featuring a black and white illustrated  motif.',
 				caption: 'Cover of the game.'
 			},
 			{
-				src: '/images/portfolio/torch/instructions.png',
+				src: '/images/portfolio/torch/instructions.webp',
 				alt: 'The second page of the instructions, featuring icons of a lamplight and a torch.',
 				caption: 'The second page of instructions.'
 			},
 			{
-				src: '/images/portfolio/torch/outtake.png',
+				src: '/images/portfolio/torch/outtake.webp',
 				alt: 'A page signaling all the ways a player can create a scene, by focusig on their senses.',
 				caption:
 					'A page signaling all the ways a player can create a scene, by focusing on their senses.'
 			},
 			{
-				src: '/images/portfolio/torch/rounds.png',
+				src: '/images/portfolio/torch/rounds.webp',
 				alt: 'A page explaining that playes must be lying on the floor, and each round the lamplight is moved in a circular motion.',
 				caption: 'The page that explains the mechanics of the game.'
 			},
 			{
-				src: '/images/portfolio/torch/winner.png',
+				src: '/images/portfolio/torch/winner.webp',
 				alt: 'A group of people announcing the win of the Golden Cobra Award for Torch.',
 				caption: 'The announcement of the Golden Cobra Award.'
 			}
@@ -728,7 +728,7 @@ const initialPortfolioItems = [
 				value:
 					'Torch is a freeform Live Action Roleplaying game. It was born out of a game design retreat I attend every year in New Jersey, as part of my desire to participate in the Golden Cobra Challenge, a very well known LARP design competition. This game won the Best Multi-Generational Game award at Golden Cobra. The award was announced at Metatopia 2018.'
 			},
-			{ type: 'image', value: '/images/portfolio/torch/instructions.png' },
+			{ type: 'image', value: '/images/portfolio/torch/instructions.webp' },
 			{
 				type: 'text',
 				value:
