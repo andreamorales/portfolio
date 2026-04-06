@@ -1168,6 +1168,18 @@
 		min-height: 1.4em;
 	}
 
+	@media (max-width: 1180px) and (min-width: 769px) {
+		.cli-terminal-window {
+			font-size: 0.9rem;
+			max-height: min(54vh, 24.5rem);
+		}
+
+		.cli-terminal-window--bottom-prompt {
+			height: min(54vh, 24.5rem);
+			max-height: min(54vh, 24.5rem);
+		}
+	}
+
 	@media (max-width: 768px) {
 		.cli-top-bar {
 			padding: 0.5rem 0.7rem;

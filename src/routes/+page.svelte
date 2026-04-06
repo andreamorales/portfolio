@@ -1592,6 +1592,10 @@
 
 	/* Tablet: move video/transcript below the main terminal content. */
 	@media (max-width: 1180px) and (min-width: 769px) {
+		.landing-landing-row {
+			gap: clamp(0.65rem, 1.4vw, 1.15rem);
+		}
+
 		.detail-panel-grid {
 			grid-template-columns: 1fr;
 			grid-template-rows: minmax(0, 1fr) minmax(220px, 34vh);

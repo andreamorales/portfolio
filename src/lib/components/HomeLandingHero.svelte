@@ -287,6 +287,12 @@
 		display: none;
 	}
 
+	@media (max-width: 1180px) and (min-width: 769px) {
+		.description {
+			font-size: clamp(4.05rem, 7.8vw, 5.9rem);
+		}
+	}
+
 	@media (max-width: 768px) {
 		.description {
 			font-size: 16vw;
