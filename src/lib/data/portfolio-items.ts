@@ -1,11 +1,8 @@
 import { writable } from 'svelte/store';
 import mostRecentEncrypted from '$lib/data/secure/most-recent1.encrypted.json';
+import mongodbCaptions from '$lib/data/transcripts/mongodb.captions.json';
+import mongodbVideoUrl from '$lib/videos/mongodb.mp4?url';
 import type { SecurePortfolioEncryptedPayload } from '$lib/utils/secureCaseStudy';
-/* When the case-study video is ready to ship, restore:
- *   import caseStudyVideoUrl from '$lib/videos/test.mov?url';
- *   import caseStudyCaptions from '$lib/data/transcripts/test.captions.json';
- * and set videoUrl + transcriptCues on the MongoDB item below.
- */
 
 interface PortfolioImage {
 	src: string;
@@ -83,7 +80,8 @@ const initialPortfolioItems = [
 		expanded: false,
 		description:
 			"Reimagining MongoDB's Realm Schema designer with a focus on tackling mobile developers unfamiliar with database schemas.",
-		videoUrl: '',
+		videoUrl: mongodbVideoUrl,
+		transcriptCues: mongodbCaptions.captions,
 		quickNavThumbnail: '/images/portfolio/mongodb/thumbnail.webp',
 		images: [
 			{

@@ -15,10 +15,7 @@
 		property="og:description"
 		content="Produce Designer focused on creative and technical tools."
 	/>
-	<meta
-		property="og:image"
-		content="https://www.andreamoralescoto.com/images/og-preview.png?v=9"
-	/>
+	<meta property="og:image" content="https://www.andreamoralescoto.com/images/og-preview.png?v=9" />
 	<meta property="og:image:width" content="1200" />
 	<meta property="og:image:height" content="630" />
 	<meta
