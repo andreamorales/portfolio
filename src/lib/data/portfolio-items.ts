@@ -1,11 +1,18 @@
 import { writable } from 'svelte/store';
 import mostRecentEncrypted from '$lib/data/secure/most-recent1.encrypted.json';
+import mongodbCaptions from '$lib/data/transcripts/mongodb.captions.json';
+import mongodbVideoUrl from '$lib/videos/mongodb.mp4?url';
+import laguilaCaptions from '$lib/data/transcripts/laguila.captions.json';
+import laguilaVideoUrl from '$lib/videos/laguila.mp4?url';
+import firehydrantCaptions from '$lib/data/transcripts/firehydrant.captions.json';
+import firehydrantVideoUrl from '$lib/videos/firehydrant.mp4?url';
+import pantoCaptions from '$lib/data/transcripts/panto.captions.json';
+import pantoVideoUrl from '$lib/videos/panto.mp4?url';
+import robloxCaptions from '$lib/data/transcripts/roblox.captions.json';
+import robloxVideoUrl from '$lib/videos/roblox.mp4?url';
+import torchCaptions from '$lib/data/transcripts/torch.captions.json';
+import torchVideoUrl from '$lib/videos/torch.mp4?url';
 import type { SecurePortfolioEncryptedPayload } from '$lib/utils/secureCaseStudy';
-/* When the case-study video is ready to ship, restore:
- *   import caseStudyVideoUrl from '$lib/videos/test.mov?url';
- *   import caseStudyCaptions from '$lib/data/transcripts/test.captions.json';
- * and set videoUrl + transcriptCues on the MongoDB item below.
- */
 
 interface PortfolioImage {
 	src: string;
@@ -83,7 +90,8 @@ const initialPortfolioItems = [
 		expanded: false,
 		description:
 			"Reimagining MongoDB's Realm Schema designer with a focus on tackling mobile developers unfamiliar with database schemas.",
-		videoUrl: '',
+		videoUrl: mongodbVideoUrl,
+		transcriptCues: mongodbCaptions.captions,
 		quickNavThumbnail: '/images/portfolio/mongodb/thumbnail.webp',
 		images: [
 			{
@@ -203,7 +211,8 @@ const initialPortfolioItems = [
 		tags: ['UX/UI'],
 		expanded: false,
 		description: 'Increasing the quality of design systemically, in the most efficient way',
-		videoUrl: '/videos/firehydrant-design-system.mp4',
+		videoUrl: firehydrantVideoUrl,
+		transcriptCues: firehydrantCaptions.captions,
 		quickNavThumbnail: '/images/portfolio/firehydrant/thumbnail.webp',
 		images: [
 			{
@@ -366,7 +375,8 @@ const initialPortfolioItems = [
 		expanded: false,
 		description:
 			'Teaching Roblox devs how to use API keys, whether they are beginners or advanced users.',
-		videoUrl: '/videos/roblox-creator-hub.mp4',
+		videoUrl: robloxVideoUrl,
+		transcriptCues: robloxCaptions.captions,
 		quickNavThumbnail: '/images/portfolio/roblox/thumbnail.webp',
 		images: [
 			{
@@ -480,7 +490,8 @@ const initialPortfolioItems = [
 		expanded: false,
 		description:
 			'Panto helps AI app layer companies evaluate the true usefulness of their data in order to post-train better AI models.',
-		videoUrl: '/videos/panto-demo.mp4',
+		videoUrl: pantoVideoUrl,
+		transcriptCues: pantoCaptions.captions,
 		quickNavThumbnail: '/images/portfolio/panto/thumbnail.webp',
 		images: [
 			{
@@ -601,7 +612,8 @@ const initialPortfolioItems = [
 		expanded: false,
 		description:
 			"La Güila Toys is a line of toys that explore death and the passage of time, making bleak topics playful. I've created more than 20 toys in total.",
-		videoUrl: '/videos/laguila-product-showcase.mp4',
+		videoUrl: laguilaVideoUrl,
+		transcriptCues: laguilaCaptions.captions,
 		quickNavThumbnail: '/images/portfolio/laguila/thumbnail.webp',
 		images: [
 			{
@@ -694,7 +706,8 @@ const initialPortfolioItems = [
 		expanded: false,
 		description:
 			'Torch is a freeform Live Action Roleplaying game exploring themes of multigenerational storytelling and collective memory.',
-		videoUrl: '/videos/torch-gameplay.mp4',
+		videoUrl: torchVideoUrl,
+		transcriptCues: torchCaptions.captions,
 		quickNavThumbnail: '/images/portfolio/torch/thumbnail.webp',
 		images: [
 			{

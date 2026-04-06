@@ -7,6 +7,8 @@
 	import HomeImmersivePortfolioList from '$lib/components/HomeImmersivePortfolioList.svelte';
 	import HomeNextPieceBanner from '$lib/components/HomeNextPieceBanner.svelte';
 	import PortfolioExpandedView from '$lib/components/portfolio/PortfolioExpandedView.svelte';
+	import MobileTopStack from '$lib/components/mobile/MobileTopStack.svelte';
+	import MobileDetailMedia from '$lib/components/mobile/MobileDetailMedia.svelte';
 	import FloatingContactDock from '$lib/components/ui/FloatingContactDock.svelte';
 	import ThemeToggle from '$lib/components/ui/ThemeToggle.svelte';
 	import Toast from '$lib/components/ui/Toast.svelte';
@@ -57,35 +59,68 @@
 	function buildTranscriptLines(
 		cues: Array<{ text: string; startMs: number; endMs: number }>,
 		maxCharsPerLine = 110
-	): Array<{ text: string; startMs: number; endMs: number }> {
+	): Array<{
+		text: string;
+		startMs: number;
+		endMs: number;
+		words: Array<{ text: string; startMs: number; endMs: number }>;
+	}> {
 		if (!cues.length) return [];
 
-		const lines: Array<{ text: string; startMs: number; endMs: number }> = [];
+		const lines: Array<{
+			text: string;
+			startMs: number;
+			endMs: number;
+			words: Array<{ text: string; startMs: number; endMs: number }>;
+		}> = [];
+		let currentText = '';
+		let currentStartMs = 0;
+		let currentEndMs = 0;
+		let currentWords: Array<{ text: string; startMs: number; endMs: number }> = [];
+
+		const flushCurrentLine = () => {
+			const normalized = normalizeTranscriptText(currentText);
+			if (!normalized) return;
+			lines.push({
+				text: normalized,
+				startMs: currentStartMs,
+				endMs: currentEndMs,
+				words: currentWords
+			});
+			currentText = '';
+			currentStartMs = 0;
+			currentEndMs = 0;
+			currentWords = [];
+		};
 
 		for (let i = 0; i < cues.length; i++) {
 			const cue = cues[i];
-			const text = normalizeTranscriptText(cue.text);
-			if (!text) continue;
+			const token = cue.text;
+			if (!token?.trim()) continue;
 
-			// Keep punctuation attached to the previous token instead of becoming its own row.
-			if (/^[,.;!?]+$/.test(text) && lines.length) {
-				lines[lines.length - 1] = {
-					...lines[lines.length - 1],
-					text: normalizeTranscriptText(`${lines[lines.length - 1].text}${text}`),
-					endMs: cue.endMs
-				};
-				continue;
+			if (!currentText) {
+				currentStartMs = cue.startMs;
 			}
 
-			lines.push({
-				text,
+			currentText += token;
+			currentEndMs = cue.endMs;
+			currentWords.push({
+				text: token,
 				startMs: cue.startMs,
 				endMs: cue.endMs
 			});
+
+			const normalized = normalizeTranscriptText(currentText);
+			const hitsSentenceBoundary = /[.!?]["')\]]*$/.test(normalized);
+			const isLongChunk = maxCharsPerLine > 0 && normalized.length >= maxCharsPerLine;
+
+			if (hitsSentenceBoundary || isLongChunk) {
+				flushCurrentLine();
+			}
 		}
 
-		// Keep previous behavior contract while now using word-level rows.
-		return maxCharsPerLine > 0 ? lines : [];
+		flushCurrentLine();
+		return lines;
 	}
 
 	$: sortedPortfolioItems = [...$portfolioItems].sort(
@@ -118,12 +153,19 @@
 	let mobileVideoEl: HTMLVideoElement | null = null;
 	let detailVideoCurrentMs = 0;
 	let detailTranscriptCues: Array<{ text: string; startMs: number; endMs: number }> = [];
-	let detailTranscriptLines: Array<{ text: string; startMs: number; endMs: number }> = [];
-	let detailVisibleTranscriptLines: Array<{ text: string; startMs: number; endMs: number }> = [];
-	let shouldStickTranscriptToBottom = true;
+	let detailTranscriptLines: Array<{
+		text: string;
+		startMs: number;
+		endMs: number;
+		words: Array<{ text: string; startMs: number; endMs: number }>;
+	}> = [];
+	let detailActiveTranscriptLineIndex = -1;
+	let detailMediaIsPlaying = false;
+	let lastAutoScrolledTranscriptLineIndex = -1;
 	let detailTranscriptCanScrollUp = false;
+	let mobileVideoCompactProgress = 0;
 	let mobileAudioIsPlaying = false;
-	let mobileVideoVisible = false;
+	let mobileVideoVisible = true;
 	let mobileAudioDurationMs = 0;
 	let mobileAudioScrubMs = 0;
 	let mobileAudioScrubbing = false;
@@ -149,23 +191,38 @@
 
 	function handleDetailVideoTimeUpdate() {
 		detailVideoCurrentMs = detailVideoEl ? detailVideoEl.currentTime * 1000 : 0;
-		if (detailTranscriptEl && shouldStickTranscriptToBottom) {
-			requestAnimationFrame(() => {
-				if (detailTranscriptEl && shouldStickTranscriptToBottom) {
-					detailTranscriptEl.scrollTop = detailTranscriptEl.scrollHeight;
-					syncTranscriptScrollIndicators();
-				}
-			});
-		}
+		syncTranscriptScrollIndicators();
 	}
 
 	function handleTranscriptScroll() {
 		if (!detailTranscriptEl) return;
-		const distanceFromBottom =
-			detailTranscriptEl.scrollHeight -
-			detailTranscriptEl.scrollTop -
-			detailTranscriptEl.clientHeight;
-		shouldStickTranscriptToBottom = distanceFromBottom < 24;
+		syncTranscriptScrollIndicators();
+	}
+
+	function handleDetailPieceScroll() {
+		if (!detailPieceEl) return;
+		const compactStartPx = 90;
+		const compactRangePx = 240;
+		const nextProgress = (detailPieceEl.scrollTop - compactStartPx) / compactRangePx;
+		mobileVideoCompactProgress = Math.max(0, Math.min(1, nextProgress));
+	}
+
+	function handleDetailMediaPlay() {
+		detailMediaIsPlaying = true;
+		lastAutoScrolledTranscriptLineIndex = -1;
+	}
+
+	function handleDetailMediaPause() {
+		detailMediaIsPlaying = false;
+	}
+
+	function autoScrollActiveTranscriptLine() {
+		if (!detailTranscriptEl || detailActiveTranscriptLineIndex < 0) return;
+		const activeLineEl = detailTranscriptEl.querySelector<HTMLButtonElement>(
+			`[data-transcript-index="${detailActiveTranscriptLineIndex}"]`
+		);
+		if (!activeLineEl) return;
+		activeLineEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
 		syncTranscriptScrollIndicators();
 	}
 
@@ -180,6 +237,27 @@
 		}
 	}
 
+	function jumpToTranscriptLine(startMs: number) {
+		const nextSeconds = Math.max(0, startMs / 1000);
+		const mediaTargets: Array<HTMLMediaElement | null> = [
+			detailVideoEl,
+			mobileAudioEl,
+			mobileVideoEl
+		];
+
+		for (const media of mediaTargets) {
+			if (!media) continue;
+			try {
+				media.currentTime = nextSeconds;
+			} catch {
+				// Some browsers reject immediate seeks before metadata is ready.
+			}
+		}
+
+		detailVideoCurrentMs = startMs;
+		mobileAudioScrubMs = startMs;
+	}
+
 	function getActiveMobileMediaElement(): HTMLMediaElement | null {
 		if (mobileVideoVisible && mobileVideoEl) return mobileVideoEl;
 		return mobileAudioEl;
@@ -191,15 +269,39 @@
 	): string {
 		if (!cues.length) return '';
 
+		// Keep a wider context window so captions feel readable instead of flashing word-by-word.
+		const lookbackMs = 1600;
+		const lookaheadMs = 2600;
 		const snippet = cues
-			.filter((cue) => cue.endMs >= currentMs - 300 && cue.startMs <= currentMs + 900)
+			.filter(
+				(cue) => cue.endMs >= currentMs - lookbackMs && cue.startMs <= currentMs + lookaheadMs
+			)
 			.map((cue) => cue.text)
 			.join('');
 		const normalized = normalizeTranscriptText(snippet);
 		if (normalized) return normalized;
 
+		const activeIndex = cues.findIndex((cue) => currentMs >= cue.startMs && currentMs <= cue.endMs);
+		if (activeIndex >= 0) {
+			const start = Math.max(0, activeIndex - 5);
+			const end = Math.min(cues.length, activeIndex + 7);
+			const fallback = normalizeTranscriptText(
+				cues
+					.slice(start, end)
+					.map((cue) => cue.text)
+					.join('')
+			);
+			if (fallback) return fallback;
+		}
+
 		for (let i = cues.length - 1; i >= 0; i--) {
-			if (cues[i].startMs <= currentMs) return normalizeTranscriptText(cues[i].text);
+			if (cues[i].startMs <= currentMs)
+				return normalizeTranscriptText(
+					cues
+						.slice(Math.max(0, i - 3), i + 1)
+						.map((cue) => cue.text)
+						.join('')
+				);
 		}
 
 		return normalizeTranscriptText(cues[0].text);
@@ -219,10 +321,12 @@
 
 	function handleMobileAudioPlay() {
 		mobileAudioIsPlaying = true;
+		handleDetailMediaPlay();
 	}
 
 	function handleMobileAudioPause() {
 		mobileAudioIsPlaying = false;
+		handleDetailMediaPause();
 	}
 
 	function handleMobileAudioSeekInput(event: Event) {
@@ -301,25 +405,49 @@
 				endMs: cue.endMs
 			}));
 		detailTranscriptLines = buildTranscriptLines(detailTranscriptCues);
-		detailVisibleTranscriptLines = detailTranscriptLines.filter(
-			(line) => line.startMs <= detailVideoCurrentMs + 120
+		detailActiveTranscriptLineIndex = detailTranscriptLines.findIndex(
+			(line) => detailVideoCurrentMs >= line.startMs && detailVideoCurrentMs < line.endMs
 		);
+		if (
+			detailActiveTranscriptLineIndex < 0 &&
+			detailTranscriptLines.length &&
+			detailVideoCurrentMs > 0
+		) {
+			detailActiveTranscriptLineIndex = detailTranscriptLines.reduce(
+				(activeIndex, line, index) => (line.startMs <= detailVideoCurrentMs ? index : activeIndex),
+				-1
+			);
+		}
 	}
 
 	$: mobileTranscriptTicker = detailTranscriptCues.length
 		? getMobileTickerText(detailTranscriptCues, detailVideoCurrentMs)
 		: '';
 
+	$: if (
+		detailMediaIsPlaying &&
+		detailActiveTranscriptLineIndex >= 0 &&
+		detailActiveTranscriptLineIndex !== lastAutoScrolledTranscriptLineIndex
+	) {
+		lastAutoScrolledTranscriptLineIndex = detailActiveTranscriptLineIndex;
+		requestAnimationFrame(() => {
+			autoScrollActiveTranscriptLine();
+		});
+	}
+
 	$: {
 		const currentSlug = activeDetailItem ? toPieceSlug(activeDetailItem) : '';
 		if (currentSlug !== lastActiveDetailSlug) {
 			lastActiveDetailSlug = currentSlug;
 			mobileAudioIsPlaying = false;
-			mobileVideoVisible = false;
+			mobileVideoVisible = true;
 			mobileAudioDurationMs = 0;
 			mobileAudioScrubMs = 0;
 			mobileAudioScrubbing = false;
+			mobileVideoCompactProgress = 0;
 			detailVideoCurrentMs = 0;
+			detailMediaIsPlaying = false;
+			lastAutoScrolledTranscriptLineIndex = -1;
 		}
 	}
 
@@ -666,6 +794,8 @@
 			if (!activeDetailItem || immersiveMode) return;
 			const target = e.target instanceof Element ? e.target : null;
 			if (target?.closest('.cli-terminal-window')) return;
+			// Let desktop/tablet transcript panel handle its own wheel scrolling.
+			if (target?.closest('.detail-panel-transcript')) return;
 			if (!detailPieceEl) return;
 			const maxScroll = Math.max(0, detailPieceEl.scrollHeight - detailPieceEl.clientHeight);
 			if (maxScroll <= 0) return;
@@ -679,6 +809,43 @@
 		document.addEventListener('click', handleDocumentClick);
 		window.addEventListener('popstate', openPieceFromUrl);
 
+		const mql = window.matchMedia('(max-width: 768px)');
+		let wasMobile = mql.matches;
+
+		function handleBreakpointChange(e: MediaQueryListEvent) {
+			const nowMobile = e.matches;
+			if (wasMobile === nowMobile) return;
+			const currentSeconds = detailVideoCurrentMs / 1000;
+
+			if (wasMobile && !nowMobile) {
+				if (mobileAudioEl && !mobileAudioEl.paused) mobileAudioEl.pause();
+				if (mobileVideoEl && !mobileVideoEl.paused) mobileVideoEl.pause();
+				if (detailVideoEl) {
+					try {
+						detailVideoEl.currentTime = currentSeconds;
+					} catch {
+						/* browser may reject seeks before metadata */
+					}
+				}
+			} else {
+				if (detailVideoEl && !detailVideoEl.paused) detailVideoEl.pause();
+				const target = getActiveMobileMediaElement();
+				if (target) {
+					try {
+						target.currentTime = currentSeconds;
+					} catch {
+						/* browser may reject seeks before metadata */
+					}
+				}
+			}
+
+			mobileAudioIsPlaying = false;
+			detailMediaIsPlaying = false;
+			wasMobile = nowMobile;
+		}
+
+		mql.addEventListener('change', handleBreakpointChange);
+
 		document.querySelector(':root')?.classList.add('mounted');
 		document.body.classList.add('js-enabled');
 
@@ -688,6 +855,7 @@
 			document.removeEventListener('wheel', handleWheel, { capture: true });
 			document.removeEventListener('click', handleDocumentClick);
 			window.removeEventListener('popstate', openPieceFromUrl);
+			mql.removeEventListener('change', handleBreakpointChange);
 		};
 	});
 
@@ -714,48 +882,37 @@
 	<FloatingContactDock visible={!immersiveMode} onCopyEmail={copyEmailToClipboard} />
 </div>
 
-<!-- Mobile top bar: thin rainbow on home, full nav bar on portfolio piece -->
+<!-- Mobile top stack: rainbow nav + audio controls -->
 <div
-	class="mobile-rainbow-bar"
-	class:mobile-rainbow-bar--home={!activeDetailItem}
-	class:mobile-rainbow-bar--nav={!!activeDetailItem}
+	class="mobile-top-stack"
+	class:mobile-top-stack--with-audio={!!activeDetailItem?.videoUrl &&
+		isDirectVideoFile(activeDetailItem.videoUrl)}
 >
-	{#if activeDetailItem}
-		<button
-			class="mobile-nav__home"
-			on:click={() => {
-				activeDetailItem = null;
-				updatePieceQuery(null);
-			}}
-			aria-label="Back to home"
-		>
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				viewBox="0 0 24 24"
-				width="24"
-				height="24"
-				fill="currentColor"
-				aria-hidden="true"
-				style="image-rendering: pixelated"
-			>
-				<!-- eyes -->
-				<rect x="5" y="2" width="4" height="8" />
-				<rect x="15" y="2" width="4" height="8" />
-				<!-- smile -->
-				<rect x="0" y="14" width="2" height="4" />
-				<rect x="2" y="16" width="2" height="4" />
-				<rect x="4" y="18" width="2" height="4" />
-				<rect x="6" y="20" width="12" height="4" />
-				<rect x="18" y="18" width="2" height="4" />
-				<rect x="20" y="16" width="2" height="4" />
-				<rect x="22" y="14" width="2" height="4" />
-			</svg>
-		</button>
-		<div class="mobile-nav__icons">
-			<ThemeToggle />
-			<FloatingContactDock visible={true} onCopyEmail={copyEmailToClipboard} />
-		</div>
-	{/if}
+	<MobileTopStack
+		showNav={!!activeDetailItem}
+		showAudio={!!activeDetailItem?.videoUrl && isDirectVideoFile(activeDetailItem.videoUrl)}
+		videoUrl={activeDetailItem?.videoUrl ?? ''}
+		{mobileAudioIsPlaying}
+		{mobileAudioDurationMs}
+		{mobileAudioScrubMs}
+		{mobileVideoVisible}
+		mobileTickerCues={detailTranscriptCues}
+		currentMs={detailVideoCurrentMs}
+		bind:mobileAudioEl
+		onGoHome={() => {
+			activeDetailItem = null;
+			updatePieceQuery(null);
+		}}
+		onCopyEmail={copyEmailToClipboard}
+		{toggleMobileAudioPlayback}
+		{handleMobileAudioSeekInput}
+		{commitMobileAudioSeek}
+		{toggleMobileVideoVisible}
+		{handleMobileAudioPlay}
+		{handleMobileAudioPause}
+		{handleMobileMediaTimeUpdate}
+		{formatMediaTime}
+	/>
 </div>
 
 <div class="landing-page">
@@ -835,146 +992,23 @@
 									aria-hidden="true"
 								></div>
 								<div class="detail-panel-grid detail-panel-grid--enter">
-									<div class="detail-panel-piece" bind:this={detailPieceEl}>
+									<div
+										class="detail-panel-piece"
+										bind:this={detailPieceEl}
+										on:scroll={handleDetailPieceScroll}
+									>
 										{#if activeDetailItem.videoUrl}
-											<div class="mobile-media-panel">
-												{#if isDirectVideoFile(activeDetailItem.videoUrl)}
-													<div class="mobile-media-controls">
-														<div class="mobile-media-controls__primary">
-															<button
-																type="button"
-																class="mobile-media-play"
-																on:click={toggleMobileAudioPlayback}
-																aria-label={mobileAudioIsPlaying ? 'Pause audio' : 'Play audio'}
-															>
-																{#if mobileAudioIsPlaying}
-																	<!-- Pixel pause (4×5 grid) -->
-																	<svg
-																		class="mobile-media-play__icon"
-																		xmlns="http://www.w3.org/2000/svg"
-																		viewBox="0 0 4 5"
-																		width="24"
-																		height="24"
-																		fill="currentColor"
-																		aria-hidden="true"
-																		style="image-rendering: pixelated"
-																	>
-																		<rect x="0" y="0" width="1" height="5" />
-																		<rect x="3" y="0" width="1" height="5" />
-																	</svg>
-																{:else}
-																	<!-- Pixel play, matching portfolio-end nav triangle (3×5 grid) -->
-																	<svg
-																		class="mobile-media-play__icon"
-																		xmlns="http://www.w3.org/2000/svg"
-																		viewBox="0 0 3 5"
-																		width="24"
-																		height="24"
-																		fill="currentColor"
-																		aria-hidden="true"
-																		style="image-rendering: pixelated"
-																	>
-																		<rect x="2" y="2" width="1" height="1" />
-																		<rect x="1" y="1" width="1" height="3" />
-																		<rect x="0" y="0" width="1" height="5" />
-																	</svg>
-																{/if}
-															</button>
-															<div class="mobile-media-scrubber-wrap">
-																<input
-																	class="mobile-media-scrubber"
-																	type="range"
-																	min="0"
-																	max={Math.max(0, Math.floor(mobileAudioDurationMs))}
-																	value={Math.min(
-																		Math.max(0, Math.floor(mobileAudioScrubMs)),
-																		Math.max(0, Math.floor(mobileAudioDurationMs))
-																	)}
-																	on:input={handleMobileAudioSeekInput}
-																	on:change={commitMobileAudioSeek}
-																	on:pointerup={commitMobileAudioSeek}
-																	on:touchend={commitMobileAudioSeek}
-																	aria-label="Seek audio"
-																/>
-															</div>
-														</div>
-														<div class="mobile-media-controls__secondary">
-															<span class="mobile-media-time" aria-hidden="true">
-																{formatMediaTime(mobileAudioScrubMs)}
-															</span>
-															<button
-																type="button"
-																class="mobile-video-switch-wrap"
-																on:click={toggleMobileVideoVisible}
-																role="switch"
-																aria-checked={mobileVideoVisible}
-																aria-label={mobileVideoVisible ? 'Video on' : 'Video off'}
-															>
-																<span
-																	class="mobile-video-switch"
-																	class:mobile-video-switch--on={mobileVideoVisible}
-																>
-																	<span class="mobile-video-switch__status">
-																		{mobileVideoVisible ? 'ON' : 'OFF'}
-																	</span>
-																	<span class="mobile-video-switch__thumb" aria-hidden="true"
-																	></span>
-																</span>
-																<span class="mobile-video-switch__label">Video</span>
-															</button>
-														</div>
-													</div>
-
-													<audio
-														class="mobile-media-audio"
-														bind:this={mobileAudioEl}
-														preload="metadata"
-														src={activeDetailItem.videoUrl}
-														on:play={handleMobileAudioPlay}
-														on:pause={handleMobileAudioPause}
-														on:loadedmetadata={handleMobileMediaTimeUpdate}
-														on:timeupdate={handleMobileMediaTimeUpdate}
-														on:seeked={handleMobileMediaTimeUpdate}
-													></audio>
-													{#if mobileVideoVisible}
-														<div class="mobile-media-video-shell">
-															<!-- svelte-ignore a11y-media-has-caption -->
-															<video
-																class="mobile-media-video-preview"
-																bind:this={mobileVideoEl}
-																preload="metadata"
-																playsinline
-																src={activeDetailItem.videoUrl}
-																on:play={handleMobileAudioPlay}
-																on:pause={handleMobileAudioPause}
-																on:loadedmetadata={handleMobileMediaTimeUpdate}
-																on:timeupdate={handleMobileMediaTimeUpdate}
-																on:seeked={handleMobileMediaTimeUpdate}
-															></video>
-															{#if mobileAudioIsPlaying && mobileTranscriptTicker}
-																<div
-																	class="mobile-media-floating-captions mobile-media-floating-captions--overlay"
-																	aria-live="polite"
-																>
-																	<span class="mobile-media-floating-captions__text">
-																		{mobileTranscriptTicker}
-																	</span>
-																</div>
-															{/if}
-														</div>
-													{:else if mobileAudioIsPlaying && mobileTranscriptTicker}
-														<div class="mobile-media-floating-captions" aria-live="polite">
-															<span class="mobile-media-floating-captions__text">
-																{mobileTranscriptTicker}
-															</span>
-														</div>
-													{/if}
-												{:else}
-													<div class="mobile-media-unsupported">
-														Audio controls are available for direct video files.
-													</div>
-												{/if}
-											</div>
+											<MobileDetailMedia
+												showPanel={true}
+												isDirectVideo={isDirectVideoFile(activeDetailItem.videoUrl)}
+												videoUrl={activeDetailItem.videoUrl}
+												{mobileVideoVisible}
+												{mobileVideoCompactProgress}
+												bind:mobileVideoEl
+												{handleMobileAudioPlay}
+												{handleMobileAudioPause}
+												{handleMobileMediaTimeUpdate}
+											/>
 										{/if}
 										<!-- Only remount body content when switching pieces (shell/dividers stay put). -->
 										{#key toPieceSlug(activeDetailItem)}
@@ -1018,6 +1052,9 @@
 														preload="metadata"
 														src={activeDetailItem.videoUrl}
 														title="Video for {activeDetailItem.title}"
+														on:play={handleDetailMediaPlay}
+														on:pause={handleDetailMediaPause}
+														on:ended={handleDetailMediaPause}
 														on:loadedmetadata={handleDetailVideoTimeUpdate}
 														on:timeupdate={handleDetailVideoTimeUpdate}
 														on:seeked={handleDetailVideoTimeUpdate}
@@ -1042,22 +1079,30 @@
 											bind:this={detailTranscriptEl}
 											on:scroll={handleTranscriptScroll}
 										>
-											{#if detailVisibleTranscriptLines.length}
+											{#if detailTranscriptLines.length}
 												<p class="detail-panel-transcript-flow">
-													{#each detailVisibleTranscriptLines as line, index (`${line.startMs}-${index}`)}
-														<span
+													{#each detailTranscriptLines as line, index (`${line.startMs}-${index}`)}
+														<button
+															type="button"
+															data-transcript-index={index}
 															class="detail-panel-transcript-line"
-															class:detail-panel-transcript-line--active={index ===
-																detailVisibleTranscriptLines.length - 1}
+															on:click={() => jumpToTranscriptLine(line.startMs)}
+															title={`Jump to ${formatMediaTime(line.startMs)}`}
+															aria-label={`Jump video to ${formatMediaTime(line.startMs)}: ${line.text.trim()}`}
 														>
-															{line.text}
-														</span>
+															{#each line.words as word, wordIndex (`${word.startMs}-${wordIndex}`)}
+																<span
+																	class="detail-panel-transcript-word"
+																	class:detail-panel-transcript-word--active={detailMediaIsPlaying &&
+																		detailVideoCurrentMs >= word.startMs &&
+																		detailVideoCurrentMs < word.endMs}
+																>
+																	{word.text}
+																</span>
+															{/each}
+														</button>
 													{/each}
 												</p>
-											{:else if detailTranscriptLines.length}
-												<span class="detail-panel-placeholder">
-													Transcript will appear as the video plays
-												</span>
 											{:else}
 												<span class="detail-panel-placeholder">Transcript</span>
 											{/if}
@@ -1338,9 +1383,9 @@
 
 	.detail-panel {
 		position: relative;
-		flex: 1 1 auto;
+		flex: 1 1 0%;
 		min-height: 0;
-		max-height: 100%;
+		height: 100%;
 		width: 100%;
 		z-index: 3;
 		display: flex;
@@ -1348,7 +1393,7 @@
 		overflow: hidden;
 	}
 
-	.mobile-rainbow-bar {
+	.mobile-top-stack {
 		display: none;
 	}
 
@@ -1542,7 +1587,7 @@
 		top: 0;
 		display: block;
 		height: 1.1rem;
-		margin: -1rem -1rem 0;
+		margin: 0 0 -1.1rem 0;
 		background: linear-gradient(
 			to bottom,
 			var(--bg-color) 0%,
@@ -1561,18 +1606,52 @@
 	.detail-panel-transcript-flow {
 		margin: 0;
 		font-size: var(--font-size-sm);
-		line-height: 1.55;
+		line-height: 1.58;
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 370;
 	}
 
 	.detail-panel-transcript-line {
-		display: inline;
-		margin-right: 0.36ch;
+		display: block;
+		width: 100%;
+		margin: 0 0 0.18rem;
+		padding: 0.08rem 0.2rem;
+		border: 0;
+		border-radius: 0.22rem;
+		background: transparent;
 		color: var(--text-color);
 		opacity: 0.72;
+		font: inherit;
+		line-height: inherit;
+		text-transform: none;
+		letter-spacing: normal;
+		cursor: pointer;
+		text-align: left;
+		transition:
+			opacity 130ms ease,
+			background-color 130ms ease;
 	}
 
-	.detail-panel-transcript-line--active {
-		opacity: 0.98;
+	.detail-panel-transcript-line:hover {
+		opacity: 0.95;
+		background: color-mix(in srgb, var(--text-color) 10%, transparent);
+	}
+
+	.detail-panel-transcript-line:focus-visible {
+		opacity: 1;
+		background: color-mix(in srgb, var(--text-color) 14%, transparent);
+		outline: 1px solid color-mix(in srgb, var(--text-color) 32%, transparent);
+		outline-offset: 1px;
+	}
+
+	.detail-panel-transcript-word {
+		font: inherit;
+		font-weight: 370;
+	}
+
+	.detail-panel-transcript-word--active {
+		font-weight: 700;
 	}
 
 	.detail-panel-placeholder {
@@ -1582,10 +1661,6 @@
 		opacity: 0.35;
 		text-transform: uppercase;
 		letter-spacing: 0.08em;
-	}
-
-	.mobile-media-panel {
-		display: none;
 	}
 
 	/* Tablet: move video/transcript below the main terminal content. */
@@ -1694,7 +1769,7 @@
 
 		:global(body.detail-panel-open) .landing-portfolio-shell {
 			margin-top: 0;
-			padding-top: 3rem;
+			padding-top: 0;
 		}
 
 		.landing-portfolio-shell {
@@ -1726,229 +1801,18 @@
 		.detail-panel-piece {
 			border: none;
 			border-radius: 0;
-			/* Use an explicit mobile scroll container for reliable touch scrolling. */
 			overflow-y: auto;
 			overflow-x: hidden;
 			-webkit-overflow-scrolling: touch;
 			overscroll-behavior: contain;
 			touch-action: pan-y;
-			height: auto;
-			max-height: calc(
-				100dvh - 3rem - 3.375rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
-			);
-			background: transparent;
+			height: 100dvh;
+			max-height: 100dvh;
+			background: var(--bg-color);
 		}
 
 		.detail-panel-sidebar {
 			display: none;
-		}
-
-		.mobile-media-panel {
-			display: flex;
-			flex-direction: column;
-			gap: 0.45rem;
-			padding: 0;
-			margin: 0 0 0.55rem;
-			position: sticky;
-			top: 0;
-			z-index: 8;
-			background: var(--bg-color);
-		}
-
-		.mobile-media-controls {
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			gap: var(--spacing-sm);
-			width: 100%;
-			min-width: 0;
-			padding: 0.5rem 0;
-		}
-
-		.mobile-media-controls__primary {
-			display: flex;
-			align-items: center;
-			gap: var(--spacing-sm);
-			flex: 1 1 auto;
-			min-width: 0;
-		}
-
-		.mobile-media-controls__secondary {
-			display: flex;
-			align-items: center;
-			gap: var(--spacing-xs);
-			flex: 0 0 auto;
-		}
-
-		.mobile-media-scrubber-wrap {
-			flex: 1 1 auto;
-			min-width: 0;
-		}
-
-		.mobile-media-scrubber {
-			width: 100%;
-			accent-color: var(--text-color);
-			height: 1px;
-		}
-
-		.mobile-media-time {
-			color: var(--text-color);
-			font-family: inherit;
-			font-size: var(--font-size-xs);
-			opacity: 0.8;
-			min-width: 2.4rem;
-			text-align: right;
-		}
-
-		.mobile-media-play {
-			border: none;
-			background: transparent;
-			color: var(--text-color);
-			padding: 0;
-			line-height: 0;
-			cursor: pointer;
-			opacity: 0.88;
-			flex: 0 0 auto;
-		}
-
-		.mobile-media-play:hover {
-			opacity: 1;
-		}
-
-		.mobile-media-play__icon {
-			display: block;
-			flex-shrink: 0;
-			width: 24px;
-			height: 24px;
-		}
-
-		.mobile-video-switch-wrap {
-			border: none;
-			background: transparent;
-			padding: 0;
-			margin: 0;
-			display: inline-flex;
-			align-items: center;
-			gap: 0.38rem;
-			cursor: pointer;
-			color: var(--text-color);
-			flex: 0 0 auto;
-		}
-
-		.mobile-video-switch {
-			position: relative;
-			width: 54px;
-			height: 24px;
-			border-radius: 999px;
-			border: 1px solid color-mix(in srgb, var(--text-color) 74%, transparent);
-			background: color-mix(in srgb, var(--text-color) 7%, transparent);
-			display: inline-flex;
-			align-items: center;
-			padding: 0 6px;
-			box-sizing: border-box;
-			transition: background-color 120ms ease;
-		}
-
-		.mobile-video-switch--on {
-			background: color-mix(in srgb, var(--text-color) 16%, transparent);
-		}
-
-		.mobile-video-switch__status {
-			position: absolute;
-			right: 6px;
-			font-size: 0.58rem;
-			letter-spacing: 0.06em;
-			opacity: 0.92;
-			font-variation-settings:
-				'CASL' 0,
-				'wght' 600;
-		}
-
-		.mobile-video-switch--on .mobile-video-switch__status {
-			left: 6px;
-			right: auto;
-		}
-
-		.mobile-video-switch__thumb {
-			position: absolute;
-			top: 2px;
-			left: 2px;
-			width: 18px;
-			height: 18px;
-			border-radius: 999px;
-			background: var(--text-color);
-			box-shadow: 0 1px 2px color-mix(in srgb, var(--text-color) 22%, transparent);
-			transition: transform 120ms ease;
-		}
-
-		.mobile-video-switch--on .mobile-video-switch__thumb {
-			transform: translateX(30px);
-		}
-
-		.mobile-video-switch__label {
-			font-size: 0.68rem;
-			letter-spacing: 0.02em;
-			opacity: 0.82;
-		}
-
-		.mobile-media-audio {
-			width: 100%;
-			height: 0;
-			opacity: 0;
-			pointer-events: none;
-			position: absolute;
-		}
-
-		.mobile-media-floating-captions {
-			align-self: flex-start;
-			max-width: min(92%, 48ch);
-		}
-
-		.mobile-media-floating-captions--overlay {
-			position: absolute;
-			left: 0.5rem;
-			right: 0.5rem;
-			bottom: 0.5rem;
-			max-width: none;
-			z-index: 2;
-			pointer-events: none;
-		}
-
-		.mobile-media-video-shell {
-			position: relative;
-			width: 100%;
-		}
-
-		.mobile-media-video-preview {
-			width: 100%;
-			aspect-ratio: 16 / 9;
-			border: 1px solid var(--text-color);
-			background: var(--bg-color);
-			object-fit: cover;
-			display: block;
-		}
-
-		.mobile-media-floating-captions__text {
-			display: inline;
-			font-size: var(--font-size-sm);
-			line-height: 1.5;
-			color: var(--bg-color);
-			background: color-mix(in srgb, var(--text-color) 88%, transparent);
-			padding: 0.28rem 0.52rem;
-			border-radius: 0.45rem;
-			border: 2px solid var(--text-color);
-			box-shadow:
-				0 0 0 1px color-mix(in srgb, var(--bg-color) 72%, transparent),
-				0 4px 14px color-mix(in srgb, var(--text-color) 28%, transparent);
-		}
-
-		.mobile-media-unsupported {
-			border: 1px solid var(--text-color);
-			padding: 0.45rem 0.6rem;
-			font-size: var(--font-size-xs);
-			line-height: 1.5;
-			color: var(--text-color);
-			opacity: 0.85;
 		}
 
 		.detail-panel-rainbow--top,
@@ -1960,103 +1824,24 @@
 			display: none;
 		}
 
-		.mobile-rainbow-bar {
-			display: block;
+		.mobile-top-stack {
+			display: flex;
+			flex-direction: column;
+			gap: 0;
 			position: fixed;
 			top: 0;
 			left: 0;
 			right: 0;
 			width: 100%;
 			z-index: 10050;
-			background-image: var(--palette-rainbow-gradient-h);
-			background-size: 240% 100%;
-			animation: rainbow-dance-bottom 22s linear infinite;
-			-webkit-tap-highlight-color: transparent;
 		}
 
-		.mobile-rainbow-bar--home {
-			height: 5px;
+		:global(.mobile-top-stack + .landing-page .detail-panel-piece) {
+			padding-top: calc(3rem + env(safe-area-inset-top, 0px));
 		}
 
-		.mobile-rainbow-bar--nav {
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			height: auto;
-			padding: 0.5rem var(--landing-inset, 1rem);
-			padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
-		}
-
-		.mobile-nav__home {
-			display: flex;
-			align-items: center;
-			line-height: 0;
-			background: none;
-			border: none;
-			padding: 0;
-			cursor: pointer;
-			color: var(--bg-color);
-			opacity: 0.9;
-			-webkit-tap-highlight-color: transparent;
-		}
-
-		.mobile-nav__home:hover {
-			opacity: 1;
-		}
-
-		.mobile-nav__home :global(svg) {
-			display: block;
-		}
-
-		.mobile-nav__icons {
-			display: flex;
-			align-items: center;
-			gap: 1.1rem;
-		}
-
-		.mobile-nav__icons :global(.theme-toggle) {
-			color: var(--bg-color);
-			opacity: 1;
-			display: flex;
-			align-items: center;
-			line-height: 0;
-			padding: 0;
-		}
-
-		.mobile-nav__icons :global(.theme-toggle) :global(svg) {
-			width: 24px !important;
-			height: 24px !important;
-		}
-
-		.mobile-nav__icons :global(.floating-contact-dock) {
-			display: inline-flex !important;
-			align-items: center;
-			gap: 1.1rem;
-			pointer-events: auto;
-			opacity: 1;
-		}
-
-		.mobile-nav__icons :global(.floating-contact-dock__link),
-		.mobile-nav__icons :global(.floating-contact-dock__button) {
-			color: var(--bg-color);
-			opacity: 1;
-			display: flex;
-			align-items: center;
-			line-height: 0;
-			padding: 0;
-		}
-
-		.mobile-nav__icons :global(.floating-contact-dock__link:hover),
-		.mobile-nav__icons :global(.floating-contact-dock__button:hover) {
-			opacity: 1;
-		}
-
-		.mobile-nav__icons :global(.floating-contact-dock__link svg),
-		.mobile-nav__icons :global(.floating-contact-dock__button svg),
-		.mobile-nav__icons :global(.floating-contact-dock__link) :global(svg),
-		.mobile-nav__icons :global(.floating-contact-dock__button) :global(svg) {
-			width: 24px !important;
-			height: 24px !important;
+		:global(.mobile-top-stack--with-audio + .landing-page .detail-panel-piece) {
+			padding-top: calc(6.5rem + env(safe-area-inset-top, 0px));
 		}
 	}
 
