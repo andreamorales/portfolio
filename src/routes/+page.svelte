@@ -917,9 +917,7 @@
 																	<span class="mobile-video-switch__status">
 																		{mobileVideoVisible ? 'ON' : 'OFF'}
 																	</span>
-																	<span
-																		class="mobile-video-switch__thumb"
-																		aria-hidden="true"
+																	<span class="mobile-video-switch__thumb" aria-hidden="true"
 																	></span>
 																</span>
 																<span class="mobile-video-switch__label">Video</span>
