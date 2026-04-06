@@ -114,12 +114,21 @@
 	let activeDetailItem: PortfolioItem | null = null;
 	let detailVideoEl: HTMLVideoElement | null = null;
 	let detailTranscriptEl: HTMLDivElement | null = null;
+	let mobileAudioEl: HTMLAudioElement | null = null;
+	let mobileVideoEl: HTMLVideoElement | null = null;
 	let detailVideoCurrentMs = 0;
 	let detailTranscriptCues: Array<{ text: string; startMs: number; endMs: number }> = [];
 	let detailTranscriptLines: Array<{ text: string; startMs: number; endMs: number }> = [];
 	let detailVisibleTranscriptLines: Array<{ text: string; startMs: number; endMs: number }> = [];
 	let shouldStickTranscriptToBottom = true;
 	let detailTranscriptCanScrollUp = false;
+	let mobileAudioIsPlaying = false;
+	let mobileVideoVisible = false;
+	let mobileAudioDurationMs = 0;
+	let mobileAudioScrubMs = 0;
+	let mobileAudioScrubbing = false;
+	let mobileTranscriptTicker = '';
+	let lastActiveDetailSlug = '';
 	let activeDetailRevealDelayMs = 1360;
 	let unlockedPieceSlugs = new Set<string>();
 	let unlockedPieceDataBySlug = new Map<string, SecurePortfolioPayloadData>();
@@ -160,6 +169,123 @@
 		syncTranscriptScrollIndicators();
 	}
 
+	function handleMobileMediaTimeUpdate(event: Event) {
+		const media = event.currentTarget as HTMLMediaElement;
+		detailVideoCurrentMs = media.currentTime * 1000;
+		if (!mobileAudioScrubbing) {
+			mobileAudioScrubMs = detailVideoCurrentMs;
+		}
+		if (Number.isFinite(media.duration)) {
+			mobileAudioDurationMs = media.duration * 1000;
+		}
+	}
+
+	function getActiveMobileMediaElement(): HTMLMediaElement | null {
+		if (mobileVideoVisible && mobileVideoEl) return mobileVideoEl;
+		return mobileAudioEl;
+	}
+
+	function getMobileTickerText(
+		cues: Array<{ text: string; startMs: number; endMs: number }>,
+		currentMs: number
+	): string {
+		if (!cues.length) return '';
+
+		const snippet = cues
+			.filter((cue) => cue.endMs >= currentMs - 300 && cue.startMs <= currentMs + 900)
+			.map((cue) => cue.text)
+			.join('');
+		const normalized = normalizeTranscriptText(snippet);
+		if (normalized) return normalized;
+
+		for (let i = cues.length - 1; i >= 0; i--) {
+			if (cues[i].startMs <= currentMs) return normalizeTranscriptText(cues[i].text);
+		}
+
+		return normalizeTranscriptText(cues[0].text);
+	}
+
+	function toggleMobileAudioPlayback() {
+		const media = getActiveMobileMediaElement();
+		if (!media) return;
+		if (media.paused || media.ended) {
+			media.play().catch(() => {
+				// Autoplay policies may block without user gesture.
+			});
+		} else {
+			media.pause();
+		}
+	}
+
+	function handleMobileAudioPlay() {
+		mobileAudioIsPlaying = true;
+	}
+
+	function handleMobileAudioPause() {
+		mobileAudioIsPlaying = false;
+	}
+
+	function handleMobileAudioSeekInput(event: Event) {
+		const target = event.currentTarget as HTMLInputElement;
+		const next = Number(target.value);
+		mobileAudioScrubbing = true;
+		mobileAudioScrubMs = next;
+		detailVideoCurrentMs = next;
+	}
+
+	function commitMobileAudioSeek() {
+		if (!mobileAudioEl) return;
+		const nextSeconds = mobileAudioScrubMs / 1000;
+		try {
+			mobileAudioEl.currentTime = nextSeconds;
+		} catch {
+			// noop
+		}
+		if (mobileVideoEl) {
+			try {
+				mobileVideoEl.currentTime = nextSeconds;
+			} catch {
+				// noop
+			}
+		}
+		detailVideoCurrentMs = mobileAudioScrubMs;
+		mobileAudioScrubbing = false;
+	}
+
+	function toggleMobileVideoVisible() {
+		const from = getActiveMobileMediaElement();
+		const fromTime = from?.currentTime ?? 0;
+		const wasPlaying = !!from && !from.paused && !from.ended;
+		mobileVideoVisible = !mobileVideoVisible;
+
+		requestAnimationFrame(() => {
+			if (!mobileAudioEl) return;
+			const target = getActiveMobileMediaElement();
+			if (!target) return;
+			try {
+				target.currentTime = fromTime;
+			} catch {
+				// Some browsers can reject immediate seeks before metadata.
+			}
+			detailVideoCurrentMs = target.currentTime * 1000;
+			mobileAudioScrubMs = detailVideoCurrentMs;
+			if (wasPlaying) {
+				target.play().catch(() => {
+					// Autoplay policies may block without user gesture.
+				});
+			}
+		});
+
+		if (from) from.pause();
+	}
+
+	function formatMediaTime(ms: number): string {
+		const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+		const minutes = Math.floor(totalSeconds / 60);
+		const seconds = totalSeconds % 60;
+		return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+	}
+
 	$: {
 		const sourceCues = activeDetailItem?.transcriptCues ?? [];
 		const videoDurationMs =
@@ -178,6 +304,23 @@
 		detailVisibleTranscriptLines = detailTranscriptLines.filter(
 			(line) => line.startMs <= detailVideoCurrentMs + 120
 		);
+	}
+
+	$: mobileTranscriptTicker = detailTranscriptCues.length
+		? getMobileTickerText(detailTranscriptCues, detailVideoCurrentMs)
+		: '';
+
+	$: {
+		const currentSlug = activeDetailItem ? toPieceSlug(activeDetailItem) : '';
+		if (currentSlug !== lastActiveDetailSlug) {
+			lastActiveDetailSlug = currentSlug;
+			mobileAudioIsPlaying = false;
+			mobileVideoVisible = false;
+			mobileAudioDurationMs = 0;
+			mobileAudioScrubMs = 0;
+			mobileAudioScrubbing = false;
+			detailVideoCurrentMs = 0;
+		}
 	}
 
 	function toggleMobileTerminal() {
@@ -693,6 +836,148 @@
 								></div>
 								<div class="detail-panel-grid detail-panel-grid--enter">
 									<div class="detail-panel-piece" bind:this={detailPieceEl}>
+										{#if activeDetailItem.videoUrl}
+											<div class="mobile-media-panel">
+												{#if isDirectVideoFile(activeDetailItem.videoUrl)}
+													<div class="mobile-media-controls">
+														<div class="mobile-media-controls__primary">
+															<button
+																type="button"
+																class="mobile-media-play"
+																on:click={toggleMobileAudioPlayback}
+																aria-label={mobileAudioIsPlaying ? 'Pause audio' : 'Play audio'}
+															>
+																{#if mobileAudioIsPlaying}
+																	<!-- Pixel pause (4×5 grid) -->
+																	<svg
+																		class="mobile-media-play__icon"
+																		xmlns="http://www.w3.org/2000/svg"
+																		viewBox="0 0 4 5"
+																		width="24"
+																		height="24"
+																		fill="currentColor"
+																		aria-hidden="true"
+																		style="image-rendering: pixelated"
+																	>
+																		<rect x="0" y="0" width="1" height="5" />
+																		<rect x="3" y="0" width="1" height="5" />
+																	</svg>
+																{:else}
+																	<!-- Pixel play, matching portfolio-end nav triangle (3×5 grid) -->
+																	<svg
+																		class="mobile-media-play__icon"
+																		xmlns="http://www.w3.org/2000/svg"
+																		viewBox="0 0 3 5"
+																		width="24"
+																		height="24"
+																		fill="currentColor"
+																		aria-hidden="true"
+																		style="image-rendering: pixelated"
+																	>
+																		<rect x="2" y="2" width="1" height="1" />
+																		<rect x="1" y="1" width="1" height="3" />
+																		<rect x="0" y="0" width="1" height="5" />
+																	</svg>
+																{/if}
+															</button>
+															<div class="mobile-media-scrubber-wrap">
+																<input
+																	class="mobile-media-scrubber"
+																	type="range"
+																	min="0"
+																	max={Math.max(0, Math.floor(mobileAudioDurationMs))}
+																	value={Math.min(
+																		Math.max(0, Math.floor(mobileAudioScrubMs)),
+																		Math.max(0, Math.floor(mobileAudioDurationMs))
+																	)}
+																	on:input={handleMobileAudioSeekInput}
+																	on:change={commitMobileAudioSeek}
+																	on:pointerup={commitMobileAudioSeek}
+																	on:touchend={commitMobileAudioSeek}
+																	aria-label="Seek audio"
+																/>
+															</div>
+														</div>
+														<div class="mobile-media-controls__secondary">
+															<span class="mobile-media-time" aria-hidden="true">
+																{formatMediaTime(mobileAudioScrubMs)}
+															</span>
+															<button
+																type="button"
+																class="mobile-video-switch-wrap"
+																on:click={toggleMobileVideoVisible}
+																role="switch"
+																aria-checked={mobileVideoVisible}
+																aria-label={mobileVideoVisible ? 'Video on' : 'Video off'}
+															>
+																<span
+																	class="mobile-video-switch"
+																	class:mobile-video-switch--on={mobileVideoVisible}
+																>
+																	<span class="mobile-video-switch__status">
+																		{mobileVideoVisible ? 'ON' : 'OFF'}
+																	</span>
+																	<span
+																		class="mobile-video-switch__thumb"
+																		aria-hidden="true"
+																	></span>
+																</span>
+																<span class="mobile-video-switch__label">Video</span>
+															</button>
+														</div>
+													</div>
+
+													<audio
+														class="mobile-media-audio"
+														bind:this={mobileAudioEl}
+														preload="metadata"
+														src={activeDetailItem.videoUrl}
+														on:play={handleMobileAudioPlay}
+														on:pause={handleMobileAudioPause}
+														on:loadedmetadata={handleMobileMediaTimeUpdate}
+														on:timeupdate={handleMobileMediaTimeUpdate}
+														on:seeked={handleMobileMediaTimeUpdate}
+													></audio>
+													{#if mobileVideoVisible}
+														<div class="mobile-media-video-shell">
+															<!-- svelte-ignore a11y-media-has-caption -->
+															<video
+																class="mobile-media-video-preview"
+																bind:this={mobileVideoEl}
+																preload="metadata"
+																playsinline
+																src={activeDetailItem.videoUrl}
+																on:play={handleMobileAudioPlay}
+																on:pause={handleMobileAudioPause}
+																on:loadedmetadata={handleMobileMediaTimeUpdate}
+																on:timeupdate={handleMobileMediaTimeUpdate}
+																on:seeked={handleMobileMediaTimeUpdate}
+															></video>
+															{#if mobileAudioIsPlaying && mobileTranscriptTicker}
+																<div
+																	class="mobile-media-floating-captions mobile-media-floating-captions--overlay"
+																	aria-live="polite"
+																>
+																	<span class="mobile-media-floating-captions__text">
+																		{mobileTranscriptTicker}
+																	</span>
+																</div>
+															{/if}
+														</div>
+													{:else if mobileAudioIsPlaying && mobileTranscriptTicker}
+														<div class="mobile-media-floating-captions" aria-live="polite">
+															<span class="mobile-media-floating-captions__text">
+																{mobileTranscriptTicker}
+															</span>
+														</div>
+													{/if}
+												{:else}
+													<div class="mobile-media-unsupported">
+														Audio controls are available for direct video files.
+													</div>
+												{/if}
+											</div>
+										{/if}
 										<!-- Only remount body content when switching pieces (shell/dividers stay put). -->
 										{#key toPieceSlug(activeDetailItem)}
 											<PortfolioExpandedView
@@ -1301,6 +1586,10 @@
 		letter-spacing: 0.08em;
 	}
 
+	.mobile-media-panel {
+		display: none;
+	}
+
 	/* Tablet: move video/transcript below the main terminal content. */
 	@media (max-width: 1180px) and (min-width: 769px) {
 		.detail-panel-grid {
@@ -1450,6 +1739,214 @@
 
 		.detail-panel-sidebar {
 			display: none;
+		}
+
+		.mobile-media-panel {
+			display: flex;
+			flex-direction: column;
+			gap: 0.45rem;
+			padding: 0;
+			margin: 0 0 0.55rem;
+			position: sticky;
+			top: 0;
+			z-index: 8;
+			background: var(--bg-color);
+		}
+
+		.mobile-media-controls {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: var(--spacing-sm);
+			width: 100%;
+			min-width: 0;
+			padding: 0.5rem 0;
+		}
+
+		.mobile-media-controls__primary {
+			display: flex;
+			align-items: center;
+			gap: var(--spacing-sm);
+			flex: 1 1 auto;
+			min-width: 0;
+		}
+
+		.mobile-media-controls__secondary {
+			display: flex;
+			align-items: center;
+			gap: var(--spacing-xs);
+			flex: 0 0 auto;
+		}
+
+		.mobile-media-scrubber-wrap {
+			flex: 1 1 auto;
+			min-width: 0;
+		}
+
+		.mobile-media-scrubber {
+			width: 100%;
+			accent-color: var(--text-color);
+			height: 1px;
+		}
+
+		.mobile-media-time {
+			color: var(--text-color);
+			font-family: inherit;
+			font-size: var(--font-size-xs);
+			opacity: 0.8;
+			min-width: 2.4rem;
+			text-align: right;
+		}
+
+		.mobile-media-play {
+			border: none;
+			background: transparent;
+			color: var(--text-color);
+			padding: 0;
+			line-height: 0;
+			cursor: pointer;
+			opacity: 0.88;
+			flex: 0 0 auto;
+		}
+
+		.mobile-media-play:hover {
+			opacity: 1;
+		}
+
+		.mobile-media-play__icon {
+			display: block;
+			flex-shrink: 0;
+			width: 24px;
+			height: 24px;
+		}
+
+		.mobile-video-switch-wrap {
+			border: none;
+			background: transparent;
+			padding: 0;
+			margin: 0;
+			display: inline-flex;
+			align-items: center;
+			gap: 0.38rem;
+			cursor: pointer;
+			color: var(--text-color);
+			flex: 0 0 auto;
+		}
+
+		.mobile-video-switch {
+			position: relative;
+			width: 54px;
+			height: 24px;
+			border-radius: 999px;
+			border: 1px solid color-mix(in srgb, var(--text-color) 74%, transparent);
+			background: color-mix(in srgb, var(--text-color) 7%, transparent);
+			display: inline-flex;
+			align-items: center;
+			padding: 0 6px;
+			box-sizing: border-box;
+			transition: background-color 120ms ease;
+		}
+
+		.mobile-video-switch--on {
+			background: color-mix(in srgb, var(--text-color) 16%, transparent);
+		}
+
+		.mobile-video-switch__status {
+			position: absolute;
+			right: 6px;
+			font-size: 0.58rem;
+			letter-spacing: 0.06em;
+			opacity: 0.92;
+			font-variation-settings:
+				'CASL' 0,
+				'wght' 600;
+		}
+
+		.mobile-video-switch--on .mobile-video-switch__status {
+			left: 6px;
+			right: auto;
+		}
+
+		.mobile-video-switch__thumb {
+			position: absolute;
+			top: 2px;
+			left: 2px;
+			width: 18px;
+			height: 18px;
+			border-radius: 999px;
+			background: var(--text-color);
+			box-shadow: 0 1px 2px color-mix(in srgb, var(--text-color) 22%, transparent);
+			transition: transform 120ms ease;
+		}
+
+		.mobile-video-switch--on .mobile-video-switch__thumb {
+			transform: translateX(30px);
+		}
+
+		.mobile-video-switch__label {
+			font-size: 0.68rem;
+			letter-spacing: 0.02em;
+			opacity: 0.82;
+		}
+
+		.mobile-media-audio {
+			width: 100%;
+			height: 0;
+			opacity: 0;
+			pointer-events: none;
+			position: absolute;
+		}
+
+		.mobile-media-floating-captions {
+			align-self: flex-start;
+			max-width: min(92%, 48ch);
+		}
+
+		.mobile-media-floating-captions--overlay {
+			position: absolute;
+			left: 0.5rem;
+			right: 0.5rem;
+			bottom: 0.5rem;
+			max-width: none;
+			z-index: 2;
+			pointer-events: none;
+		}
+
+		.mobile-media-video-shell {
+			position: relative;
+			width: 100%;
+		}
+
+		.mobile-media-video-preview {
+			width: 100%;
+			aspect-ratio: 16 / 9;
+			border: 1px solid var(--text-color);
+			background: var(--bg-color);
+			object-fit: cover;
+			display: block;
+		}
+
+		.mobile-media-floating-captions__text {
+			display: inline;
+			font-size: var(--font-size-sm);
+			line-height: 1.5;
+			color: var(--bg-color);
+			background: color-mix(in srgb, var(--text-color) 88%, transparent);
+			padding: 0.28rem 0.52rem;
+			border-radius: 0.45rem;
+			border: 2px solid var(--text-color);
+			box-shadow:
+				0 0 0 1px color-mix(in srgb, var(--bg-color) 72%, transparent),
+				0 4px 14px color-mix(in srgb, var(--text-color) 28%, transparent);
+		}
+
+		.mobile-media-unsupported {
+			border: 1px solid var(--text-color);
+			padding: 0.45rem 0.6rem;
+			font-size: var(--font-size-xs);
+			line-height: 1.5;
+			color: var(--text-color);
+			opacity: 0.85;
 		}
 
 		.detail-panel-rainbow--top,
