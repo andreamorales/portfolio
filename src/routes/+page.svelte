@@ -239,7 +239,11 @@
 
 	function jumpToTranscriptLine(startMs: number) {
 		const nextSeconds = Math.max(0, startMs / 1000);
-		const mediaTargets: Array<HTMLMediaElement | null> = [detailVideoEl, mobileAudioEl, mobileVideoEl];
+		const mediaTargets: Array<HTMLMediaElement | null> = [
+			detailVideoEl,
+			mobileAudioEl,
+			mobileVideoEl
+		];
 
 		for (const media of mediaTargets) {
 			if (!media) continue;
@@ -269,7 +273,9 @@
 		const lookbackMs = 1600;
 		const lookaheadMs = 2600;
 		const snippet = cues
-			.filter((cue) => cue.endMs >= currentMs - lookbackMs && cue.startMs <= currentMs + lookaheadMs)
+			.filter(
+				(cue) => cue.endMs >= currentMs - lookbackMs && cue.startMs <= currentMs + lookaheadMs
+			)
 			.map((cue) => cue.text)
 			.join('');
 		const normalized = normalizeTranscriptText(snippet);
@@ -279,12 +285,23 @@
 		if (activeIndex >= 0) {
 			const start = Math.max(0, activeIndex - 5);
 			const end = Math.min(cues.length, activeIndex + 7);
-			const fallback = normalizeTranscriptText(cues.slice(start, end).map((cue) => cue.text).join(''));
+			const fallback = normalizeTranscriptText(
+				cues
+					.slice(start, end)
+					.map((cue) => cue.text)
+					.join('')
+			);
 			if (fallback) return fallback;
 		}
 
 		for (let i = cues.length - 1; i >= 0; i--) {
-			if (cues[i].startMs <= currentMs) return normalizeTranscriptText(cues.slice(Math.max(0, i - 3), i + 1).map((cue) => cue.text).join(''));
+			if (cues[i].startMs <= currentMs)
+				return normalizeTranscriptText(
+					cues
+						.slice(Math.max(0, i - 3), i + 1)
+						.map((cue) => cue.text)
+						.join('')
+				);
 		}
 
 		return normalizeTranscriptText(cues[0].text);
@@ -391,7 +408,11 @@
 		detailActiveTranscriptLineIndex = detailTranscriptLines.findIndex(
 			(line) => detailVideoCurrentMs >= line.startMs && detailVideoCurrentMs < line.endMs
 		);
-		if (detailActiveTranscriptLineIndex < 0 && detailTranscriptLines.length && detailVideoCurrentMs > 0) {
+		if (
+			detailActiveTranscriptLineIndex < 0 &&
+			detailTranscriptLines.length &&
+			detailVideoCurrentMs > 0
+		) {
 			detailActiveTranscriptLineIndex = detailTranscriptLines.reduce(
 				(activeIndex, line, index) => (line.startMs <= detailVideoCurrentMs ? index : activeIndex),
 				-1
@@ -800,13 +821,17 @@
 				if (mobileAudioEl && !mobileAudioEl.paused) mobileAudioEl.pause();
 				if (mobileVideoEl && !mobileVideoEl.paused) mobileVideoEl.pause();
 				if (detailVideoEl) {
-					try { detailVideoEl.currentTime = currentSeconds; } catch {}
+					try {
+						detailVideoEl.currentTime = currentSeconds;
+					} catch { /* browser may reject seeks before metadata */ }
 				}
 			} else {
 				if (detailVideoEl && !detailVideoEl.paused) detailVideoEl.pause();
 				const target = getActiveMobileMediaElement();
 				if (target) {
-					try { target.currentTime = currentSeconds; } catch {}
+					try {
+						target.currentTime = currentSeconds;
+					} catch { /* browser may reject seeks before metadata */ }
 				}
 			}
 
@@ -963,7 +988,11 @@
 									aria-hidden="true"
 								></div>
 								<div class="detail-panel-grid detail-panel-grid--enter">
-									<div class="detail-panel-piece" bind:this={detailPieceEl} on:scroll={handleDetailPieceScroll}>
+									<div
+										class="detail-panel-piece"
+										bind:this={detailPieceEl}
+										on:scroll={handleDetailPieceScroll}
+									>
 										{#if activeDetailItem.videoUrl}
 											<MobileDetailMedia
 												showPanel={true}

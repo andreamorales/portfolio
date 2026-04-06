@@ -64,7 +64,11 @@
 	}
 </script>
 
-<div class="mobile-rainbow-bar" class:mobile-rainbow-bar--home={!showNav} class:mobile-rainbow-bar--nav={showNav}>
+<div
+	class="mobile-rainbow-bar"
+	class:mobile-rainbow-bar--home={!showNav}
+	class:mobile-rainbow-bar--nav={showNav}
+>
 	{#if showNav}
 		<button class="mobile-nav__home" on:click={onGoHome} aria-label="Back to home">
 			<svg
@@ -89,7 +93,7 @@
 		</button>
 		<div class="mobile-nav__icons">
 			<ThemeToggle />
-			<FloatingContactDock visible={true} onCopyEmail={onCopyEmail} />
+			<FloatingContactDock visible={true} {onCopyEmail} />
 		</div>
 	{/if}
 </div>
@@ -154,7 +158,9 @@
 				</div>
 			</div>
 			<div class="mobile-media-controls__secondary">
-				<span class="mobile-media-time" aria-hidden="true">{formatMediaTime(mobileAudioScrubMs)}</span>
+				<span class="mobile-media-time" aria-hidden="true"
+					>{formatMediaTime(mobileAudioScrubMs)}</span
+				>
 				<button
 					type="button"
 					class="mobile-video-switch-wrap"
@@ -184,7 +190,10 @@
 		></audio>
 	</div>
 	{#if mobileAudioIsPlaying && activePhrase}
-		<div class="mobile-media-floating-captions mobile-media-floating-captions--top" aria-live="polite">
+		<div
+			class="mobile-media-floating-captions mobile-media-floating-captions--top"
+			aria-live="polite"
+		>
 			{#key activePhrase.startMs}
 				<span class="mobile-media-floating-captions__text mobile-media-cc">
 					{activePhrase.text}
@@ -470,8 +479,12 @@
 	}
 
 	@keyframes cc-fade {
-		0% { opacity: 0; }
-		100% { opacity: 1; }
+		0% {
+			opacity: 0;
+		}
+		100% {
+			opacity: 1;
+		}
 	}
 
 	@media (min-width: 769px) {

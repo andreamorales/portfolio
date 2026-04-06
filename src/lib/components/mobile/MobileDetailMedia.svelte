@@ -33,7 +33,9 @@
 				</div>
 			{/if}
 		{:else}
-			<div class="mobile-media-unsupported">Audio controls are available for direct video files.</div>
+			<div class="mobile-media-unsupported">
+				Audio controls are available for direct video files.
+			</div>
 		{/if}
 	</div>
 {/if}
