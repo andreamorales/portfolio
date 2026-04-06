@@ -967,14 +967,14 @@ textarea {
 	--palette-grey-hint: #8a8378;
 
 	/* Rainbow — deep/muted accents (beige + greys unchanged) */
-	--palette-rainbow-1: #5c3432;
-	--palette-rainbow-2: #6a4424;
-	--palette-rainbow-3: #5e4c22;
-	--palette-rainbow-4: #234838;
-	--palette-rainbow-5: #1c4e56;
-	--palette-rainbow-6: #2c3f62;
-	--palette-rainbow-7: #443c58;
-	--palette-rainbow-8: #5a3648;
+	--palette-rainbow-1: #a85252;
+	--palette-rainbow-2: #b87440;
+	--palette-rainbow-3: #ab8e3c;
+	--palette-rainbow-4: #488a64;
+	--palette-rainbow-5: #3c8a82;
+	--palette-rainbow-6: #5676a8;
+	--palette-rainbow-7: #7e68a8;
+	--palette-rainbow-8: #9c6484;
 
 	--palette-rainbow-gradient-h: linear-gradient(
 		90deg,

@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { fade } from 'svelte/transition';
+	import { fade, fly } from 'svelte/transition';
 	import type { PortfolioItem } from '$lib/data/portfolio-items.js';
 	import type { SecurePortfolioPayloadData } from '$lib/utils/secureCaseStudy';
 	import HomeLandingTerminal from '$lib/components/HomeLandingTerminal.svelte';
 	import FloatingContactDock from '$lib/components/ui/FloatingContactDock.svelte';
 	import ThemeToggle from '$lib/components/ui/ThemeToggle.svelte';
+	import { CornerDownLeft } from 'lucide-svelte';
 
 	export let portfolioItems: PortfolioItem[] = [];
 	export let onOpenPortfolio: (
@@ -66,32 +67,29 @@
 	tabindex="0"
 	aria-label="Open terminal"
 >
-	<span class="mobile-terminal-tab__prompt" aria-hidden="true">$</span>
-	<span class="mobile-terminal-tab__label">Terminal</span>
+	<div class="mobile-terminal-tab__row">
+		<span class="mobile-terminal-tab__prompt" aria-hidden="true">$</span>
+		<span class="mobile-terminal-tab__command">--help</span>
+	</div>
+	<div class="mobile-terminal-tab__return">
+		<span class="mobile-terminal-tab__return-label">Return</span>
+		<CornerDownLeft size={11} strokeWidth={1.5} aria-hidden="true" />
+	</div>
 </div>
 
 <!-- Mobile terminal drawer — only mount the terminal when open to avoid duplicate IDs / listeners -->
 {#if mobileTerminalDrawerOpen}
 	<!-- svelte-ignore a11y-click-events-have-key-events -->
 	<!-- svelte-ignore a11y-no-static-element-interactions -->
-	<div class="mobile-terminal-backdrop" on:click={onToggleMobileTerminal}></div>
-	<div class="mobile-terminal-drawer mobile-terminal-drawer--open">
-		<!-- svelte-ignore a11y-click-events-have-key-events -->
-		<div
-			class="mobile-terminal-drawer__handle"
-			on:click={onToggleMobileTerminal}
-			role="button"
-			tabindex="0"
-			aria-label="Close terminal"
-		>
-			<span class="mobile-terminal-drawer__handle-bar"></span>
-		</div>
+	<div class="mobile-terminal-backdrop" on:click={onToggleMobileTerminal} transition:fade={{ duration: 200 }}></div>
+	<div class="mobile-terminal-drawer" transition:fly={{ y: '100%', duration: 300, easing: (t) => 1 - Math.pow(1 - t, 3) }}>
 		<div class="mobile-terminal-drawer__content">
 			<HomeLandingTerminal
 				{portfolioItems}
 				{onOpenPortfolio}
 				{onCopyEmail}
 				introVisible={true}
+				skipIntro={true}
 			/>
 		</div>
 	</div>
@@ -263,9 +261,9 @@
 
 	@media (max-width: 768px) {
 		.description {
-			font-size: clamp(2.8rem, 12vw, 4.4rem);
-			line-height: 1.1;
-			letter-spacing: -0.02em;
+			font-size: 16vw;
+			line-height: 1.05;
+			letter-spacing: -0.03em;
 		}
 
 		.hero-intro-stack {
@@ -277,7 +275,7 @@
 			display: flex;
 			flex-direction: column;
 			align-items: flex-start;
-			gap: var(--spacing-2xs, 0.25rem);
+			gap: var(--spacing-md, 1rem);
 		}
 
 		.hero-intro-stack > :global(.cli-block) {
@@ -307,8 +305,8 @@
 
 		.mobile-hero-icons :global(.floating-contact-dock__link svg),
 		.mobile-hero-icons :global(.floating-contact-dock__link) :global(svg) {
-			width: 16px !important;
-			height: 16px !important;
+			width: 44px !important;
+			height: 44px !important;
 		}
 
 		.mobile-hero-icons :global(.theme-toggle) {
@@ -319,8 +317,8 @@
 		}
 
 		.mobile-hero-icons :global(.theme-toggle) :global(svg) {
-			width: 16px !important;
-			height: 16px !important;
+			width: 44px !important;
+			height: 44px !important;
 		}
 
 		/* ---- Mobile terminal tab ---- */
@@ -332,13 +330,42 @@
 			right: 0;
 			z-index: 10100;
 			align-items: center;
-			gap: 0.5rem;
-			padding: 0.65rem 1.25rem;
-			padding-bottom: calc(0.65rem + env(safe-area-inset-bottom, 0px));
-			background: var(--bg-color);
-			border-top: 1px solid var(--alpha-black-015);
+			justify-content: space-between;
+			padding: 0.55rem 0.85rem 0.55rem 0.75rem;
+			padding-bottom: calc(0.55rem + env(safe-area-inset-bottom, 0px));
+			background-color: var(--text-color);
+			color: var(--bg-color);
+			border-top: none;
 			cursor: pointer;
 			transition: transform 0.25s ease;
+			font-family: 'IBM Plex Mono', ui-monospace, monospace;
+		}
+
+		.mobile-terminal-tab::before {
+			content: '';
+			position: absolute;
+			top: 0;
+			left: 0;
+			right: 0;
+			height: 1px;
+			background-image: var(--palette-rainbow-gradient-h);
+			background-size: 240% 100%;
+			animation: mobile-rainbow-slide 22s linear infinite;
+		}
+
+		.mobile-terminal-tab::after {
+			content: '';
+			position: absolute;
+			top: -8px;
+			left: 0;
+			right: 0;
+			height: 8px;
+			background-image: var(--palette-rainbow-gradient-h);
+			background-size: 240% 100%;
+			animation: mobile-rainbow-slide 22s linear infinite;
+			filter: blur(10px);
+			opacity: 0.7;
+			pointer-events: none;
 		}
 
 		.mobile-terminal-tab--hidden {
@@ -346,20 +373,40 @@
 			pointer-events: none;
 		}
 
+		.mobile-terminal-tab__row {
+			display: flex;
+			align-items: center;
+			gap: 0.4rem;
+		}
+
 		.mobile-terminal-tab__prompt {
-			font-family: 'IBM Plex Mono', ui-monospace, monospace;
 			font-size: 0.82rem;
 			font-weight: 500;
-			color: var(--text-color);
+			color: inherit;
 			opacity: 0.5;
 		}
 
-		.mobile-terminal-tab__label {
-			font-family: 'IBM Plex Mono', ui-monospace, monospace;
-			font-size: 0.75rem;
+		.mobile-terminal-tab__command {
+			font-size: 0.82rem;
 			font-weight: 400;
-			color: var(--text-color);
+			color: inherit;
+			opacity: 0.85;
+		}
+
+		.mobile-terminal-tab__return {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.25rem;
+			font-size: 0.55rem;
+			font-weight: 500;
+			letter-spacing: 0.06em;
+			text-transform: uppercase;
+			color: inherit;
 			opacity: 0.4;
+		}
+
+		.mobile-terminal-tab__return-label {
+			white-space: nowrap;
 		}
 
 		/* ---- Mobile terminal backdrop ---- */
@@ -380,42 +427,84 @@
 			bottom: 0;
 			left: 0;
 			right: 0;
+			height: 50vh;
 			z-index: 10200;
-			max-height: 70vh;
-			background: var(--bg-color);
-			border-top: 1px solid var(--alpha-black-015);
-			border-radius: 12px 12px 0 0;
-			transform: translateY(100%);
-			transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-			padding-bottom: env(safe-area-inset-bottom, 0px);
-		}
-
-		.mobile-terminal-drawer--open {
-			transform: translateY(0);
-		}
-
-		.mobile-terminal-drawer__handle {
-			display: flex;
-			justify-content: center;
-			padding: 0.6rem 0 0.35rem;
-			cursor: pointer;
-			flex-shrink: 0;
-		}
-
-		.mobile-terminal-drawer__handle-bar {
-			width: 2.2rem;
-			height: 3px;
-			border-radius: 999px;
 			background: var(--text-color);
-			opacity: 0.18;
+			color: var(--bg-color);
+			border-top: none;
+			border-radius: 0;
+			padding-bottom: env(safe-area-inset-bottom, 0px);
+			overflow: hidden;
 		}
+
+		.mobile-terminal-drawer::before {
+			content: '';
+			position: absolute;
+			top: 0;
+			left: 0;
+			right: 0;
+			height: 1px;
+			background-image: var(--palette-rainbow-gradient-h);
+			background-size: 240% 100%;
+			animation: mobile-rainbow-slide 22s linear infinite;
+			z-index: 1;
+		}
+
+		.mobile-terminal-drawer::after {
+			content: '';
+			position: absolute;
+			top: -8px;
+			left: 0;
+			right: 0;
+			height: 8px;
+			background-image: var(--palette-rainbow-gradient-h);
+			background-size: 240% 100%;
+			animation: mobile-rainbow-slide 22s linear infinite;
+			filter: blur(10px);
+			opacity: 0.7;
+			pointer-events: none;
+			z-index: 1;
+		}
+
 
 		.mobile-terminal-drawer__content {
 			flex: 1 1 auto;
 			min-height: 0;
 			overflow-y: auto;
 			overscroll-behavior: contain;
-			padding: 0 0.25rem 0.25rem;
+			display: flex;
+			flex-direction: column;
+		}
+
+		.mobile-terminal-drawer__content :global(.cli-block) {
+			opacity: 1;
+			pointer-events: auto;
+			flex: 1 1 auto;
+			min-height: 0;
+		}
+
+		.mobile-terminal-drawer__content :global(.cli-block::before) {
+			display: none;
+		}
+
+		.mobile-terminal-drawer__content :global(.cli-block--loading::before) {
+			display: block;
+			inset: -8px 0 auto 0;
+			height: 8px;
+			border-radius: 0;
+			background-image: var(--palette-rainbow-gradient-h);
+			background-size: 240% 100%;
+			filter: blur(10px);
+			opacity: 0.9;
+		}
+
+		.mobile-terminal-drawer__content :global(.cli-terminal-window) {
+			background: transparent;
+			border-radius: 0;
+			box-shadow: none;
+			max-height: none;
+			height: 100%;
+			flex: 1 1 auto;
 		}
 	}
 
@@ -425,6 +514,15 @@
 		}
 		to {
 			opacity: 1;
+		}
+	}
+
+	@keyframes mobile-rainbow-slide {
+		0% {
+			background-position: 0% 50%;
+		}
+		100% {
+			background-position: 240% 50%;
 		}
 	}
 </style>

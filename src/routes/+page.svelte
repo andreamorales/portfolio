@@ -426,6 +426,21 @@
 	<FloatingContactDock visible={!immersiveMode} onCopyEmail={copyEmailToClipboard} />
 </div>
 
+<!-- svelte-ignore a11y-click-events-have-key-events -->
+<div
+	class="mobile-rainbow-bar"
+	class:mobile-rainbow-bar--home={!activeDetailItem}
+	role="button"
+	tabindex="0"
+	aria-label="Back to home"
+	on:click={() => {
+		if (activeDetailItem) {
+			activeDetailItem = null;
+			updatePieceQuery(null);
+		}
+	}}
+></div>
+
 <div class="landing-page">
 	<div class="viewport-frame-lines" aria-hidden="true">
 		<div
@@ -841,6 +856,10 @@
 		overflow: hidden;
 	}
 
+	.mobile-rainbow-bar {
+		display: none;
+	}
+
 	.detail-panel-rainbow {
 		position: absolute;
 		opacity: 0.95;
@@ -1070,6 +1089,7 @@
 
 		.detail-panel {
 			max-height: none;
+			overflow: visible;
 		}
 
 		.detail-panel-grid {
@@ -1094,8 +1114,32 @@
 			display: none;
 		}
 
+		.detail-panel-rainbow--top,
 		.detail-panel-rainbow--left {
 			display: none;
+		}
+
+		.viewport-frame-lines {
+			display: none;
+		}
+
+		.mobile-rainbow-bar {
+			display: block;
+			position: fixed;
+			top: 0;
+			left: 0;
+			right: 0;
+			width: 100%;
+			height: 8px;
+			z-index: 10050;
+			background-image: var(--palette-rainbow-gradient-h);
+			background-size: 240% 100%;
+			animation: rainbow-dance-bottom 22s linear infinite;
+			-webkit-tap-highlight-color: transparent;
+		}
+
+		.mobile-rainbow-bar:not(.mobile-rainbow-bar--home) {
+			cursor: pointer;
 		}
 	}
 

@@ -22,6 +22,7 @@
 	) => void = () => {};
 	export let onCopyEmail: () => void = () => {};
 	export let introVisible = true;
+	export let skipIntro = false;
 
 	type Feedback =
 		| { kind: 'help' }
@@ -78,6 +79,7 @@
 		lastFeedback?.kind === 'portfolio' &&
 		(lastEntry?.typingComplete ?? false) &&
 		commandLine.trim().length === 0;
+	$: commandLoading = !!lastEntry && !lastEntry.typingComplete;
 	$: if (introVisible && !introSequenceStarted) startIntroSequence();
 
 	function startIntroSequence() {
@@ -646,6 +648,16 @@
 
 	onMount(() => {
 		window.addEventListener('keydown', onGlobalKeydown);
+		if (skipIntro) {
+			introBgVisible = true;
+			introSequenceStarted = true;
+			introTypingDone = true;
+			introReturnVisible = true;
+			introGlowVisible = true;
+			showReturnHint = true;
+			commandLine = '--help';
+			tick().then(() => cliInputEl?.focus());
+		}
 	});
 
 	onDestroy(() => {
@@ -704,6 +716,7 @@
 	class="cli-block"
 	class:cli-block--intro-bg={introBgVisible}
 	class:cli-block--intro-glow={introGlowVisible}
+	class:cli-block--loading={commandLoading}
 >
 	<!-- svelte-ignore a11y-click-events-have-key-events -->
 	<!-- svelte-ignore a11y-mouse-events-have-key-events -->
@@ -778,13 +791,16 @@
 							</div>
 						</div>
 					</div>
-					<div
+					<button
+						type="button"
 						class="cli-return-hint"
 						class:cli-return-hint--visible={!introSequenceStarted || introReturnVisible}
+						on:click={() => submitCommand()}
+						aria-label="Submit command"
 					>
 						<span class="cli-return-label">Return</span>
 						<CornerDownLeft size={11} strokeWidth={1.5} aria-hidden="true" />
-					</div>
+					</button>
 				</div>
 			</div>
 		{/if}
@@ -864,7 +880,7 @@
 	.cli-block::before {
 		content: '';
 		position: absolute;
-		inset: 0;
+		inset: -4px;
 		z-index: 0;
 		border-radius: var(--border-radius);
 		pointer-events: none;
@@ -877,18 +893,49 @@
 			left center,
 			right center;
 		background-size:
-			100% 5px,
-			100% 5px,
-			5px 100%,
-			5px 100%;
+			100% 8px,
+			100% 8px,
+			8px 100%,
+			8px 100%;
 		background-repeat: no-repeat;
-		filter: blur(10px);
+		filter: blur(12px);
 		opacity: 0;
 		transition: opacity 520ms ease;
 	}
 
 	.cli-block--intro-glow::before {
-		opacity: var(--glow-cli-opacity, 0.9);
+		opacity: 1;
+	}
+
+	.cli-block--loading::before {
+		animation: cli-glow-shift 2s ease-in-out infinite;
+	}
+
+	@keyframes cli-glow-shift {
+		0% {
+			background-position:
+				top center,
+				bottom center,
+				left center,
+				right center;
+			filter: blur(10px);
+		}
+		50% {
+			background-position:
+				top left,
+				bottom right,
+				left top,
+				right bottom;
+			filter: blur(14px);
+		}
+		100% {
+			background-position:
+				top center,
+				bottom center,
+				left center,
+				right center;
+			filter: blur(10px);
+		}
 	}
 
 	@media (prefers-reduced-motion: reduce) {
@@ -1071,6 +1118,11 @@
 		white-space: nowrap;
 		opacity: 0;
 		transition: opacity 320ms ease;
+		background: none;
+		border: none;
+		padding: 0;
+		margin: 0;
+		cursor: pointer;
 	}
 
 	.cli-return-hint--visible {

@@ -299,6 +299,23 @@
 		animation: cli-type-cursor-blink 1s steps(1, end) infinite;
 	}
 
+	@media (max-width: 768px) {
+		.cli-typewriter :global(.cli-t-about-ascii-block) {
+			font-size: calc(1.45 * 1.5 * clamp(0.07rem, 0.1vw + 0.04rem, 0.16rem));
+		}
+
+		.cli-typewriter :global(.cli-t-portfolio-row) {
+			display: flex;
+			align-items: center;
+			min-height: 48px;
+		}
+
+		.cli-typewriter :global(.cli-t-portfolio-row .cli-t-item) {
+			text-decoration: underline;
+			text-underline-offset: 3px;
+		}
+	}
+
 	@keyframes cli-type-cursor-blink {
 		0%,
 		45% {
