@@ -392,6 +392,18 @@
 			line-height: 1.5;
 		}
 
+		.mobile-terminal-tab__tail-line:first-child {
+			opacity: 0.3;
+		}
+
+		.mobile-terminal-tab__tail-line:nth-child(2) {
+			opacity: 0.5;
+		}
+
+		.mobile-terminal-tab__tail-line:last-child {
+			opacity: 0.85;
+		}
+
 		.mobile-terminal-tab::before {
 			content: '';
 			position: absolute;
@@ -402,6 +414,7 @@
 			background-image: var(--palette-rainbow-gradient-h);
 			background-size: 240% 100%;
 			animation: mobile-rainbow-slide 22s linear infinite;
+			box-shadow: none;
 		}
 
 		.mobile-terminal-tab::after {
