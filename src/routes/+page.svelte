@@ -773,6 +773,8 @@
 			if (!activeDetailItem || immersiveMode) return;
 			const target = e.target instanceof Element ? e.target : null;
 			if (target?.closest('.cli-terminal-window')) return;
+			// Let desktop/tablet transcript panel handle its own wheel scrolling.
+			if (target?.closest('.detail-panel-transcript')) return;
 			if (!detailPieceEl) return;
 			const maxScroll = Math.max(0, detailPieceEl.scrollHeight - detailPieceEl.clientHeight);
 			if (maxScroll <= 0) return;
