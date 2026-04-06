@@ -279,6 +279,37 @@
 		updatePieceQuery(activeDetailItem);
 	}
 
+	async function scrollPortfolioDetailToTop() {
+		await tick();
+		await tick();
+		if (typeof window !== 'undefined') {
+			window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+		}
+		if (detailPieceEl) {
+			detailPieceEl.scrollTop = 0;
+		}
+	}
+
+	async function openAdjacentPortfolioPiece(delta: -1 | 1) {
+		if (!activeDetailItem || immersiveMode) return;
+		const idx = sortedPortfolioItems.findIndex(
+			(item) => toPieceSlug(item) === toPieceSlug(activeDetailItem!)
+		);
+		if (idx < 0) return;
+		const nextIdx = idx + delta;
+		if (nextIdx < 0 || nextIdx >= sortedPortfolioItems.length) return;
+		openPortfolioPiece(nextIdx);
+		await scrollPortfolioDetailToTop();
+	}
+
+	$: detailPieceIndex =
+		activeDetailItem && !immersiveMode
+			? sortedPortfolioItems.findIndex((i) => toPieceSlug(i) === toPieceSlug(activeDetailItem!))
+			: -1;
+	$: detailHasPrevPiece = detailPieceIndex > 0;
+	$: detailHasNextPiece =
+		detailPieceIndex >= 0 && detailPieceIndex < sortedPortfolioItems.length - 1;
+
 	function updateImmersiveProgress() {
 		if (!immersiveMode || typeof window === 'undefined') return;
 
@@ -442,14 +473,26 @@
 			}}
 			aria-label="Back to home"
 		>
-			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" width="24" height="24" fill="currentColor" aria-hidden="true" style="image-rendering: pixelated">
-				<!-- : eyes -->
-				<rect x="0" y="0" width="2" height="2" />
-				<rect x="0" y="6" width="2" height="2" />
-				<!-- ) smile -->
-				<rect x="4" y="0" width="2" height="2" />
-				<rect x="6" y="2" width="2" height="4" />
-				<rect x="4" y="6" width="2" height="2" />
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				viewBox="0 0 24 24"
+				width="24"
+				height="24"
+				fill="currentColor"
+				aria-hidden="true"
+				style="image-rendering: pixelated"
+			>
+				<!-- eyes -->
+				<rect x="5" y="2" width="4" height="8" />
+				<rect x="15" y="2" width="4" height="8" />
+				<!-- smile -->
+				<rect x="0" y="14" width="2" height="4" />
+				<rect x="2" y="16" width="2" height="4" />
+				<rect x="4" y="18" width="2" height="4" />
+				<rect x="6" y="20" width="12" height="4" />
+				<rect x="18" y="18" width="2" height="4" />
+				<rect x="20" y="16" width="2" height="4" />
+				<rect x="22" y="14" width="2" height="4" />
 			</svg>
 		</button>
 		<div class="mobile-nav__icons">
@@ -553,6 +596,14 @@
 												locked={!!activeDetailItem.locked && !isPieceUnlocked(activeDetailItem)}
 												encryptedPayload={activeDetailItem.encryptedPayload}
 												immersive={false}
+												onGoHome={() => {
+													activeDetailItem = null;
+													updatePieceQuery(null);
+												}}
+												hasPrevPiece={detailHasPrevPiece}
+												hasNextPiece={detailHasNextPiece}
+												onPrevPiece={() => openAdjacentPortfolioPiece(-1)}
+												onNextPiece={() => openAdjacentPortfolioPiece(1)}
 												staggerReveal={true}
 												staggerBaseDelayMs={activeDetailRevealDelayMs}
 											/>
@@ -1091,6 +1142,8 @@
 
 		:global(body.detail-panel-open) .landing-landing-row {
 			height: auto;
+			max-height: none;
+			overflow: visible;
 		}
 
 		.landing-hero-anchor {
@@ -1138,9 +1191,16 @@
 		.detail-panel-piece {
 			border: none;
 			border-radius: 0;
-			overflow-y: visible;
+			/* Use an explicit mobile scroll container for reliable touch scrolling. */
+			overflow-y: auto;
+			overflow-x: hidden;
+			-webkit-overflow-scrolling: touch;
+			overscroll-behavior: contain;
+			touch-action: pan-y;
 			height: auto;
-			max-height: none;
+			max-height: calc(
+				100dvh - 3rem - 3.375rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
+			);
 			background: transparent;
 		}
 
@@ -1203,7 +1263,6 @@
 
 		.mobile-nav__home :global(svg) {
 			display: block;
-			transform: rotate(90deg);
 		}
 
 		.mobile-nav__icons {
@@ -1323,7 +1382,8 @@
 		}
 
 		:global(body.detail-panel-open) {
-			overflow: auto;
+			overflow-y: auto !important;
+			overflow-x: hidden !important;
 		}
 
 		.mobile-immersive-nav {

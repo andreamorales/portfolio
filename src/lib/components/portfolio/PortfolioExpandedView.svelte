@@ -1,9 +1,17 @@
+<script context="module" lang="ts">
+	let portfolioEndSmileyMaskSeq = 0;
+</script>
+
 <script lang="ts">
 	import Label from '$lib/components/ui/input/Label.svelte';
+	import PortfolioEndHome from '$lib/components/portfolio/PortfolioEndHome.svelte';
 	import {
 		decryptSecurePortfolioPayload,
 		type SecurePortfolioEncryptedPayload
 	} from '$lib/utils/secureCaseStudy';
+
+	/** Unique mask id per instance (component can appear more than once on a page). */
+	const portfolioEndSmileyMaskId = `portfolio-end-smiley-mask-${++portfolioEndSmileyMaskSeq}`;
 
 	// Props
 	export let projectTitle: string = '';
@@ -25,6 +33,11 @@
 	export let metrics: Array<string> = [];
 	export let team: Array<{ role: string; name: string; relationship: string }> = [];
 	export let immersive = false;
+	export let onGoHome: (() => void) | null = null;
+	export let hasPrevPiece = false;
+	export let hasNextPiece = false;
+	export let onPrevPiece: (() => void) | null = null;
+	export let onNextPiece: (() => void) | null = null;
 	export let locked = false;
 	export let encryptedPayload: SecurePortfolioEncryptedPayload | null = null;
 	export let staggerReveal = false;
@@ -268,6 +281,16 @@
 				{/if}
 			</div>
 		</div>
+		{#if onGoHome}
+			<PortfolioEndHome
+				maskId={portfolioEndSmileyMaskId}
+				onGoHome={() => onGoHome?.()}
+				{hasPrevPiece}
+				{hasNextPiece}
+				onPrevPiece={onPrevPiece ?? undefined}
+				onNextPiece={onNextPiece ?? undefined}
+			/>
+		{/if}
 	{:else}
 		<!-- Project details grid -->
 		<div
@@ -458,6 +481,17 @@
 						{/each}
 					</div>
 				{/if}
+
+				{#if onGoHome}
+					<PortfolioEndHome
+						maskId={portfolioEndSmileyMaskId}
+						onGoHome={() => onGoHome?.()}
+						{hasPrevPiece}
+						{hasNextPiece}
+						onPrevPiece={onPrevPiece ?? undefined}
+						onNextPiece={onNextPiece ?? undefined}
+					/>
+				{/if}
 			</div>
 		</div>
 	{/if}
@@ -594,7 +628,8 @@
 		font-variation-settings:
 			'CASL' 0,
 			'wght' 340;
-		color: var(--muted-text);
+		color: var(--palette-grey-600);
+		font-style: italic;
 		margin-top: var(--spacing-xs);
 		text-align: center;
 		max-width: 65ch;
@@ -806,23 +841,36 @@
 	:global(html.dark-theme) .text-block,
 	:global(html.dark-theme) .project-link,
 	:global(html.dark-theme) .muted-text,
-	:global(html.dark-theme) .discontinued-text,
-	:global(html.dark-theme) .role,
-	:global(html.dark-theme) .name,
-	:global(html.dark-theme) .relationship {
+	:global(html.dark-theme) .discontinued-text {
 		font-variation-settings:
 			'CASL' 0,
 			'wght' 360;
 	}
 
 	:global(html.dark-theme) .image-caption,
-	:global(html.dark-theme) .details-label {
+	:global(html.dark-theme) .details-label,
+	:global(html.dark-theme) .name,
+	:global(html.dark-theme) .relationship {
 		font-variation-settings:
 			'CASL' 0,
 			'wght' 330;
 	}
 
-	:global(html.dark-theme) .details-label {
+	:global(html.dark-theme) .image-caption,
+	:global(html.dark-theme) .details-label,
+	:global(html.dark-theme) .name,
+	:global(html.dark-theme) .relationship {
+		color: var(--palette-grey-hint);
+	}
+
+	:global(html.dark-theme) .role {
+		color: var(--text-color);
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 460;
+	}
+
+	:global(html.dark-theme) .team-list:has(.team-member:nth-child(2)) .team-member::before {
 		color: var(--palette-grey-hint);
 	}
 
@@ -871,7 +919,7 @@
 
 	.details-label {
 		font-size: var(--font-size-xxs);
-		color: var(--muted-text);
+		color: var(--palette-grey-600);
 		font-variation-settings:
 			'CASL' 0,
 			'wght' 400;
@@ -1081,19 +1129,22 @@
 		content: '•';
 		position: absolute;
 		left: 0;
-		color: var(--text-color);
+		color: var(--palette-grey-600);
 	}
 
 	.role {
-		color: var(--muted-text);
+		color: var(--text-color);
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 500;
 	}
 
-	.name {
-		color: var(--text-color);
+	.name,
+	.relationship {
+		color: var(--palette-grey-600);
 	}
 
 	.relationship {
-		color: var(--muted-text);
 		font-style: italic;
 	}
 
@@ -1130,6 +1181,28 @@
 	.side-by-side .image-caption {
 		margin-top: var(--spacing-xs);
 		flex-shrink: 0;
+	}
+
+	@media (max-width: 768px) {
+		/* Stack side-by-side images vertically on mobile. */
+		.image-pair {
+			flex-direction: column;
+			align-items: stretch;
+			gap: var(--spacing-sm);
+		}
+
+		.side-by-side .image-container {
+			width: 100%;
+		}
+
+		.side-by-side .image-frame,
+		.side-by-side .image-frame img {
+			height: auto;
+		}
+
+		.side-by-side .image-frame img {
+			object-fit: contain;
+		}
 	}
 
 	@keyframes portfolio-reveal-in {
