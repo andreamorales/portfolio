@@ -4,6 +4,7 @@
 	import type { SecurePortfolioPayloadData } from '$lib/utils/secureCaseStudy';
 	import HomeLandingTerminal from '$lib/components/HomeLandingTerminal.svelte';
 	import FloatingContactDock from '$lib/components/ui/FloatingContactDock.svelte';
+	import ThemeToggle from '$lib/components/ui/ThemeToggle.svelte';
 
 	export let portfolioItems: PortfolioItem[] = [];
 	export let onOpenPortfolio: (
@@ -42,6 +43,7 @@
 		</div>
 
 		<div class="mobile-hero-icons">
+			<ThemeToggle />
 			<FloatingContactDock visible={true} onCopyEmail={onCopyEmail} />
 		</div>
 	</div>
@@ -275,7 +277,7 @@
 			display: flex;
 			flex-direction: column;
 			align-items: flex-start;
-			gap: var(--spacing-xs);
+			gap: var(--spacing-2xs, 0.25rem);
 		}
 
 		.hero-intro-stack > :global(.cli-block) {
@@ -284,6 +286,8 @@
 
 		.mobile-hero-icons {
 			display: flex;
+			align-items: center;
+			gap: var(--spacing-sm);
 		}
 
 		.mobile-hero-icons :global(.floating-contact-dock) {
@@ -295,6 +299,7 @@
 		}
 
 		.mobile-hero-icons :global(.floating-contact-dock__link) {
+			display: flex;
 			align-items: center;
 			line-height: 0;
 			padding: 0;
@@ -302,6 +307,18 @@
 
 		.mobile-hero-icons :global(.floating-contact-dock__link svg),
 		.mobile-hero-icons :global(.floating-contact-dock__link) :global(svg) {
+			width: 16px !important;
+			height: 16px !important;
+		}
+
+		.mobile-hero-icons :global(.theme-toggle) {
+			display: flex;
+			align-items: center;
+			line-height: 0;
+			padding: 0;
+		}
+
+		.mobile-hero-icons :global(.theme-toggle) :global(svg) {
 			width: 16px !important;
 			height: 16px !important;
 		}

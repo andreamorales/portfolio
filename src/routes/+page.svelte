@@ -1038,7 +1038,8 @@
 			padding-bottom: calc(var(--landing-inset) + 3rem);
 		}
 
-		.corner-controls :global(.floating-contact-dock) {
+		.corner-controls :global(.floating-contact-dock),
+		.corner-controls :global(.theme-toggle) {
 			display: none !important;
 		}
 
