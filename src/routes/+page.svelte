@@ -1350,9 +1350,9 @@
 
 	.detail-panel {
 		position: relative;
-		flex: 1 1 auto;
+		flex: 1 1 0%;
 		min-height: 0;
-		max-height: 100%;
+		height: 100%;
 		width: 100%;
 		z-index: 3;
 		display: flex;
@@ -1554,7 +1554,7 @@
 		top: 0;
 		display: block;
 		height: 1.1rem;
-		margin: -1rem -1rem 0;
+		margin: 0 0 -1.1rem 0;
 		background: linear-gradient(
 			to bottom,
 			var(--bg-color) 0%,
@@ -1768,17 +1768,14 @@
 		.detail-panel-piece {
 			border: none;
 			border-radius: 0;
-			/* Use an explicit mobile scroll container for reliable touch scrolling. */
 			overflow-y: auto;
 			overflow-x: hidden;
 			-webkit-overflow-scrolling: touch;
 			overscroll-behavior: contain;
 			touch-action: pan-y;
-			height: auto;
-			max-height: calc(
-				100dvh - 3rem - 3.375rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
-			);
-			background: transparent;
+			height: 100dvh;
+			max-height: 100dvh;
+			background: var(--bg-color);
 		}
 
 		.detail-panel-sidebar {
