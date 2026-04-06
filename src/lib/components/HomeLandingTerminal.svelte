@@ -12,7 +12,7 @@
 	import HomeTerminalHistory from '$lib/components/HomeTerminalHistory.svelte';
 
 	const aboutBio =
-		"I lead the design of creative and technical products. I lead the design of tools for devs and creatives, all through the lens of play. I started my career in 2010 as a filmmaker and game designer, which gave me a sharp eye for storytelling, and 12 years ago delved into product design and game design. I've worked at MongoDB, Roblox, ConsenSys, and was the CEO and co-founder of my own AI startup, Panto. I currently work at a healthcare AI company bringing AI to medical chart review.";
+		"I lead the design of tools for devs and creatives, all through the lens of play. I started my career in 2010 as a filmmaker and game designer, which gave me a sharp eye for storytelling, and 12 years ago delved into product design and game design. I've worked at MongoDB, Roblox, ConsenSys, and was the CEO and co-founder of my own AI startup, Panto. I currently work at a healthcare AI company bringing AI to medical chart review.";
 
 	export let portfolioItems: PortfolioItem[] = [];
 	export let onOpenPortfolio: (
@@ -22,6 +22,8 @@
 	) => void = () => {};
 	export let onCopyEmail: () => void = () => {};
 	export let introVisible = true;
+	export let skipIntro = false;
+	export let onCommandRun: ((cmd: string, outputPreview: string) => void) | null = null;
 
 	type Feedback =
 		| { kind: 'help' }
@@ -78,6 +80,7 @@
 		lastFeedback?.kind === 'portfolio' &&
 		(lastEntry?.typingComplete ?? false) &&
 		commandLine.trim().length === 0;
+	$: commandLoading = !!lastEntry && !lastEntry.typingComplete;
 	$: if (introVisible && !introSequenceStarted) startIntroSequence();
 
 	function startIntroSequence() {
@@ -145,7 +148,7 @@
 		const entries = getPortfolioDisplayEntries(items);
 		const productCount = entries.filter((entry) => !isSideProject(entry.item)).length;
 		const rows: string[] = [
-			'↑↓ = select | ENTER/SPACE = open | ESC = cancel',
+			'<span class="cli-t-portfolio-hint">↑↓ = select | ENTER/SPACE = open | ESC = cancel</span>',
 			'',
 			'<span class="cli-t-portfolio-heading">Product Design</span>'
 		];
@@ -446,6 +449,7 @@
 				typingComplete: fullText.length === 0
 			}
 		];
+		onCommandRun?.(cmd, fullText);
 	}
 
 	function popLast() {
@@ -646,6 +650,16 @@
 
 	onMount(() => {
 		window.addEventListener('keydown', onGlobalKeydown);
+		if (skipIntro) {
+			introBgVisible = true;
+			introSequenceStarted = true;
+			introTypingDone = true;
+			introReturnVisible = true;
+			introGlowVisible = true;
+			showReturnHint = true;
+			commandLine = '--help';
+			tick().then(() => cliInputEl?.focus());
+		}
 	});
 
 	onDestroy(() => {
@@ -704,6 +718,7 @@
 	class="cli-block"
 	class:cli-block--intro-bg={introBgVisible}
 	class:cli-block--intro-glow={introGlowVisible}
+	class:cli-block--loading={commandLoading}
 >
 	<!-- svelte-ignore a11y-click-events-have-key-events -->
 	<!-- svelte-ignore a11y-mouse-events-have-key-events -->
@@ -778,13 +793,16 @@
 							</div>
 						</div>
 					</div>
-					<div
+					<button
+						type="button"
 						class="cli-return-hint"
 						class:cli-return-hint--visible={!introSequenceStarted || introReturnVisible}
+						on:click={() => submitCommand()}
+						aria-label="Submit command"
 					>
 						<span class="cli-return-label">Return</span>
 						<CornerDownLeft size={11} strokeWidth={1.5} aria-hidden="true" />
-					</div>
+					</button>
 				</div>
 			</div>
 		{/if}
@@ -864,7 +882,7 @@
 	.cli-block::before {
 		content: '';
 		position: absolute;
-		inset: 0;
+		inset: -4px;
 		z-index: 0;
 		border-radius: var(--border-radius);
 		pointer-events: none;
@@ -877,18 +895,49 @@
 			left center,
 			right center;
 		background-size:
-			100% 5px,
-			100% 5px,
-			5px 100%,
-			5px 100%;
+			100% 8px,
+			100% 8px,
+			8px 100%,
+			8px 100%;
 		background-repeat: no-repeat;
-		filter: blur(10px);
+		filter: blur(12px);
 		opacity: 0;
 		transition: opacity 520ms ease;
 	}
 
 	.cli-block--intro-glow::before {
-		opacity: var(--glow-cli-opacity, 0.9);
+		opacity: 1;
+	}
+
+	.cli-block--loading::before {
+		animation: cli-glow-shift 2s ease-in-out infinite;
+	}
+
+	@keyframes cli-glow-shift {
+		0% {
+			background-position:
+				top center,
+				bottom center,
+				left center,
+				right center;
+			filter: blur(10px);
+		}
+		50% {
+			background-position:
+				top left,
+				bottom right,
+				left top,
+				right bottom;
+			filter: blur(14px);
+		}
+		100% {
+			background-position:
+				top center,
+				bottom center,
+				left center,
+				right center;
+			filter: blur(10px);
+		}
 	}
 
 	@media (prefers-reduced-motion: reduce) {
@@ -1071,6 +1120,11 @@
 		white-space: nowrap;
 		opacity: 0;
 		transition: opacity 320ms ease;
+		background: none;
+		border: none;
+		padding: 0;
+		margin: 0;
+		cursor: pointer;
 	}
 
 	.cli-return-hint--visible {
@@ -1112,6 +1166,18 @@
 	.cli-bottom-prompt .cli-input {
 		line-height: 1.4;
 		min-height: 1.4em;
+	}
+
+	@media (max-width: 1180px) and (min-width: 769px) {
+		.cli-terminal-window {
+			font-size: 0.9rem;
+			max-height: min(54vh, 24.5rem);
+		}
+
+		.cli-terminal-window--bottom-prompt {
+			height: min(54vh, 24.5rem);
+			max-height: min(54vh, 24.5rem);
+		}
 	}
 
 	@media (max-width: 768px) {

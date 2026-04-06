@@ -16,7 +16,8 @@
 		"lint": "prettier --check . && eslint .",
 		"verify": "prettier --write . && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && eslint .",
 		"validate": "node ./scripts/validate.mjs",
-		"encrypt:case-study": "node ./scripts/encrypt-case-study.mjs"
+		"encrypt:case-study": "node ./scripts/encrypt-case-study.mjs",
+		"transcribe:video": "node ./scripts/transcribe-video.mjs"
 	},
 	"files": [
 		"dist",
@@ -63,6 +64,7 @@
 		"svelte"
 	],
 	"dependencies": {
+		"@remotion/install-whisper-cpp": "^4.0.445",
 		"lucide-svelte": "^0.306.0",
 		"three": "^0.183.2"
 	}

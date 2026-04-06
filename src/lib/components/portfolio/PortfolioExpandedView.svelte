@@ -1,9 +1,17 @@
+<script context="module" lang="ts">
+	let portfolioEndSmileyMaskSeq = 0;
+</script>
+
 <script lang="ts">
 	import Label from '$lib/components/ui/input/Label.svelte';
+	import PortfolioEndHome from '$lib/components/portfolio/PortfolioEndHome.svelte';
 	import {
 		decryptSecurePortfolioPayload,
 		type SecurePortfolioEncryptedPayload
 	} from '$lib/utils/secureCaseStudy';
+
+	/** Unique mask id per instance (component can appear more than once on a page). */
+	const portfolioEndSmileyMaskId = `portfolio-end-smiley-mask-${++portfolioEndSmileyMaskSeq}`;
 
 	// Props
 	export let projectTitle: string = '';
@@ -25,6 +33,11 @@
 	export let metrics: Array<string> = [];
 	export let team: Array<{ role: string; name: string; relationship: string }> = [];
 	export let immersive = false;
+	export let onGoHome: (() => void) | null = null;
+	export let hasPrevPiece = false;
+	export let hasNextPiece = false;
+	export let onPrevPiece: (() => void) | null = null;
+	export let onNextPiece: (() => void) | null = null;
 	export let locked = false;
 	export let encryptedPayload: SecurePortfolioEncryptedPayload | null = null;
 	export let staggerReveal = false;
@@ -96,6 +109,13 @@
 		const anchor = (group ?? introReveal).childStartDelayMs;
 		return revealStyle(anchor + step * REVEAL_CHILD_STEP_MS);
 	}
+
+	/** First segment includes the colon; second is trimmed (mobile stacks on two lines). */
+	$: titleColonIdx = projectTitle.indexOf(':');
+	$: titleHasColonSplit =
+		titleColonIdx !== -1 && projectTitle.slice(titleColonIdx + 1).trim().length > 0;
+	$: titleBeforeColon = titleHasColonSplit ? projectTitle.slice(0, titleColonIdx + 1) : '';
+	$: titleAfterColon = titleHasColonSplit ? projectTitle.slice(titleColonIdx + 1).trim() : '';
 
 	$: {
 		const usedImageSources = new Set([
@@ -192,7 +212,14 @@
 >
 	<div class="project-intro reveal-parent" style={revealStyle(introReveal.parentDelayMs)}>
 		<div class="project-title-row reveal-child" style={revealStyle(introReveal.childStartDelayMs)}>
-			<h2 id={titleId} class="project-title">{projectTitle}</h2>
+			<h2 id={titleId} class="project-title">
+				{#if titleHasColonSplit}
+					<span class="project-title__line project-title__line--first">{titleBeforeColon}</span
+					><span class="project-title__line project-title__line--second">{titleAfterColon}</span>
+				{:else}
+					{projectTitle}
+				{/if}
+			</h2>
 			{#if tags.length > 0}
 				<div class="project-tags">
 					{#each tags as tag (`${projectTitle}-${tag}`)}
@@ -268,6 +295,16 @@
 				{/if}
 			</div>
 		</div>
+		{#if onGoHome}
+			<PortfolioEndHome
+				maskId={portfolioEndSmileyMaskId}
+				onGoHome={() => onGoHome?.()}
+				{hasPrevPiece}
+				{hasNextPiece}
+				onPrevPiece={onPrevPiece ?? undefined}
+				onNextPiece={onNextPiece ?? undefined}
+			/>
+		{/if}
 	{:else}
 		<!-- Project details grid -->
 		<div
@@ -301,21 +338,6 @@
 						{:else if link}
 							<a href={link} target="_blank" rel="noopener noreferrer" class="project-link">
 								View Project
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									width="14"
-									height="14"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
-									stroke-linecap="round"
-									stroke-linejoin="round"
-								>
-									<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-									<polyline points="15 3 21 3 21 9"></polyline>
-									<line x1="10" y1="14" x2="21" y2="3"></line>
-								</svg>
 							</a>
 						{:else}
 							<span class="muted-text">Not Available</span>
@@ -473,6 +495,17 @@
 						{/each}
 					</div>
 				{/if}
+
+				{#if onGoHome}
+					<PortfolioEndHome
+						maskId={portfolioEndSmileyMaskId}
+						onGoHome={() => onGoHome?.()}
+						{hasPrevPiece}
+						{hasNextPiece}
+						onPrevPiece={onPrevPiece ?? undefined}
+						onNextPiece={onNextPiece ?? undefined}
+					/>
+				{/if}
 			</div>
 		</div>
 	{/if}
@@ -609,7 +642,8 @@
 		font-variation-settings:
 			'CASL' 0,
 			'wght' 340;
-		color: var(--muted-text);
+		color: var(--palette-grey-600);
+		font-style: italic;
 		margin-top: var(--spacing-xs);
 		text-align: center;
 		max-width: 65ch;
@@ -635,12 +669,12 @@
 	}
 
 	@media (max-width: 768px) {
-		.text-block {
-			font-size: 15px;
-		}
-
 		.image-gallery {
 			grid-template-columns: 1fr;
+		}
+
+		.portfolio-expanded-view {
+			border-top: none;
 		}
 
 		.portfolio-expanded-view,
@@ -652,17 +686,11 @@
 			max-width: 100%;
 		}
 
-		.hero-description {
-			font-size: var(--font-size-base);
-			line-height: 1.6;
-			padding: 0;
-		}
-
 		.highlight-line {
 			display: inline;
 			color: var(--text-color);
 			font-family: inherit;
-			line-height: 1.6;
+			line-height: 1.75;
 			background: none;
 			-webkit-mask-image: none;
 			mask-image: none;
@@ -695,6 +723,10 @@
 		font-variation-settings:
 			'CASL' 0,
 			'wght' 420;
+	}
+
+	.project-title__line {
+		display: inline;
 	}
 
 	.project-tags {
@@ -817,23 +849,36 @@
 	:global(html.dark-theme) .text-block,
 	:global(html.dark-theme) .project-link,
 	:global(html.dark-theme) .muted-text,
-	:global(html.dark-theme) .discontinued-text,
-	:global(html.dark-theme) .role,
-	:global(html.dark-theme) .name,
-	:global(html.dark-theme) .relationship {
+	:global(html.dark-theme) .discontinued-text {
 		font-variation-settings:
 			'CASL' 0,
 			'wght' 360;
 	}
 
 	:global(html.dark-theme) .image-caption,
-	:global(html.dark-theme) .details-label {
+	:global(html.dark-theme) .details-label,
+	:global(html.dark-theme) .name,
+	:global(html.dark-theme) .relationship {
 		font-variation-settings:
 			'CASL' 0,
 			'wght' 330;
 	}
 
-	:global(html.dark-theme) .details-label {
+	:global(html.dark-theme) .image-caption,
+	:global(html.dark-theme) .details-label,
+	:global(html.dark-theme) .name,
+	:global(html.dark-theme) .relationship {
+		color: var(--palette-grey-hint);
+	}
+
+	:global(html.dark-theme) .role {
+		color: var(--text-color);
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 460;
+	}
+
+	:global(html.dark-theme) .team-list:has(.team-member:nth-child(2)) .team-member::before {
 		color: var(--palette-grey-hint);
 	}
 
@@ -882,7 +927,7 @@
 
 	.details-label {
 		font-size: var(--font-size-xxs);
-		color: var(--muted-text);
+		color: var(--palette-grey-600);
 		font-variation-settings:
 			'CASL' 0,
 			'wght' 400;
@@ -897,10 +942,74 @@
 		word-wrap: break-word;
 	}
 
+	@media (max-width: 768px) {
+		.project-title {
+			font-size: clamp(3.25rem, 15vw, 5rem);
+			line-height: 1;
+			letter-spacing: -0.045em;
+		}
+
+		.project-title__line--second {
+			display: block;
+			margin-top: 0.04em;
+		}
+
+		/* Override Label.svelte’s smaller mobile pill size for portfolio context only */
+		.project-tags :global(.label) {
+			font-size: var(--font-size-sm);
+			padding: 5px 11px;
+		}
+
+		.text-block {
+			font-size: var(--font-size-base);
+			line-height: 1.78;
+		}
+
+		.text-block :global(p) {
+			line-height: inherit;
+		}
+
+		.image-caption {
+			font-size: var(--font-size-base);
+			line-height: 1.62;
+		}
+
+		.details-label {
+			font-size: var(--font-size-base);
+			line-height: 1.55;
+		}
+
+		.details-value {
+			font-size: var(--font-size-base);
+			line-height: 1.68;
+		}
+
+		.locked-gate-label {
+			font-size: var(--font-size-sm);
+			line-height: 1.5;
+		}
+
+		.locked-gate-copy {
+			font-size: var(--font-size-base);
+			line-height: 1.72;
+		}
+
+		.locked-gate-error {
+			font-size: var(--font-size-sm);
+			line-height: 1.5;
+		}
+
+		.locked-gate-input,
+		.locked-gate-button {
+			font-size: var(--font-size-base);
+			line-height: 1.5;
+		}
+	}
+
 	/* Make sure the grid is responsive */
 	@media (max-width: 600px) {
 		.project-intro {
-			padding: 1rem 1rem 0;
+			padding: 1rem 0 0;
 		}
 
 		.content-view {
@@ -921,6 +1030,11 @@
 
 		.project-tags {
 			justify-content: flex-start;
+		}
+
+		.project-details-grid {
+			border-left: 1px solid var(--black);
+			border-right: 1px solid var(--black);
 		}
 
 		.details-row {
@@ -1027,16 +1141,14 @@
 	}
 
 	.project-link {
-		color: var(--text-color);
-		text-decoration: none;
-		display: inline-flex;
-		align-items: center;
-		gap: var(--spacing-xxs);
-		transition: color var(--transition);
+		color: var(--palette-rainbow-6);
+		text-decoration: underline;
+		text-underline-offset: 3px;
+		transition: opacity var(--transition);
 	}
 
 	.project-link:hover {
-		color: var(--cursor-indigo);
+		opacity: 0.75;
 	}
 
 	.muted-text {
@@ -1094,19 +1206,22 @@
 		content: '•';
 		position: absolute;
 		left: 0;
-		color: var(--text-color);
+		color: var(--palette-grey-600);
 	}
 
 	.role {
-		color: var(--muted-text);
+		color: var(--text-color);
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 500;
 	}
 
-	.name {
-		color: var(--text-color);
+	.name,
+	.relationship {
+		color: var(--palette-grey-600);
 	}
 
 	.relationship {
-		color: var(--muted-text);
 		font-style: italic;
 	}
 
@@ -1143,6 +1258,38 @@
 	.side-by-side .image-caption {
 		margin-top: var(--spacing-xs);
 		flex-shrink: 0;
+	}
+
+	@media (max-width: 768px) {
+		.hero-description {
+			font-size: var(--font-size-xl);
+			line-height: 1.72;
+		}
+
+		.team-member {
+			font-size: var(--font-size-base);
+			line-height: 1.62;
+		}
+
+		/* Stack side-by-side images vertically on mobile. */
+		.image-pair {
+			flex-direction: column;
+			align-items: stretch;
+			gap: var(--spacing-sm);
+		}
+
+		.side-by-side .image-container {
+			width: 100%;
+		}
+
+		.side-by-side .image-frame,
+		.side-by-side .image-frame img {
+			height: auto;
+		}
+
+		.side-by-side .image-frame img {
+			object-fit: contain;
+		}
 	}
 
 	@keyframes portfolio-reveal-in {

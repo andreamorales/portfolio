@@ -60,9 +60,9 @@
 			>
 				<rect x="1" y="0" width="2" height="2" />
 				<rect x="1" y="4" width="2" height="12" />
-				<rect x="6" y="4" width="2" height="12" />
-				<rect x="8" y="4" width="8" height="3" />
-				<rect x="14" y="6" width="2" height="10" />
+				<rect x="6" y="0" width="2" height="16" />
+				<rect x="8" y="0" width="8" height="3" />
+				<rect x="14" y="2" width="2" height="14" />
 			</svg>
 		</a>
 		<a

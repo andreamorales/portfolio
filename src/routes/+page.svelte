@@ -29,7 +29,63 @@
 
 	function isDirectVideoFile(url: string): boolean {
 		const path = url.split('?')[0] ?? url;
-		return /\.(mp4|webm|ogg)$/i.test(path);
+		return /\.(mp4|webm|ogg|mov|m4v)$/i.test(path);
+	}
+
+	function normalizeTranscriptText(text: string): string {
+		return text
+			.replace(/\s+([,.;!?])/g, '$1')
+			.replace(/\(\s+/g, '(')
+			.replace(/\s+\)/g, ')')
+			.replace(/\s+/g, ' ')
+			.trim();
+	}
+
+	function isTranscriptNoiseToken(text: string): boolean {
+		const trimmed = text.trim();
+		if (!trimmed) return true;
+		if (/blank\s*_?\s*audio/i.test(trimmed)) return true;
+		const normalized = trimmed.replace(/\s+/g, '').toUpperCase();
+		return (
+			normalized === '[' ||
+			normalized === ']' ||
+			normalized === '_' ||
+			['BL', 'ANK', 'AUD', 'IO'].includes(normalized)
+		);
+	}
+
+	function buildTranscriptLines(
+		cues: Array<{ text: string; startMs: number; endMs: number }>,
+		maxCharsPerLine = 110
+	): Array<{ text: string; startMs: number; endMs: number }> {
+		if (!cues.length) return [];
+
+		const lines: Array<{ text: string; startMs: number; endMs: number }> = [];
+
+		for (let i = 0; i < cues.length; i++) {
+			const cue = cues[i];
+			const text = normalizeTranscriptText(cue.text);
+			if (!text) continue;
+
+			// Keep punctuation attached to the previous token instead of becoming its own row.
+			if (/^[,.;!?]+$/.test(text) && lines.length) {
+				lines[lines.length - 1] = {
+					...lines[lines.length - 1],
+					text: normalizeTranscriptText(`${lines[lines.length - 1].text}${text}`),
+					endMs: cue.endMs
+				};
+				continue;
+			}
+
+			lines.push({
+				text,
+				startMs: cue.startMs,
+				endMs: cue.endMs
+			});
+		}
+
+		// Keep previous behavior contract while now using word-level rows.
+		return maxCharsPerLine > 0 ? lines : [];
 	}
 
 	$: sortedPortfolioItems = [...$portfolioItems].sort(
@@ -56,6 +112,23 @@
 	let showToast = false;
 	let toastMessage = '';
 	let activeDetailItem: PortfolioItem | null = null;
+	let detailVideoEl: HTMLVideoElement | null = null;
+	let detailTranscriptEl: HTMLDivElement | null = null;
+	let mobileAudioEl: HTMLAudioElement | null = null;
+	let mobileVideoEl: HTMLVideoElement | null = null;
+	let detailVideoCurrentMs = 0;
+	let detailTranscriptCues: Array<{ text: string; startMs: number; endMs: number }> = [];
+	let detailTranscriptLines: Array<{ text: string; startMs: number; endMs: number }> = [];
+	let detailVisibleTranscriptLines: Array<{ text: string; startMs: number; endMs: number }> = [];
+	let shouldStickTranscriptToBottom = true;
+	let detailTranscriptCanScrollUp = false;
+	let mobileAudioIsPlaying = false;
+	let mobileVideoVisible = false;
+	let mobileAudioDurationMs = 0;
+	let mobileAudioScrubMs = 0;
+	let mobileAudioScrubbing = false;
+	let mobileTranscriptTicker = '';
+	let lastActiveDetailSlug = '';
 	let activeDetailRevealDelayMs = 1360;
 	let unlockedPieceSlugs = new Set<string>();
 	let unlockedPieceDataBySlug = new Map<string, SecurePortfolioPayloadData>();
@@ -64,6 +137,195 @@
 	let introLinesVisible = false;
 	let introControlsVisible = false;
 	let introTerminalVisible = false;
+	let mobileTerminalDrawerOpen = false;
+
+	function syncTranscriptScrollIndicators() {
+		if (!detailTranscriptEl) {
+			detailTranscriptCanScrollUp = false;
+			return;
+		}
+		detailTranscriptCanScrollUp = detailTranscriptEl.scrollTop > 6;
+	}
+
+	function handleDetailVideoTimeUpdate() {
+		detailVideoCurrentMs = detailVideoEl ? detailVideoEl.currentTime * 1000 : 0;
+		if (detailTranscriptEl && shouldStickTranscriptToBottom) {
+			requestAnimationFrame(() => {
+				if (detailTranscriptEl && shouldStickTranscriptToBottom) {
+					detailTranscriptEl.scrollTop = detailTranscriptEl.scrollHeight;
+					syncTranscriptScrollIndicators();
+				}
+			});
+		}
+	}
+
+	function handleTranscriptScroll() {
+		if (!detailTranscriptEl) return;
+		const distanceFromBottom =
+			detailTranscriptEl.scrollHeight -
+			detailTranscriptEl.scrollTop -
+			detailTranscriptEl.clientHeight;
+		shouldStickTranscriptToBottom = distanceFromBottom < 24;
+		syncTranscriptScrollIndicators();
+	}
+
+	function handleMobileMediaTimeUpdate(event: Event) {
+		const media = event.currentTarget as HTMLMediaElement;
+		detailVideoCurrentMs = media.currentTime * 1000;
+		if (!mobileAudioScrubbing) {
+			mobileAudioScrubMs = detailVideoCurrentMs;
+		}
+		if (Number.isFinite(media.duration)) {
+			mobileAudioDurationMs = media.duration * 1000;
+		}
+	}
+
+	function getActiveMobileMediaElement(): HTMLMediaElement | null {
+		if (mobileVideoVisible && mobileVideoEl) return mobileVideoEl;
+		return mobileAudioEl;
+	}
+
+	function getMobileTickerText(
+		cues: Array<{ text: string; startMs: number; endMs: number }>,
+		currentMs: number
+	): string {
+		if (!cues.length) return '';
+
+		const snippet = cues
+			.filter((cue) => cue.endMs >= currentMs - 300 && cue.startMs <= currentMs + 900)
+			.map((cue) => cue.text)
+			.join('');
+		const normalized = normalizeTranscriptText(snippet);
+		if (normalized) return normalized;
+
+		for (let i = cues.length - 1; i >= 0; i--) {
+			if (cues[i].startMs <= currentMs) return normalizeTranscriptText(cues[i].text);
+		}
+
+		return normalizeTranscriptText(cues[0].text);
+	}
+
+	function toggleMobileAudioPlayback() {
+		const media = getActiveMobileMediaElement();
+		if (!media) return;
+		if (media.paused || media.ended) {
+			media.play().catch(() => {
+				// Autoplay policies may block without user gesture.
+			});
+		} else {
+			media.pause();
+		}
+	}
+
+	function handleMobileAudioPlay() {
+		mobileAudioIsPlaying = true;
+	}
+
+	function handleMobileAudioPause() {
+		mobileAudioIsPlaying = false;
+	}
+
+	function handleMobileAudioSeekInput(event: Event) {
+		const target = event.currentTarget as HTMLInputElement;
+		const next = Number(target.value);
+		mobileAudioScrubbing = true;
+		mobileAudioScrubMs = next;
+		detailVideoCurrentMs = next;
+	}
+
+	function commitMobileAudioSeek() {
+		if (!mobileAudioEl) return;
+		const nextSeconds = mobileAudioScrubMs / 1000;
+		try {
+			mobileAudioEl.currentTime = nextSeconds;
+		} catch {
+			// noop
+		}
+		if (mobileVideoEl) {
+			try {
+				mobileVideoEl.currentTime = nextSeconds;
+			} catch {
+				// noop
+			}
+		}
+		detailVideoCurrentMs = mobileAudioScrubMs;
+		mobileAudioScrubbing = false;
+	}
+
+	function toggleMobileVideoVisible() {
+		const from = getActiveMobileMediaElement();
+		const fromTime = from?.currentTime ?? 0;
+		const wasPlaying = !!from && !from.paused && !from.ended;
+		mobileVideoVisible = !mobileVideoVisible;
+
+		requestAnimationFrame(() => {
+			if (!mobileAudioEl) return;
+			const target = getActiveMobileMediaElement();
+			if (!target) return;
+			try {
+				target.currentTime = fromTime;
+			} catch {
+				// Some browsers can reject immediate seeks before metadata.
+			}
+			detailVideoCurrentMs = target.currentTime * 1000;
+			mobileAudioScrubMs = detailVideoCurrentMs;
+			if (wasPlaying) {
+				target.play().catch(() => {
+					// Autoplay policies may block without user gesture.
+				});
+			}
+		});
+
+		if (from) from.pause();
+	}
+
+	function formatMediaTime(ms: number): string {
+		const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+		const minutes = Math.floor(totalSeconds / 60);
+		const seconds = totalSeconds % 60;
+		return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+	}
+
+	$: {
+		const sourceCues = activeDetailItem?.transcriptCues ?? [];
+		const videoDurationMs =
+			detailVideoEl && Number.isFinite(detailVideoEl.duration)
+				? detailVideoEl.duration * 1000
+				: Number.POSITIVE_INFINITY;
+		detailTranscriptCues = sourceCues
+			.filter((cue) => !isTranscriptNoiseToken(cue.text))
+			.filter((cue) => cue.startMs <= videoDurationMs + 200)
+			.map((cue) => ({
+				text: cue.text,
+				startMs: cue.startMs,
+				endMs: cue.endMs
+			}));
+		detailTranscriptLines = buildTranscriptLines(detailTranscriptCues);
+		detailVisibleTranscriptLines = detailTranscriptLines.filter(
+			(line) => line.startMs <= detailVideoCurrentMs + 120
+		);
+	}
+
+	$: mobileTranscriptTicker = detailTranscriptCues.length
+		? getMobileTickerText(detailTranscriptCues, detailVideoCurrentMs)
+		: '';
+
+	$: {
+		const currentSlug = activeDetailItem ? toPieceSlug(activeDetailItem) : '';
+		if (currentSlug !== lastActiveDetailSlug) {
+			lastActiveDetailSlug = currentSlug;
+			mobileAudioIsPlaying = false;
+			mobileVideoVisible = false;
+			mobileAudioDurationMs = 0;
+			mobileAudioScrubMs = 0;
+			mobileAudioScrubbing = false;
+			detailVideoCurrentMs = 0;
+		}
+	}
+
+	function toggleMobileTerminal() {
+		mobileTerminalDrawerOpen = !mobileTerminalDrawerOpen;
+	}
 
 	async function copyEmailToClipboard() {
 		const email = 'andreamoralescoto@gmail.com';
@@ -274,6 +536,37 @@
 		updatePieceQuery(activeDetailItem);
 	}
 
+	async function scrollPortfolioDetailToTop() {
+		await tick();
+		await tick();
+		if (typeof window !== 'undefined') {
+			window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+		}
+		if (detailPieceEl) {
+			detailPieceEl.scrollTop = 0;
+		}
+	}
+
+	async function openAdjacentPortfolioPiece(delta: -1 | 1) {
+		if (!activeDetailItem || immersiveMode) return;
+		const idx = sortedPortfolioItems.findIndex(
+			(item) => toPieceSlug(item) === toPieceSlug(activeDetailItem!)
+		);
+		if (idx < 0) return;
+		const nextIdx = idx + delta;
+		if (nextIdx < 0 || nextIdx >= sortedPortfolioItems.length) return;
+		openPortfolioPiece(nextIdx);
+		await scrollPortfolioDetailToTop();
+	}
+
+	$: detailPieceIndex =
+		activeDetailItem && !immersiveMode
+			? sortedPortfolioItems.findIndex((i) => toPieceSlug(i) === toPieceSlug(activeDetailItem!))
+			: -1;
+	$: detailHasPrevPiece = detailPieceIndex > 0;
+	$: detailHasNextPiece =
+		detailPieceIndex >= 0 && detailPieceIndex < sortedPortfolioItems.length - 1;
+
 	function updateImmersiveProgress() {
 		if (!immersiveMode || typeof window === 'undefined') return;
 
@@ -421,6 +714,50 @@
 	<FloatingContactDock visible={!immersiveMode} onCopyEmail={copyEmailToClipboard} />
 </div>
 
+<!-- Mobile top bar: thin rainbow on home, full nav bar on portfolio piece -->
+<div
+	class="mobile-rainbow-bar"
+	class:mobile-rainbow-bar--home={!activeDetailItem}
+	class:mobile-rainbow-bar--nav={!!activeDetailItem}
+>
+	{#if activeDetailItem}
+		<button
+			class="mobile-nav__home"
+			on:click={() => {
+				activeDetailItem = null;
+				updatePieceQuery(null);
+			}}
+			aria-label="Back to home"
+		>
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				viewBox="0 0 24 24"
+				width="24"
+				height="24"
+				fill="currentColor"
+				aria-hidden="true"
+				style="image-rendering: pixelated"
+			>
+				<!-- eyes -->
+				<rect x="5" y="2" width="4" height="8" />
+				<rect x="15" y="2" width="4" height="8" />
+				<!-- smile -->
+				<rect x="0" y="14" width="2" height="4" />
+				<rect x="2" y="16" width="2" height="4" />
+				<rect x="4" y="18" width="2" height="4" />
+				<rect x="6" y="20" width="12" height="4" />
+				<rect x="18" y="18" width="2" height="4" />
+				<rect x="20" y="16" width="2" height="4" />
+				<rect x="22" y="14" width="2" height="4" />
+			</svg>
+		</button>
+		<div class="mobile-nav__icons">
+			<ThemeToggle />
+			<FloatingContactDock visible={true} onCopyEmail={copyEmailToClipboard} />
+		</div>
+	{/if}
+</div>
+
 <div class="landing-page">
 	<div class="viewport-frame-lines" aria-hidden="true">
 		<div
@@ -471,10 +808,15 @@
 					<div class="landing-hero-anchor" bind:this={landingHeroElement}>
 						<HomeLandingHero
 							portfolioItems={sortedPortfolioItems}
-							onOpenPortfolio={openPortfolioPiece}
+							onOpenPortfolio={(idx, unlocked, data) => {
+								mobileTerminalDrawerOpen = false;
+								openPortfolioPiece(idx, unlocked, data);
+							}}
 							onCopyEmail={copyEmailToClipboard}
 							{introTypewriterActive}
 							{introTerminalVisible}
+							{mobileTerminalDrawerOpen}
+							onToggleMobileTerminal={toggleMobileTerminal}
 							onGoHome={() => {
 								activeDetailItem = null;
 								updatePieceQuery(null);
@@ -494,6 +836,148 @@
 								></div>
 								<div class="detail-panel-grid detail-panel-grid--enter">
 									<div class="detail-panel-piece" bind:this={detailPieceEl}>
+										{#if activeDetailItem.videoUrl}
+											<div class="mobile-media-panel">
+												{#if isDirectVideoFile(activeDetailItem.videoUrl)}
+													<div class="mobile-media-controls">
+														<div class="mobile-media-controls__primary">
+															<button
+																type="button"
+																class="mobile-media-play"
+																on:click={toggleMobileAudioPlayback}
+																aria-label={mobileAudioIsPlaying ? 'Pause audio' : 'Play audio'}
+															>
+																{#if mobileAudioIsPlaying}
+																	<!-- Pixel pause (4×5 grid) -->
+																	<svg
+																		class="mobile-media-play__icon"
+																		xmlns="http://www.w3.org/2000/svg"
+																		viewBox="0 0 4 5"
+																		width="24"
+																		height="24"
+																		fill="currentColor"
+																		aria-hidden="true"
+																		style="image-rendering: pixelated"
+																	>
+																		<rect x="0" y="0" width="1" height="5" />
+																		<rect x="3" y="0" width="1" height="5" />
+																	</svg>
+																{:else}
+																	<!-- Pixel play, matching portfolio-end nav triangle (3×5 grid) -->
+																	<svg
+																		class="mobile-media-play__icon"
+																		xmlns="http://www.w3.org/2000/svg"
+																		viewBox="0 0 3 5"
+																		width="24"
+																		height="24"
+																		fill="currentColor"
+																		aria-hidden="true"
+																		style="image-rendering: pixelated"
+																	>
+																		<rect x="2" y="2" width="1" height="1" />
+																		<rect x="1" y="1" width="1" height="3" />
+																		<rect x="0" y="0" width="1" height="5" />
+																	</svg>
+																{/if}
+															</button>
+															<div class="mobile-media-scrubber-wrap">
+																<input
+																	class="mobile-media-scrubber"
+																	type="range"
+																	min="0"
+																	max={Math.max(0, Math.floor(mobileAudioDurationMs))}
+																	value={Math.min(
+																		Math.max(0, Math.floor(mobileAudioScrubMs)),
+																		Math.max(0, Math.floor(mobileAudioDurationMs))
+																	)}
+																	on:input={handleMobileAudioSeekInput}
+																	on:change={commitMobileAudioSeek}
+																	on:pointerup={commitMobileAudioSeek}
+																	on:touchend={commitMobileAudioSeek}
+																	aria-label="Seek audio"
+																/>
+															</div>
+														</div>
+														<div class="mobile-media-controls__secondary">
+															<span class="mobile-media-time" aria-hidden="true">
+																{formatMediaTime(mobileAudioScrubMs)}
+															</span>
+															<button
+																type="button"
+																class="mobile-video-switch-wrap"
+																on:click={toggleMobileVideoVisible}
+																role="switch"
+																aria-checked={mobileVideoVisible}
+																aria-label={mobileVideoVisible ? 'Video on' : 'Video off'}
+															>
+																<span
+																	class="mobile-video-switch"
+																	class:mobile-video-switch--on={mobileVideoVisible}
+																>
+																	<span class="mobile-video-switch__status">
+																		{mobileVideoVisible ? 'ON' : 'OFF'}
+																	</span>
+																	<span
+																		class="mobile-video-switch__thumb"
+																		aria-hidden="true"
+																	></span>
+																</span>
+																<span class="mobile-video-switch__label">Video</span>
+															</button>
+														</div>
+													</div>
+
+													<audio
+														class="mobile-media-audio"
+														bind:this={mobileAudioEl}
+														preload="metadata"
+														src={activeDetailItem.videoUrl}
+														on:play={handleMobileAudioPlay}
+														on:pause={handleMobileAudioPause}
+														on:loadedmetadata={handleMobileMediaTimeUpdate}
+														on:timeupdate={handleMobileMediaTimeUpdate}
+														on:seeked={handleMobileMediaTimeUpdate}
+													></audio>
+													{#if mobileVideoVisible}
+														<div class="mobile-media-video-shell">
+															<!-- svelte-ignore a11y-media-has-caption -->
+															<video
+																class="mobile-media-video-preview"
+																bind:this={mobileVideoEl}
+																preload="metadata"
+																playsinline
+																src={activeDetailItem.videoUrl}
+																on:play={handleMobileAudioPlay}
+																on:pause={handleMobileAudioPause}
+																on:loadedmetadata={handleMobileMediaTimeUpdate}
+																on:timeupdate={handleMobileMediaTimeUpdate}
+																on:seeked={handleMobileMediaTimeUpdate}
+															></video>
+															{#if mobileAudioIsPlaying && mobileTranscriptTicker}
+																<div
+																	class="mobile-media-floating-captions mobile-media-floating-captions--overlay"
+																	aria-live="polite"
+																>
+																	<span class="mobile-media-floating-captions__text">
+																		{mobileTranscriptTicker}
+																	</span>
+																</div>
+															{/if}
+														</div>
+													{:else if mobileAudioIsPlaying && mobileTranscriptTicker}
+														<div class="mobile-media-floating-captions" aria-live="polite">
+															<span class="mobile-media-floating-captions__text">
+																{mobileTranscriptTicker}
+															</span>
+														</div>
+													{/if}
+												{:else}
+													<div class="mobile-media-unsupported">
+														Audio controls are available for direct video files.
+													</div>
+												{/if}
+											</div>
+										{/if}
 										<!-- Only remount body content when switching pieces (shell/dividers stay put). -->
 										{#key toPieceSlug(activeDetailItem)}
 											<PortfolioExpandedView
@@ -510,6 +994,14 @@
 												locked={!!activeDetailItem.locked && !isPieceUnlocked(activeDetailItem)}
 												encryptedPayload={activeDetailItem.encryptedPayload}
 												immersive={false}
+												onGoHome={() => {
+													activeDetailItem = null;
+													updatePieceQuery(null);
+												}}
+												hasPrevPiece={detailHasPrevPiece}
+												hasNextPiece={detailHasNextPiece}
+												onPrevPiece={() => openAdjacentPortfolioPiece(-1)}
+												onNextPiece={() => openAdjacentPortfolioPiece(1)}
 												staggerReveal={true}
 												staggerBaseDelayMs={activeDetailRevealDelayMs}
 											/>
@@ -522,11 +1014,15 @@
 													<!-- svelte-ignore a11y-media-has-caption -->
 													<video
 														class="detail-panel-video-embed"
+														bind:this={detailVideoEl}
 														controls
 														playsinline
 														preload="metadata"
 														src={activeDetailItem.videoUrl}
 														title="Video for {activeDetailItem.title}"
+														on:loadedmetadata={handleDetailVideoTimeUpdate}
+														on:timeupdate={handleDetailVideoTimeUpdate}
+														on:seeked={handleDetailVideoTimeUpdate}
 													></video>
 												{:else}
 													<iframe
@@ -542,8 +1038,31 @@
 												<span class="detail-panel-placeholder">Video</span>
 											{/if}
 										</div>
-										<div class="detail-panel-transcript">
-											<span class="detail-panel-placeholder">Transcript</span>
+										<div
+											class="detail-panel-transcript"
+											class:detail-panel-transcript--can-scroll-up={detailTranscriptCanScrollUp}
+											bind:this={detailTranscriptEl}
+											on:scroll={handleTranscriptScroll}
+										>
+											{#if detailVisibleTranscriptLines.length}
+												<p class="detail-panel-transcript-flow">
+													{#each detailVisibleTranscriptLines as line, index (`${line.startMs}-${index}`)}
+														<span
+															class="detail-panel-transcript-line"
+															class:detail-panel-transcript-line--active={index ===
+																detailVisibleTranscriptLines.length - 1}
+														>
+															{line.text}
+														</span>
+													{/each}
+												</p>
+											{:else if detailTranscriptLines.length}
+												<span class="detail-panel-placeholder">
+													Transcript will appear as the video plays
+												</span>
+											{:else}
+												<span class="detail-panel-placeholder">Transcript</span>
+											{/if}
 										</div>
 									</div>
 								</div>
@@ -831,6 +1350,10 @@
 		overflow: hidden;
 	}
 
+	.mobile-rainbow-bar {
+		display: none;
+	}
+
 	.detail-panel-rainbow {
 		position: absolute;
 		opacity: 0.95;
@@ -994,7 +1517,7 @@
 		width: 100%;
 		height: 100%;
 		border: none;
-		object-fit: contain;
+		object-fit: cover;
 		vertical-align: middle;
 	}
 
@@ -1006,10 +1529,52 @@
 		border-top-color: transparent;
 		border-radius: 0;
 		overflow-y: auto;
-		display: flex;
-		align-items: center;
-		justify-content: center;
+		display: block;
+		position: relative;
+		height: 100%;
+		max-height: 100%;
+		min-height: 0;
+		padding: 1rem;
 		background: var(--bg-color);
+	}
+
+	.detail-panel-transcript::before {
+		content: '';
+		position: sticky;
+		top: 0;
+		display: block;
+		height: 1.1rem;
+		margin: -1rem -1rem 0;
+		background: linear-gradient(
+			to bottom,
+			var(--bg-color) 0%,
+			color-mix(in srgb, var(--bg-color) 0%, transparent) 100%
+		);
+		pointer-events: none;
+		opacity: 0;
+		transition: opacity 140ms ease;
+		z-index: 2;
+	}
+
+	.detail-panel-transcript--can-scroll-up::before {
+		opacity: 1;
+	}
+
+	.detail-panel-transcript-flow {
+		margin: 0;
+		font-size: var(--font-size-sm);
+		line-height: 1.55;
+	}
+
+	.detail-panel-transcript-line {
+		display: inline;
+		margin-right: 0.36ch;
+		color: var(--text-color);
+		opacity: 0.72;
+	}
+
+	.detail-panel-transcript-line--active {
+		opacity: 0.98;
 	}
 
 	.detail-panel-placeholder {
@@ -1021,54 +1586,479 @@
 		letter-spacing: 0.08em;
 	}
 
-	@media (max-width: 768px) {
+	.mobile-media-panel {
+		display: none;
+	}
+
+	/* Tablet: move video/transcript below the main terminal content. */
+	@media (max-width: 1180px) and (min-width: 769px) {
 		.landing-landing-row {
-			flex-direction: column;
-			align-items: stretch;
-			gap: var(--spacing-md);
-		}
-
-		.landing-hero-anchor {
-			width: 100%;
-		}
-
-		.landing-portfolio-shell {
-			flex: 1 1 auto;
-			min-height: min(70vh, 32rem);
-			width: 100%;
+			gap: clamp(0.65rem, 1.4vw, 1.15rem);
 		}
 
 		.detail-panel-grid {
 			grid-template-columns: 1fr;
-			grid-template-rows: 1fr auto auto;
+			grid-template-rows: minmax(0, 1fr) minmax(220px, 34vh);
 		}
 
 		.detail-panel-piece {
-			border: 1px solid var(--text-color);
-			border-radius: 0;
+			min-height: 0;
 		}
 
 		.detail-panel-sidebar {
-			grid-template-rows: auto auto;
+			grid-template-columns: 1fr 1fr;
+			grid-template-rows: 1fr;
+			min-height: 220px;
+			height: 100%;
 		}
 
-		.detail-panel-sidebar::before,
+		/* Replace the sidebar's vertical divider with a horizontal divider above this row. */
+		.detail-panel-sidebar::before {
+			left: 0;
+			right: 0;
+			top: 0;
+			bottom: auto;
+			width: auto;
+			height: 1px;
+			background-image: var(--palette-rainbow-gradient-h);
+			background-size: 240% 100%;
+			background-position: 0% 50%;
+		}
+
+		/* Inner divider between video and transcript in the bottom row. */
 		.detail-panel-sidebar::after {
-			display: none;
+			left: calc(50% - 0.5px);
+			right: auto;
+			top: 0;
+			bottom: 0;
+			width: 1px;
+			height: auto;
+			background-image: var(--palette-rainbow-gradient-v);
+			background-size: 100% 240%;
+			background-position: 50% 0%;
+		}
+
+		.detail-panel-video,
+		.detail-panel-transcript {
+			border-top: 1px solid var(--text-color);
+			border-left: none;
 		}
 
 		.detail-panel-video {
-			border: 1px solid var(--text-color);
-			border-top: none;
-			border-left-color: var(--text-color);
-			min-height: 8rem;
+			border-right: none;
+			border-bottom: none;
+			min-height: 220px;
 		}
 
 		.detail-panel-transcript {
+			border-right: none;
+			border-bottom: none;
+		}
+	}
+
+	@media (max-width: 768px) {
+		.landing-page {
+			--landing-inset: 1rem;
+			padding: var(--landing-inset);
+			padding-bottom: calc(var(--landing-inset) + 3rem);
+		}
+
+		.corner-controls :global(.floating-contact-dock),
+		.corner-controls :global(.theme-toggle) {
+			display: none !important;
+		}
+
+		.landing-landing-row {
+			flex-direction: column;
+			align-items: stretch;
+			gap: 0;
+			height: auto;
+			max-height: none;
+			overflow: visible;
+		}
+
+		:global(body.detail-panel-open) .landing-landing-row {
+			height: auto;
+			max-height: none;
+			overflow: visible;
+		}
+
+		.landing-hero-anchor {
+			width: 100%;
+			flex: 0 0 auto;
+		}
+
+		:global(body.detail-panel-open) .landing-hero-anchor {
+			height: 0;
+			overflow: hidden;
+			flex: 0 0 0px;
+		}
+
+		:global(body.detail-panel-open) .landing-portfolio-shell {
+			margin-top: 0;
+			padding-top: 3rem;
+		}
+
+		.landing-portfolio-shell {
+			flex: 1 1 auto;
+			min-height: 0;
+			width: 100%;
+			margin-top: var(--spacing-md);
+		}
+
+		.landing-portfolio-shell::before {
+			display: none;
+		}
+
+		.detail-panel {
+			max-height: none;
+			overflow: visible;
+		}
+
+		.detail-panel-grid {
+			grid-template-columns: 1fr;
+			grid-template-rows: auto;
+			height: auto;
+		}
+
+		.detail-panel-grid--enter {
+			animation-delay: 220ms;
+		}
+
+		.detail-panel-piece {
+			border: none;
 			border-radius: 0;
-			border-left-color: var(--text-color);
-			border-top-color: var(--text-color);
-			min-height: 6rem;
+			/* Use an explicit mobile scroll container for reliable touch scrolling. */
+			overflow-y: auto;
+			overflow-x: hidden;
+			-webkit-overflow-scrolling: touch;
+			overscroll-behavior: contain;
+			touch-action: pan-y;
+			height: auto;
+			max-height: calc(
+				100dvh - 3rem - 3.375rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
+			);
+			background: transparent;
+		}
+
+		.detail-panel-sidebar {
+			display: none;
+		}
+
+		.mobile-media-panel {
+			display: flex;
+			flex-direction: column;
+			gap: 0.45rem;
+			padding: 0;
+			margin: 0 0 0.55rem;
+			position: sticky;
+			top: 0;
+			z-index: 8;
+			background: var(--bg-color);
+		}
+
+		.mobile-media-controls {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: var(--spacing-sm);
+			width: 100%;
+			min-width: 0;
+			padding: 0.5rem 0;
+		}
+
+		.mobile-media-controls__primary {
+			display: flex;
+			align-items: center;
+			gap: var(--spacing-sm);
+			flex: 1 1 auto;
+			min-width: 0;
+		}
+
+		.mobile-media-controls__secondary {
+			display: flex;
+			align-items: center;
+			gap: var(--spacing-xs);
+			flex: 0 0 auto;
+		}
+
+		.mobile-media-scrubber-wrap {
+			flex: 1 1 auto;
+			min-width: 0;
+		}
+
+		.mobile-media-scrubber {
+			width: 100%;
+			accent-color: var(--text-color);
+			height: 1px;
+		}
+
+		.mobile-media-time {
+			color: var(--text-color);
+			font-family: inherit;
+			font-size: var(--font-size-xs);
+			opacity: 0.8;
+			min-width: 2.4rem;
+			text-align: right;
+		}
+
+		.mobile-media-play {
+			border: none;
+			background: transparent;
+			color: var(--text-color);
+			padding: 0;
+			line-height: 0;
+			cursor: pointer;
+			opacity: 0.88;
+			flex: 0 0 auto;
+		}
+
+		.mobile-media-play:hover {
+			opacity: 1;
+		}
+
+		.mobile-media-play__icon {
+			display: block;
+			flex-shrink: 0;
+			width: 24px;
+			height: 24px;
+		}
+
+		.mobile-video-switch-wrap {
+			border: none;
+			background: transparent;
+			padding: 0;
+			margin: 0;
+			display: inline-flex;
+			align-items: center;
+			gap: 0.38rem;
+			cursor: pointer;
+			color: var(--text-color);
+			flex: 0 0 auto;
+		}
+
+		.mobile-video-switch {
+			position: relative;
+			width: 54px;
+			height: 24px;
+			border-radius: 999px;
+			border: 1px solid color-mix(in srgb, var(--text-color) 74%, transparent);
+			background: color-mix(in srgb, var(--text-color) 7%, transparent);
+			display: inline-flex;
+			align-items: center;
+			padding: 0 6px;
+			box-sizing: border-box;
+			transition: background-color 120ms ease;
+		}
+
+		.mobile-video-switch--on {
+			background: color-mix(in srgb, var(--text-color) 16%, transparent);
+		}
+
+		.mobile-video-switch__status {
+			position: absolute;
+			right: 6px;
+			font-size: 0.58rem;
+			letter-spacing: 0.06em;
+			opacity: 0.92;
+			font-variation-settings:
+				'CASL' 0,
+				'wght' 600;
+		}
+
+		.mobile-video-switch--on .mobile-video-switch__status {
+			left: 6px;
+			right: auto;
+		}
+
+		.mobile-video-switch__thumb {
+			position: absolute;
+			top: 2px;
+			left: 2px;
+			width: 18px;
+			height: 18px;
+			border-radius: 999px;
+			background: var(--text-color);
+			box-shadow: 0 1px 2px color-mix(in srgb, var(--text-color) 22%, transparent);
+			transition: transform 120ms ease;
+		}
+
+		.mobile-video-switch--on .mobile-video-switch__thumb {
+			transform: translateX(30px);
+		}
+
+		.mobile-video-switch__label {
+			font-size: 0.68rem;
+			letter-spacing: 0.02em;
+			opacity: 0.82;
+		}
+
+		.mobile-media-audio {
+			width: 100%;
+			height: 0;
+			opacity: 0;
+			pointer-events: none;
+			position: absolute;
+		}
+
+		.mobile-media-floating-captions {
+			align-self: flex-start;
+			max-width: min(92%, 48ch);
+		}
+
+		.mobile-media-floating-captions--overlay {
+			position: absolute;
+			left: 0.5rem;
+			right: 0.5rem;
+			bottom: 0.5rem;
+			max-width: none;
+			z-index: 2;
+			pointer-events: none;
+		}
+
+		.mobile-media-video-shell {
+			position: relative;
+			width: 100%;
+		}
+
+		.mobile-media-video-preview {
+			width: 100%;
+			aspect-ratio: 16 / 9;
+			border: 1px solid var(--text-color);
+			background: var(--bg-color);
+			object-fit: cover;
+			display: block;
+		}
+
+		.mobile-media-floating-captions__text {
+			display: inline;
+			font-size: var(--font-size-sm);
+			line-height: 1.5;
+			color: var(--bg-color);
+			background: color-mix(in srgb, var(--text-color) 88%, transparent);
+			padding: 0.28rem 0.52rem;
+			border-radius: 0.45rem;
+			border: 2px solid var(--text-color);
+			box-shadow:
+				0 0 0 1px color-mix(in srgb, var(--bg-color) 72%, transparent),
+				0 4px 14px color-mix(in srgb, var(--text-color) 28%, transparent);
+		}
+
+		.mobile-media-unsupported {
+			border: 1px solid var(--text-color);
+			padding: 0.45rem 0.6rem;
+			font-size: var(--font-size-xs);
+			line-height: 1.5;
+			color: var(--text-color);
+			opacity: 0.85;
+		}
+
+		.detail-panel-rainbow--top,
+		.detail-panel-rainbow--left {
+			display: none;
+		}
+
+		.viewport-frame-lines {
+			display: none;
+		}
+
+		.mobile-rainbow-bar {
+			display: block;
+			position: fixed;
+			top: 0;
+			left: 0;
+			right: 0;
+			width: 100%;
+			z-index: 10050;
+			background-image: var(--palette-rainbow-gradient-h);
+			background-size: 240% 100%;
+			animation: rainbow-dance-bottom 22s linear infinite;
+			-webkit-tap-highlight-color: transparent;
+		}
+
+		.mobile-rainbow-bar--home {
+			height: 5px;
+		}
+
+		.mobile-rainbow-bar--nav {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			height: auto;
+			padding: 0.5rem var(--landing-inset, 1rem);
+			padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
+		}
+
+		.mobile-nav__home {
+			display: flex;
+			align-items: center;
+			line-height: 0;
+			background: none;
+			border: none;
+			padding: 0;
+			cursor: pointer;
+			color: var(--bg-color);
+			opacity: 0.9;
+			-webkit-tap-highlight-color: transparent;
+		}
+
+		.mobile-nav__home:hover {
+			opacity: 1;
+		}
+
+		.mobile-nav__home :global(svg) {
+			display: block;
+		}
+
+		.mobile-nav__icons {
+			display: flex;
+			align-items: center;
+			gap: 1.1rem;
+		}
+
+		.mobile-nav__icons :global(.theme-toggle) {
+			color: var(--bg-color);
+			opacity: 1;
+			display: flex;
+			align-items: center;
+			line-height: 0;
+			padding: 0;
+		}
+
+		.mobile-nav__icons :global(.theme-toggle) :global(svg) {
+			width: 24px !important;
+			height: 24px !important;
+		}
+
+		.mobile-nav__icons :global(.floating-contact-dock) {
+			display: inline-flex !important;
+			align-items: center;
+			gap: 1.1rem;
+			pointer-events: auto;
+			opacity: 1;
+		}
+
+		.mobile-nav__icons :global(.floating-contact-dock__link),
+		.mobile-nav__icons :global(.floating-contact-dock__button) {
+			color: var(--bg-color);
+			opacity: 1;
+			display: flex;
+			align-items: center;
+			line-height: 0;
+			padding: 0;
+		}
+
+		.mobile-nav__icons :global(.floating-contact-dock__link:hover),
+		.mobile-nav__icons :global(.floating-contact-dock__button:hover) {
+			opacity: 1;
+		}
+
+		.mobile-nav__icons :global(.floating-contact-dock__link svg),
+		.mobile-nav__icons :global(.floating-contact-dock__button svg),
+		.mobile-nav__icons :global(.floating-contact-dock__link) :global(svg),
+		.mobile-nav__icons :global(.floating-contact-dock__button) :global(svg) {
+			width: 24px !important;
+			height: 24px !important;
 		}
 	}
 
@@ -1136,9 +2126,9 @@
 			padding-top: 0;
 		}
 
-		.landing-page {
-			--landing-inset: 2rem;
-			padding: var(--landing-inset);
+		:global(body.detail-panel-open) {
+			overflow-y: auto !important;
+			overflow-x: hidden !important;
 		}
 
 		.mobile-immersive-nav {
