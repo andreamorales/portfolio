@@ -45,3 +45,4 @@ lerna-debug.log*
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 private/*.plain.json
+whisper.cpp/

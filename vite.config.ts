@@ -9,6 +9,7 @@ import type { UserConfig } from 'vite';
 // computer's local IP address (e.g. http://192.168.0.42:5173)
 const config: UserConfig = {
 	plugins: [sveltekit()],
+	assetsInclude: ['**/*.mov'],
 	server: {
 		host: '0.0.0.0', // listen on all interfaces
 		port: 5173,

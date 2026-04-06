@@ -1,6 +1,8 @@
 import { writable } from 'svelte/store';
 import mostRecentEncrypted from '$lib/data/secure/most-recent1.encrypted.json';
 import type { SecurePortfolioEncryptedPayload } from '$lib/utils/secureCaseStudy';
+import testVideoUrl from '$lib/videos/test.mov?url';
+import testCaptions from '$lib/data/transcripts/test.captions.json';
 
 interface PortfolioImage {
 	src: string;
@@ -25,6 +27,14 @@ interface TeamMember {
 	relationship: string;
 }
 
+interface TranscriptCue {
+	text: string;
+	startMs: number;
+	endMs: number;
+	timestampMs?: number;
+	confidence?: number;
+}
+
 export interface PortfolioItem {
 	title: string;
 	slug?: string;
@@ -40,6 +50,7 @@ export interface PortfolioItem {
 	link: string;
 	metrics: string[];
 	team?: TeamMember[];
+	transcriptCues?: TranscriptCue[];
 	locked?: boolean;
 	encryptedPayload?: SecurePortfolioEncryptedPayload;
 }
@@ -69,7 +80,8 @@ const initialPortfolioItems = [
 		expanded: false,
 		description:
 			"Reimagining MongoDB's Realm Schema designer with a focus on tackling mobile developers unfamiliar with database schemas.",
-		videoUrl: '/videos/mongodb-realm-demo.mp4',
+		videoUrl: testVideoUrl,
+		transcriptCues: testCaptions.captions,
 		quickNavThumbnail: '/images/portfolio/mongodb/thumbnail.png',
 		images: [
 			{

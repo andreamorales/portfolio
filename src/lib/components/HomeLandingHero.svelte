@@ -56,7 +56,7 @@
 
 		<div class="mobile-hero-icons">
 			<ThemeToggle />
-			<FloatingContactDock visible={true} onCopyEmail={onCopyEmail} />
+			<FloatingContactDock visible={true} {onCopyEmail} />
 		</div>
 	</div>
 
@@ -101,15 +101,16 @@
 {#if mobileTerminalDrawerOpen}
 	<!-- svelte-ignore a11y-click-events-have-key-events -->
 	<!-- svelte-ignore a11y-no-static-element-interactions -->
-	<div class="mobile-terminal-backdrop" on:click={onToggleMobileTerminal} transition:fade={{ duration: 200 }}></div>
+	<div
+		class="mobile-terminal-backdrop"
+		on:click={onToggleMobileTerminal}
+		transition:fade={{ duration: 200 }}
+	></div>
 {/if}
 
 <!-- Mobile terminal drawer — keep mounted once opened so history persists -->
 {#if mobileTerminalEverOpened}
-	<div
-		class="mobile-terminal-drawer"
-		class:mobile-terminal-drawer--open={mobileTerminalDrawerOpen}
-	>
+	<div class="mobile-terminal-drawer" class:mobile-terminal-drawer--open={mobileTerminalDrawerOpen}>
 		<div class="mobile-terminal-drawer__content">
 			<HomeLandingTerminal
 				{portfolioItems}
@@ -535,7 +536,6 @@
 			pointer-events: none;
 			z-index: 1;
 		}
-
 
 		.mobile-terminal-drawer__content {
 			flex: 1 1 auto;

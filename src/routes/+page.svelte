@@ -29,7 +29,49 @@
 
 	function isDirectVideoFile(url: string): boolean {
 		const path = url.split('?')[0] ?? url;
-		return /\.(mp4|webm|ogg)$/i.test(path);
+		return /\.(mp4|webm|ogg|mov|m4v)$/i.test(path);
+	}
+
+	function normalizeTranscriptSnippet(text: string): string {
+		return text
+			.replace(/\s+([,.;!?])/g, '$1')
+			.replace(/\(\s+/g, '(')
+			.replace(/\s+\)/g, ')')
+			.replace(/\s+/g, ' ')
+			.trim();
+	}
+
+	function isTranscriptNoiseToken(text: string): boolean {
+		const trimmed = text.trim();
+		if (!trimmed) return true;
+		if (/blank\s*_?\s*audio/i.test(trimmed)) return true;
+		const normalized = trimmed.replace(/\s+/g, '').toUpperCase();
+		return normalized === '[' || normalized === ']' || normalized === '_' || ['BL', 'ANK', 'AUD', 'IO'].includes(normalized);
+	}
+
+	function getTranscriptTickerText(
+		cues: Array<{ text: string; startMs: number; endMs: number }>,
+		currentMs: number
+	): string {
+		if (!cues.length) return '';
+		if (currentMs > cues[cues.length - 1].endMs + 350) return '';
+
+		const snippet = cues
+			.filter((cue) => cue.endMs >= currentMs - 1600 && cue.startMs <= currentMs + 120)
+			.map((cue) => cue.text)
+			.join('');
+
+		if (snippet.trim().length > 0) {
+			return normalizeTranscriptSnippet(snippet);
+		}
+
+		for (let i = cues.length - 1; i >= 0; i--) {
+			if (cues[i].startMs <= currentMs) {
+				return normalizeTranscriptSnippet(cues[i].text);
+			}
+		}
+
+		return normalizeTranscriptSnippet(cues[0].text);
 	}
 
 	$: sortedPortfolioItems = [...$portfolioItems].sort(
@@ -56,6 +98,10 @@
 	let showToast = false;
 	let toastMessage = '';
 	let activeDetailItem: PortfolioItem | null = null;
+	let detailVideoEl: HTMLVideoElement | null = null;
+	let detailVideoCurrentMs = 0;
+	let detailTranscriptCues: Array<{ text: string; startMs: number; endMs: number }> = [];
+	let detailTranscriptTicker = '';
 	let activeDetailRevealDelayMs = 1360;
 	let unlockedPieceSlugs = new Set<string>();
 	let unlockedPieceDataBySlug = new Map<string, SecurePortfolioPayloadData>();
@@ -65,6 +111,29 @@
 	let introControlsVisible = false;
 	let introTerminalVisible = false;
 	let mobileTerminalDrawerOpen = false;
+
+	function handleDetailVideoTimeUpdate() {
+		detailVideoCurrentMs = detailVideoEl ? detailVideoEl.currentTime * 1000 : 0;
+	}
+
+	$: {
+		const sourceCues = activeDetailItem?.transcriptCues ?? [];
+		const videoDurationMs =
+			detailVideoEl && Number.isFinite(detailVideoEl.duration)
+				? detailVideoEl.duration * 1000
+				: Number.POSITIVE_INFINITY;
+		detailTranscriptCues = sourceCues
+			.filter((cue) => !isTranscriptNoiseToken(cue.text))
+			.filter((cue) => cue.startMs <= videoDurationMs + 200)
+			.map((cue) => ({
+				text: cue.text,
+				startMs: cue.startMs,
+				endMs: cue.endMs
+			}));
+		detailTranscriptTicker = detailTranscriptCues.length
+			? getTranscriptTickerText(detailTranscriptCues, detailVideoCurrentMs)
+			: '';
+	}
 
 	function toggleMobileTerminal() {
 		mobileTerminalDrawerOpen = !mobileTerminalDrawerOpen;
@@ -616,11 +685,15 @@
 													<!-- svelte-ignore a11y-media-has-caption -->
 													<video
 														class="detail-panel-video-embed"
+														bind:this={detailVideoEl}
 														controls
 														playsinline
 														preload="metadata"
 														src={activeDetailItem.videoUrl}
 														title="Video for {activeDetailItem.title}"
+														on:loadedmetadata={handleDetailVideoTimeUpdate}
+														on:timeupdate={handleDetailVideoTimeUpdate}
+														on:seeked={handleDetailVideoTimeUpdate}
 													></video>
 												{:else}
 													<iframe
@@ -637,7 +710,13 @@
 											{/if}
 										</div>
 										<div class="detail-panel-transcript">
-											<span class="detail-panel-placeholder">Transcript</span>
+											{#if detailTranscriptCues.length && detailTranscriptTicker}
+												<p class="detail-panel-transcript-line">
+													{detailTranscriptTicker}
+												</p>
+											{:else}
+												<span class="detail-panel-placeholder">Transcript</span>
+											{/if}
 										</div>
 									</div>
 								</div>
@@ -1105,9 +1184,18 @@
 		border-radius: 0;
 		overflow-y: auto;
 		display: flex;
-		align-items: center;
-		justify-content: center;
+		align-items: flex-start;
+		justify-content: flex-start;
+		padding: 1rem;
 		background: var(--bg-color);
+	}
+
+	.detail-panel-transcript-line {
+		margin: 0;
+		font-size: var(--font-size-sm);
+		line-height: 1.55;
+		color: var(--text-color);
+		opacity: 0.9;
 	}
 
 	.detail-panel-placeholder {

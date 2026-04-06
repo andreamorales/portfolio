@@ -115,9 +115,7 @@
 	$: titleHasColonSplit =
 		titleColonIdx !== -1 && projectTitle.slice(titleColonIdx + 1).trim().length > 0;
 	$: titleBeforeColon = titleHasColonSplit ? projectTitle.slice(0, titleColonIdx + 1) : '';
-	$: titleAfterColon = titleHasColonSplit
-		? projectTitle.slice(titleColonIdx + 1).trim()
-		: '';
+	$: titleAfterColon = titleHasColonSplit ? projectTitle.slice(titleColonIdx + 1).trim() : '';
 
 	$: {
 		const usedImageSources = new Set([
@@ -216,9 +214,8 @@
 		<div class="project-title-row reveal-child" style={revealStyle(introReveal.childStartDelayMs)}>
 			<h2 id={titleId} class="project-title">
 				{#if titleHasColonSplit}
-					<span class="project-title__line project-title__line--first">{titleBeforeColon}</span><span
-						class="project-title__line project-title__line--second">{titleAfterColon}</span
-					>
+					<span class="project-title__line project-title__line--first">{titleBeforeColon}</span
+					><span class="project-title__line project-title__line--second">{titleAfterColon}</span>
 				{:else}
 					{projectTitle}
 				{/if}

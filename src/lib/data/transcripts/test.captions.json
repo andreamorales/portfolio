@@ -1,0 +1,211 @@
+{
+	"generatedAt": "2026-04-06T04:12:57.848Z",
+	"sourceVideo": "src/lib/videos/test.mov",
+	"whisperModel": "base.en",
+	"whisperCppVersion": "1.5.5",
+	"captions": [
+		{
+			"text": "Okay",
+			"startMs": 450,
+			"endMs": 660,
+			"timestampMs": 780,
+			"confidence": 0.524645
+		},
+		{
+			"text": ",",
+			"startMs": 660,
+			"endMs": 990,
+			"timestampMs": 1180,
+			"confidence": 0.584927
+		},
+		{
+			"text": " so",
+			"startMs": 990,
+			"endMs": 1350,
+			"timestampMs": 1560,
+			"confidence": 0.972763
+		},
+		{
+			"text": " I",
+			"startMs": 1350,
+			"endMs": 1480,
+			"timestampMs": 2120,
+			"confidence": 0.909361
+		},
+		{
+			"text": " am",
+			"startMs": 1480,
+			"endMs": 1810,
+			"timestampMs": 2320,
+			"confidence": 0.961085
+		},
+		{
+			"text": " making",
+			"startMs": 1810,
+			"endMs": 2800,
+			"timestampMs": 2740,
+			"confidence": 0.998114
+		},
+		{
+			"text": " a",
+			"startMs": 2800,
+			"endMs": 2960,
+			"timestampMs": 3200,
+			"confidence": 0.816105
+		},
+		{
+			"text": " rem",
+			"startMs": 2960,
+			"endMs": 3460,
+			"timestampMs": 3440,
+			"confidence": 0.319577
+		},
+		{
+			"text": "otion",
+			"startMs": 3460,
+			"endMs": 4290,
+			"timestampMs": 3700,
+			"confidence": 0.846652
+		},
+		{
+			"text": " test",
+			"startMs": 4290,
+			"endMs": 5000,
+			"timestampMs": 4140,
+			"confidence": 0.994833
+		},
+		{
+			"text": ".",
+			"startMs": 5000,
+			"endMs": 5510,
+			"timestampMs": 5040,
+			"confidence": 0.792261
+		},
+		{
+			"text": " I",
+			"startMs": 5510,
+			"endMs": 5550,
+			"timestampMs": 5700,
+			"confidence": 0.542728
+		},
+		{
+			"text": " am",
+			"startMs": 5550,
+			"endMs": 5830,
+			"timestampMs": 5880,
+			"confidence": 0.989451
+		},
+		{
+			"text": " very",
+			"startMs": 5830,
+			"endMs": 6410,
+			"timestampMs": 6220,
+			"confidence": 0.985932
+		},
+		{
+			"text": " excited",
+			"startMs": 6410,
+			"endMs": 6690,
+			"timestampMs": 6540,
+			"confidence": 0.821213
+		},
+		{
+			"text": " about",
+			"startMs": 6690,
+			"endMs": 6900,
+			"timestampMs": 6800,
+			"confidence": 0.954707
+		},
+		{
+			"text": " it",
+			"startMs": 6900,
+			"endMs": 7000,
+			"timestampMs": 7020,
+			"confidence": 0.947046
+		},
+		{
+			"text": ".",
+			"startMs": 7000,
+			"endMs": 7460,
+			"timestampMs": 7420,
+			"confidence": 0.760349
+		},
+		{
+			"text": " Hopefully",
+			"startMs": 7460,
+			"endMs": 7920,
+			"timestampMs": 7820,
+			"confidence": 0.818397
+		},
+		{
+			"text": " it",
+			"startMs": 7920,
+			"endMs": 8600,
+			"timestampMs": 8560,
+			"confidence": 0.806631
+		},
+		{
+			"text": " works",
+			"startMs": 8600,
+			"endMs": 9000,
+			"timestampMs": 8880,
+			"confidence": 0.938042
+		},
+		{
+			"text": ".",
+			"startMs": 9000,
+			"endMs": 9240,
+			"timestampMs": 9220,
+			"confidence": 0.75679
+		},
+		{
+			"text": " [",
+			"startMs": 9240,
+			"endMs": 9810,
+			"timestampMs": 10700,
+			"confidence": 0.353533
+		},
+		{
+			"text": "BL",
+			"startMs": 9810,
+			"endMs": 10960,
+			"timestampMs": 11000,
+			"confidence": 0.626882
+		},
+		{
+			"text": "ANK",
+			"startMs": 10960,
+			"endMs": 11580,
+			"timestampMs": 11000,
+			"confidence": 0.999682
+		},
+		{
+			"text": "_",
+			"startMs": 11580,
+			"endMs": 11580,
+			"timestampMs": 11000,
+			"confidence": 0.987182
+		},
+		{
+			"text": "AUD",
+			"startMs": 11580,
+			"endMs": 11580,
+			"timestampMs": 11000,
+			"confidence": 0.999012
+		},
+		{
+			"text": "IO",
+			"startMs": 11580,
+			"endMs": 11580,
+			"timestampMs": 11000,
+			"confidence": 0.999222
+		},
+		{
+			"text": "]",
+			"startMs": 11580,
+			"endMs": 16660,
+			"timestampMs": 11000,
+			"confidence": 0.999205
+		}
+	]
+}
