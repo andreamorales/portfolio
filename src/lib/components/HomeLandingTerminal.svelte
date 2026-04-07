@@ -24,6 +24,17 @@
 	export let introVisible = true;
 	export let skipIntro = false;
 	export let onCommandRun: ((cmd: string, outputPreview: string) => void) | null = null;
+	/** Unique id when two terminals mount (e.g. desktop hero + mobile drawer). */
+	export let commandInputId = 'cli-command-input';
+
+	export function focusPrompt() {
+		if (cliInputEl) {
+			cliInputEl.focus({ preventScroll: true });
+		} else {
+			const fallback = document.getElementById(commandInputId) as HTMLInputElement | null;
+			fallback?.focus({ preventScroll: true });
+		}
+	}
 
 	type Feedback =
 		| { kind: 'help' }
@@ -81,7 +92,7 @@
 		(lastEntry?.typingComplete ?? false) &&
 		commandLine.trim().length === 0;
 	$: commandLoading = !!lastEntry && !lastEntry.typingComplete;
-	$: if (introVisible && !introSequenceStarted) startIntroSequence();
+	$: if (introVisible && !introSequenceStarted && !skipIntro) startIntroSequence();
 
 	function startIntroSequence() {
 		introSequenceStarted = true;
@@ -489,8 +500,17 @@
 		onOpenPortfolio(idx);
 	}
 
-	async function submitCommand() {
-		const cmdSnapshot = commandLine;
+	async function submitCommand(snapshotOverride?: string) {
+		const isFirstCommand = showReturnHint;
+		/*
+		 * Use snapshotOverride from the submitting form / keydown target when provided.
+		 * If we turn on bottomPromptVisible before pushEntry, a second empty input mounts and
+		 * bind:this={cliInputEl} points at it — cliInputEl.value is '' and ?? does not fall back.
+		 */
+		let cmdSnapshot = (snapshotOverride !== undefined ? snapshotOverride : commandLine).replace(
+			/\r\n/g,
+			'\n'
+		);
 		if (pendingLockedPortfolioIndex !== null) {
 			const passwordAttempt = cmdSnapshot.trim();
 			commandLine = '';
@@ -527,21 +547,18 @@
 			return;
 		}
 
-		// Empty Enter should be a no-op, not an implicit --help.
+		// On the very first prompt, treat empty/unsynced mobile submits as --help.
+		if (isFirstCommand && !cmdSnapshot.trim().replace(/^\$\s*/, '')) {
+			cmdSnapshot = '--help';
+		}
+
+		// Later empty submits should still be a no-op.
 		if (!cmdSnapshot.trim().replace(/^\$\s*/, '')) {
 			commandLine = '';
 			return;
 		}
 		commandLine = '';
 		const parsed = parseCommand(cmdSnapshot);
-		const isFirstCommand = showReturnHint;
-		showReturnHint = false;
-
-		if (isFirstCommand) {
-			await new Promise<void>((r) => setTimeout(r, 250));
-			bottomPromptVisible = true;
-			await tick();
-		}
 
 		switch (parsed.type) {
 			case 'help':
@@ -586,6 +603,14 @@
 					message: `Unknown command: ${parsed.line}. Try --help for available commands.`
 				});
 		}
+
+		showReturnHint = false;
+
+		if (isFirstCommand) {
+			await new Promise<void>((r) => setTimeout(r, 250));
+			bottomPromptVisible = true;
+			await tick();
+		}
 	}
 
 	async function confirmPortfolioPick() {
@@ -594,6 +619,23 @@
 		if (!selected) return;
 		const idx = selected.sourceIndex;
 		await openPortfolioFromTerminal(idx);
+	}
+
+	function onCliFormSubmit(e: Event) {
+		e.preventDefault();
+		const portfolioStillTyping =
+			lastFeedback?.kind === 'portfolio' && !(lastEntry?.typingComplete ?? false);
+		if (portfolioStillTyping) return;
+		let snapshot = commandLine;
+		const form = e.currentTarget;
+		if (form instanceof HTMLFormElement) {
+			const input = form.querySelector('input.cli-input');
+			if (input instanceof HTMLInputElement) {
+				snapshot = input.value;
+				commandLine = input.value;
+			}
+		}
+		void submitCommand(snapshot);
 	}
 
 	function onInputKeydown(e: KeyboardEvent) {
@@ -605,7 +647,9 @@
 		}
 		if (e.key === 'Enter') {
 			e.preventDefault();
-			submitCommand();
+			const fromInput =
+				e.currentTarget instanceof HTMLInputElement ? e.currentTarget.value : commandLine;
+			void submitCommand(fromInput);
 		}
 		requestAnimationFrame(syncStartCaret);
 	}
@@ -658,7 +702,8 @@
 			introGlowVisible = true;
 			showReturnHint = true;
 			commandLine = '--help';
-			tick().then(() => cliInputEl?.focus());
+			/* Do not focus here: iOS only opens the keyboard for focus() in the same
+			   stack as a user gesture. Mobile drawer calls focusPrompt() from the tab tap. */
 		}
 	});
 
@@ -757,14 +802,14 @@
 				class:cli-top-bar--has-body={history.length > 0}
 				transition:fade={{ duration: 200 }}
 			>
-				<div class="cli-row">
+				<form class="cli-row" on:submit|preventDefault={onCliFormSubmit}>
 					<div class="cli-shell">
 						<div class="cli-inner" role="group" aria-label="Command line">
-							<label class="cli-label-visually-hidden" for="cli-command-input">Command</label>
+							<label class="cli-label-visually-hidden" for={commandInputId}>Command</label>
 							<span class="cli-prompt" aria-hidden="true">$</span>
 							<div class="cli-input-shell">
 								<input
-									id="cli-command-input"
+									id={commandInputId}
 									bind:this={cliInputEl}
 									type="text"
 									class="cli-input"
@@ -775,6 +820,8 @@
 									bind:value={commandLine}
 									autocomplete="off"
 									spellcheck={false}
+									inputmode="text"
+									enterkeyhint="go"
 									aria-describedby={history.length ? outputId : undefined}
 									on:focus={syncStartCaret}
 									on:blur={() => (showStartCaret = false)}
@@ -794,16 +841,15 @@
 						</div>
 					</div>
 					<button
-						type="button"
+						type="submit"
 						class="cli-return-hint"
 						class:cli-return-hint--visible={!introSequenceStarted || introReturnVisible}
-						on:click={() => submitCommand()}
 						aria-label="Submit command"
 					>
 						<span class="cli-return-label">Return</span>
 						<CornerDownLeft size={11} strokeWidth={1.5} aria-hidden="true" />
 					</button>
-				</div>
+				</form>
 			</div>
 		{/if}
 
@@ -820,17 +866,18 @@
 		/>
 
 		{#if bottomPromptVisible}
-			<div
+			<form
 				class="cli-bottom-prompt"
 				role="group"
 				aria-label="Command line"
+				on:submit|preventDefault={onCliFormSubmit}
 				in:fade={{ duration: 250 }}
 			>
-				<label class="cli-label-visually-hidden" for="cli-command-input">Command</label>
+				<label class="cli-label-visually-hidden" for={commandInputId}>Command</label>
 				<span class="cli-prompt" aria-hidden="true">$</span>
 				<div class="cli-input-shell">
 					<input
-						id="cli-command-input"
+						id={commandInputId}
 						bind:this={cliInputEl}
 						type="text"
 						class="cli-input"
@@ -838,6 +885,8 @@
 						bind:value={commandLine}
 						autocomplete="off"
 						spellcheck={false}
+						inputmode="text"
+						enterkeyhint="go"
 						aria-describedby={history.length ? outputId : undefined}
 						on:focus={syncStartCaret}
 						on:blur={() => (showStartCaret = false)}
@@ -851,7 +900,7 @@
 						<span class="cli-start-caret" aria-hidden="true"></span>
 					{/if}
 				</div>
-			</div>
+			</form>
 		{/if}
 	</div>
 </div>
@@ -984,6 +1033,10 @@
 		gap: 0.65rem;
 		width: 100%;
 		min-width: 0;
+		margin: 0;
+		padding: 0;
+		border: none;
+		touch-action: manipulation;
 	}
 
 	.cli-shell {
@@ -1041,6 +1094,9 @@
 		caret-color: var(--cli-terminal-body-fg);
 		font-variant-ligatures: none;
 		-webkit-font-smoothing: antialiased;
+		touch-action: manipulation;
+		-webkit-user-select: text;
+		user-select: text;
 	}
 
 	.cli-input::placeholder {
@@ -1122,9 +1178,11 @@
 		transition: opacity 320ms ease;
 		background: none;
 		border: none;
-		padding: 0;
-		margin: 0;
+		padding: 0.5rem;
+		margin: -0.5rem;
 		cursor: pointer;
+		touch-action: manipulation;
+		-webkit-tap-highlight-color: transparent;
 	}
 
 	.cli-return-hint--visible {
@@ -1154,6 +1212,7 @@
 		align-items: center;
 		flex-shrink: 0;
 		gap: 0.35rem;
+		margin: 0;
 		/* Extra inset so the native caret isn’t clipped to a curve by overflow:hidden + border-radius */
 		padding: 0.55rem 0.85rem 0.65rem 0.85rem;
 		border-top: 1px solid var(--cli-terminal-divider-fg);
@@ -1188,6 +1247,11 @@
 		.cli-terminal-window {
 			font-size: 0.76rem;
 			max-height: min(42vh, 18rem);
+		}
+
+		/* 16px prevents iOS Safari auto-zoom on focus */
+		.cli-input {
+			font-size: 16px;
 		}
 
 		.cli-return-hint {
