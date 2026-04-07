@@ -1,11 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount, tick } from 'svelte';
 	import { fade } from 'svelte/transition';
-	import QuickNav from '$lib/components/portfolio/QuickNav.svelte';
-	import HomeImmersiveTopbar from '$lib/components/HomeImmersiveTopbar.svelte';
 	import HomeLandingHero from '$lib/components/HomeLandingHero.svelte';
-	import HomeImmersivePortfolioList from '$lib/components/HomeImmersivePortfolioList.svelte';
-	import HomeNextPieceBanner from '$lib/components/HomeNextPieceBanner.svelte';
 	import PortfolioExpandedView from '$lib/components/portfolio/PortfolioExpandedView.svelte';
 	import MobileTopStack from '$lib/components/mobile/MobileTopStack.svelte';
 	import MobileDetailMedia from '$lib/components/mobile/MobileDetailMedia.svelte';
@@ -15,7 +11,6 @@
 	import { portfolioItems } from '$lib/data/portfolio-items.js';
 	import type { PortfolioItem } from '$lib/data/portfolio-items.js';
 	import type { SecurePortfolioPayloadData } from '$lib/utils/secureCaseStudy';
-	import { colibri } from '$lib/data/home-page-assets';
 
 	const getLatestYear = (year: string) => {
 		const years = year.split('-').map((value) => parseInt(value.trim(), 10));
@@ -127,20 +122,6 @@
 		(a: PortfolioItem, b: PortfolioItem) => getLatestYear(b.year) - getLatestYear(a.year)
 	);
 
-	$: allNavigationItems = sortedPortfolioItems.map((item: PortfolioItem, index: number) => ({
-		id: index,
-		title: item.title,
-		thumbnail: item.quickNavThumbnail
-	}));
-
-	let immersiveMode = false;
-	let isActivatingImmersive = false;
-	let allowScrollToOpen = true;
-	let canCloseImmersiveAtTop = false;
-	let navMenuOpen = false;
-	let activePortfolioIndex = 0;
-	let nextPortfolioIndex: number | null = null;
-	let showNextPieceBanner = false;
 	let landingHeroElement: HTMLElement | null = null;
 	let frameBottomLineEl: HTMLDivElement | null = null;
 	let frameRightLineEl: HTMLDivElement | null = null;
@@ -522,10 +503,10 @@
 	let mounted = false;
 
 	$: if (typeof document !== 'undefined') {
-		document.body.classList.toggle('detail-panel-open', !!activeDetailItem && !immersiveMode);
+		document.body.classList.toggle('detail-panel-open', !!activeDetailItem);
 	}
 
-	$: if (mounted && !immersiveMode && !activeDetailItem && typeof window !== 'undefined') {
+	$: if (mounted && !activeDetailItem && typeof window !== 'undefined') {
 		const hasPieceParam = new URLSearchParams(window.location.search).has('piece');
 		if (hasPieceParam) {
 			openPieceFromUrl();
@@ -567,7 +548,7 @@
 	}
 
 	function openPieceFromUrl() {
-		if (typeof window === 'undefined' || immersiveMode) return;
+		if (typeof window === 'undefined') return;
 		const slug = new URLSearchParams(window.location.search).get('piece');
 		if (!slug) {
 			activeDetailItem = null;
@@ -575,59 +556,6 @@
 		}
 		const foundBySlug = sortedPortfolioItems.find((item) => toPieceSlug(item) === slug) ?? null;
 		activeDetailItem = mergeUnlockedPieceData(foundBySlug);
-	}
-
-	async function enterImmersiveMode(targetIndex: number = 0) {
-		if (immersiveMode || isActivatingImmersive) {
-			if (immersiveMode) {
-				scrollToImmersiveSection(targetIndex);
-			}
-			return;
-		}
-
-		isActivatingImmersive = true;
-		allowScrollToOpen = false;
-		canCloseImmersiveAtTop = false;
-		immersiveMode = true;
-		activeDetailItem = null;
-		updatePieceQuery(null);
-		navMenuOpen = false;
-		activePortfolioIndex = targetIndex;
-
-		await tick();
-		scrollToImmersiveSection(targetIndex);
-		isActivatingImmersive = false;
-	}
-
-	async function closeImmersiveMode(scrollTarget: 'top' | 'list' = 'list') {
-		if (!immersiveMode || typeof window === 'undefined') return;
-
-		immersiveMode = false;
-		navMenuOpen = false;
-		showNextPieceBanner = false;
-		nextPortfolioIndex = null;
-		canCloseImmersiveAtTop = false;
-		allowScrollToOpen = scrollTarget === 'top';
-
-		await tick();
-
-		if (scrollTarget === 'top') {
-			window.scrollTo({ top: 0, behavior: 'smooth' });
-			return;
-		}
-
-		landingHeroElement?.scrollIntoView({
-			behavior: 'smooth',
-			block: 'start'
-		});
-	}
-
-	function scrollToImmersiveSection(index: number) {
-		const element = document.getElementById(`immersive-piece-${index}`);
-		element?.scrollIntoView({
-			behavior: 'smooth',
-			block: 'start'
-		});
 	}
 
 	function isPieceUnlocked(piece: Pick<PortfolioItem, 'title' | 'slug'> | null): boolean {
@@ -640,10 +568,6 @@
 		markUnlocked = false,
 		unlockedData?: SecurePortfolioPayloadData
 	) {
-		if (immersiveMode) {
-			scrollToImmersiveSection(index);
-			return;
-		}
 		const picked = sortedPortfolioItems[index] ?? null;
 		if (picked && markUnlocked) {
 			const slug = toPieceSlug(picked);
@@ -676,7 +600,7 @@
 	}
 
 	async function openAdjacentPortfolioPiece(delta: -1 | 1) {
-		if (!activeDetailItem || immersiveMode) return;
+		if (!activeDetailItem) return;
 		const idx = sortedPortfolioItems.findIndex(
 			(item) => toPieceSlug(item) === toPieceSlug(activeDetailItem!)
 		);
@@ -687,48 +611,12 @@
 		await scrollPortfolioDetailToTop();
 	}
 
-	$: detailPieceIndex =
-		activeDetailItem && !immersiveMode
-			? sortedPortfolioItems.findIndex((i) => toPieceSlug(i) === toPieceSlug(activeDetailItem!))
-			: -1;
+	$: detailPieceIndex = activeDetailItem
+		? sortedPortfolioItems.findIndex((i) => toPieceSlug(i) === toPieceSlug(activeDetailItem!))
+		: -1;
 	$: detailHasPrevPiece = detailPieceIndex > 0;
 	$: detailHasNextPiece =
 		detailPieceIndex >= 0 && detailPieceIndex < sortedPortfolioItems.length - 1;
-
-	function updateImmersiveProgress() {
-		if (!immersiveMode || typeof window === 'undefined') return;
-
-		const viewportMidpoint = window.innerHeight * 0.45;
-		let closestIndex = 0;
-		let closestDistance = Number.POSITIVE_INFINITY;
-
-		sortedPortfolioItems.forEach((_, index) => {
-			const section = document.getElementById(`immersive-piece-${index}`);
-			if (!section) return;
-
-			const rect = section.getBoundingClientRect();
-			const sectionMidpoint = rect.top + rect.height / 2;
-			const distance = Math.abs(sectionMidpoint - viewportMidpoint);
-
-			if (distance < closestDistance) {
-				closestDistance = distance;
-				closestIndex = index;
-			}
-		});
-
-		activePortfolioIndex = closestIndex;
-		nextPortfolioIndex = closestIndex < sortedPortfolioItems.length - 1 ? closestIndex + 1 : null;
-
-		const activeSection = document.getElementById(`immersive-piece-${closestIndex}`);
-		if (!activeSection || nextPortfolioIndex === null) {
-			showNextPieceBanner = false;
-			return;
-		}
-
-		const rect = activeSection.getBoundingClientRect();
-		const progress = (window.innerHeight - rect.top) / rect.height;
-		showNextPieceBanner = progress > 0.72 && rect.bottom > window.innerHeight * 0.4;
-	}
 
 	onMount(() => {
 		mounted = true;
@@ -751,47 +639,8 @@
 			}, 2300)
 		);
 
-		const handleScroll = () => {
-			if (isActivatingImmersive) return;
-
-			if (!immersiveMode && window.scrollY <= 16) {
-				allowScrollToOpen = true;
-			}
-
-			if (immersiveMode && !canCloseImmersiveAtTop && window.scrollY > 48) {
-				canCloseImmersiveAtTop = true;
-			}
-
-			if (immersiveMode && canCloseImmersiveAtTop && window.scrollY <= 16) {
-				closeImmersiveMode('top');
-				return;
-			}
-
-			if (!immersiveMode && allowScrollToOpen && window.scrollY > 72) {
-				enterImmersiveMode(0);
-				return;
-			}
-
-			updateImmersiveProgress();
-		};
-
-		const handleDocumentClick = (event: MouseEvent) => {
-			if (!immersiveMode || isActivatingImmersive) return;
-
-			const target = event.target;
-			if (!(target instanceof Element)) return;
-			const clickedInsidePortfolio = target.closest('.piece-shell');
-			const clickedInsideControls = target.closest(
-				'.immersive-topbar, .next-piece-banner, .mobile-immersive-nav, .cli-terminal-window'
-			);
-
-			if (!clickedInsidePortfolio && !clickedInsideControls) {
-				closeImmersiveMode('list');
-			}
-		};
-
 		const handleWheel = (e: WheelEvent) => {
-			if (!activeDetailItem || immersiveMode) return;
+			if (!activeDetailItem) return;
 			const target = e.target instanceof Element ? e.target : null;
 			if (target?.closest('.cli-terminal-window')) return;
 			// Let desktop/tablet transcript panel handle its own wheel scrolling.
@@ -804,9 +653,7 @@
 			detailPieceEl.scrollTop = next;
 		};
 
-		window.addEventListener('scroll', handleScroll, { passive: true });
 		document.addEventListener('wheel', handleWheel, { passive: false, capture: true });
-		document.addEventListener('click', handleDocumentClick);
 		window.addEventListener('popstate', openPieceFromUrl);
 
 		const mql = window.matchMedia('(max-width: 768px)');
@@ -851,9 +698,7 @@
 
 		return () => {
 			for (const timer of introTimers) clearTimeout(timer);
-			window.removeEventListener('scroll', handleScroll);
 			document.removeEventListener('wheel', handleWheel, { capture: true });
-			document.removeEventListener('click', handleDocumentClick);
 			window.removeEventListener('popstate', openPieceFromUrl);
 			mql.removeEventListener('change', handleBreakpointChange);
 		};
@@ -874,12 +719,12 @@
 <Toast message={toastMessage} bind:visible={showToast} />
 <div
 	class="corner-controls"
-	class:corner-controls--cluster={!!activeDetailItem && !immersiveMode}
+	class:corner-controls--cluster={!!activeDetailItem}
 	class:corner-controls--visible={introControlsVisible}
 >
 	<ThemeToggle />
 	<div class="corner-controls-spacer" aria-hidden="true"></div>
-	<FloatingContactDock visible={!immersiveMode} onCopyEmail={copyEmailToClipboard} />
+	<FloatingContactDock visible={true} onCopyEmail={copyEmailToClipboard} />
 </div>
 
 <!-- Mobile top stack: rainbow nav + audio controls -->
@@ -915,7 +760,10 @@
 	/>
 </div>
 
-<div class="landing-page">
+<div
+	class="landing-page"
+	class:landing-page--mobile-terminal-open={mobileTerminalDrawerOpen}
+>
 	<div class="viewport-frame-lines" aria-hidden="true">
 		<div
 			class="viewport-frame-hit viewport-frame-hit--bottom"
@@ -944,23 +792,8 @@
 			></div>
 		</div>
 	</div>
-	{#if immersiveMode}
-		<HomeImmersiveTopbar
-			isOpen={navMenuOpen}
-			activeIndex={activePortfolioIndex}
-			items={sortedPortfolioItems}
-			{colibri}
-			onToggle={() => (navMenuOpen = !navMenuOpen)}
-			onSelect={(index) => {
-				navMenuOpen = false;
-				openPortfolioPiece(index);
-			}}
-		/>
-	{/if}
-
-	<main class="container flex-column-left" class:immersive-mode={immersiveMode}>
+	<main class="container flex-column-left">
 		{#if mounted}
-			{#if !immersiveMode}
 				<div class="landing-landing-row">
 					<div class="landing-hero-anchor" bind:this={landingHeroElement}>
 						<HomeLandingHero
@@ -1113,26 +946,10 @@
 						</div>
 					{/if}
 				</div>
-			{:else}
-				<HomeImmersivePortfolioList items={sortedPortfolioItems} />
-			{/if}
 		{/if}
 	</main>
 </div>
 
-{#if immersiveMode && showNextPieceBanner && nextPortfolioIndex !== null}
-	{@const upcomingIndex = nextPortfolioIndex}
-	<HomeNextPieceBanner
-		title={sortedPortfolioItems[upcomingIndex].title}
-		onClick={() => scrollToImmersiveSection(upcomingIndex)}
-	/>
-{/if}
-
-{#if immersiveMode}
-	<div class="mobile-immersive-nav">
-		<QuickNav items={allNavigationItems} hasExpandedItem={true} onExpandItem={openPortfolioPiece} />
-	</div>
-{/if}
 
 <style>
 	:global(body.detail-panel-open) {
@@ -1836,6 +1653,11 @@
 			z-index: 10050;
 		}
 
+		/* Entire landing subtree stacks below `.mobile-top-stack` unless we lift it: internal z-index cannot beat a sibling fixed bar. */
+		.landing-page--mobile-terminal-open {
+			z-index: 10060;
+		}
+
 		:global(.mobile-top-stack + .landing-page .detail-panel-piece) {
 			padding-top: calc(3rem + env(safe-area-inset-top, 0px));
 		}
@@ -1892,30 +1714,14 @@
 		}
 	}
 
-	.container.immersive-mode {
-		gap: 0;
-	}
-
-	.mobile-immersive-nav {
-		display: none;
-	}
-
 	@media (max-width: 768px) {
 		.container {
 			gap: var(--spacing-md);
 		}
 
-		.container.immersive-mode {
-			padding-top: 0;
-		}
-
 		:global(body.detail-panel-open) {
 			overflow-y: auto !important;
 			overflow-x: hidden !important;
-		}
-
-		.mobile-immersive-nav {
-			display: block;
 		}
 	}
 </style>
