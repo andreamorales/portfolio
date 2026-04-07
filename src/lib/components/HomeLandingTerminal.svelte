@@ -840,15 +840,15 @@
 							</div>
 						</div>
 					</div>
-				<button
-					type="submit"
-					class="cli-return-hint"
-					class:cli-return-hint--visible={!introSequenceStarted || introReturnVisible}
-					aria-label="Submit command"
-				>
-					<span class="cli-return-label">Return</span>
-					<CornerDownLeft size={11} strokeWidth={1.5} aria-hidden="true" />
-				</button>
+					<button
+						type="submit"
+						class="cli-return-hint"
+						class:cli-return-hint--visible={!introSequenceStarted || introReturnVisible}
+						aria-label="Submit command"
+					>
+						<span class="cli-return-label">Return</span>
+						<CornerDownLeft size={11} strokeWidth={1.5} aria-hidden="true" />
+					</button>
 				</form>
 			</div>
 		{/if}

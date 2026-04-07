@@ -36,7 +36,7 @@
 
 	type Entry = EntryDraft & {
 		fullText: string;
-	styledHtml: string;
+		styledHtml: string;
 		typingProgress: number;
 		typingComplete: boolean;
 	};
@@ -134,9 +134,9 @@
 		return { type: 'unknown' as const, line: trimmed };
 	}
 
-function esc(s: string): string {
-	return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
+	function esc(s: string): string {
+		return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+	}
 
 	function plainTextForEntry(entry: EntryDraft | Entry): string {
 		switch (entry.kind) {
@@ -168,7 +168,9 @@ function esc(s: string): string {
 				return [
 					'Work',
 					'',
-					...portfolioEntries.map((entry) => `${entry.item.title}${entry.item.locked ? ' (locked)' : ''}`),
+					...portfolioEntries.map(
+						(entry) => `${entry.item.title}${entry.item.locked ? ' (locked)' : ''}`
+					),
 					''
 				].join('\n');
 			case 'system':
@@ -177,115 +179,118 @@ function esc(s: string): string {
 		}
 	}
 
-function styledHtmlForEntry(entry: EntryDraft | Entry): string {
-	switch (entry.kind) {
-		case 'help':
-			return (
-				`<span class="cli-t-bold">Commands</span>\n\n` +
-				`<span class="cli-t-cmd">--help</span>\n` +
-				`Show this list.\n\n` +
-				`<span class="cli-t-cmd">--portfolio</span>\n` +
-				`List work. Tap a title to open.\n\n` +
-				`<span class="cli-t-cmd">--portfolio &lt;name&gt;</span>\n` +
-				`Jump to a piece.\n\n` +
-				`<span class="cli-t-cmd">--about</span>\n` +
-				`Andy Morales Coto bio.\n\n` +
-				`<span class="cli-t-cmd">--contact</span>\n` +
-				`Links and email.\n`
-			);
-		case 'about':
-			return (
-				`<span class="cli-t-about-wrap">` +
-				`<span class="cli-t-about-ascii-block">${esc(aboutAscii)}</span>` +
-				`\n<span class="cli-t-about-bio">${esc(aboutBio)}</span>` +
-				`</span>\n\n`
-			);
-		case 'contact':
-			return (
-				`<span class="cli-t-bold">Links</span>\n\n` +
-				contactLinks
-					.map((link) =>
-						link.action === 'copy'
-							? `<span class="cli-t-link" role="button" tabindex="0" data-copy-email>${esc(link.label)}</span>`
-							: `<a class="cli-t-link" href="${esc(link.href)}" target="_blank" rel="noopener noreferrer">${esc(link.label)}</a>`
-					)
-					.join('  ') +
-				`\n\n`
-			);
-		case 'portfolio': {
-			const productCount = portfolioEntries.filter((portfolioEntry) => !isSideProject(portfolioEntry.item)).length;
-			const rows: string[] = ['<span class="cli-t-bold">Work</span>', ''];
-			portfolioEntries.forEach((portfolioEntry, i) => {
-				if (i === productCount) rows.push('', '<span class="cli-t-portfolio-heading">Side Projects</span>');
-				if (i === 0) rows.push('<span class="cli-t-portfolio-heading">Product Design</span>');
-				const labels = portfolioEntry.item.locked
-					? ` <span class="cli-t-item-labels">(locked)</span>`
-					: '';
-				rows.push(
-					`<span class="cli-t-portfolio-row" data-portfolio-source-index="${portfolioEntry.sourceIndex}"><span class="cli-t-bullet">•</span> <span class="cli-t-item">${esc(portfolioEntry.item.title)}</span>${labels}</span>`
+	function styledHtmlForEntry(entry: EntryDraft | Entry): string {
+		switch (entry.kind) {
+			case 'help':
+				return (
+					`<span class="cli-t-bold">Commands</span>\n\n` +
+					`<span class="cli-t-cmd">--help</span>\n` +
+					`Show this list.\n\n` +
+					`<span class="cli-t-cmd">--portfolio</span>\n` +
+					`List work. Tap a title to open.\n\n` +
+					`<span class="cli-t-cmd">--portfolio &lt;name&gt;</span>\n` +
+					`Jump to a piece.\n\n` +
+					`<span class="cli-t-cmd">--about</span>\n` +
+					`Andy Morales Coto bio.\n\n` +
+					`<span class="cli-t-cmd">--contact</span>\n` +
+					`Links and email.\n`
 				);
-			});
-			return `${rows.join('\n')}\n`;
-		}
-		case 'system':
-			return `${esc(entry.message)}\n`;
-		case 'error':
-			return `<span class="cli-t-err">${esc(entry.message)}</span>\n`;
-	}
-}
-
-function sliceStyledHtml(html: string, maxChars: number): string {
-	let visible = 0;
-	let inTag = false;
-	let result = '';
-	const openTags: string[] = [];
-	let currentTag = '';
-
-	for (let i = 0; i < html.length; i++) {
-		const ch = html[i];
-		if (ch === '<') {
-			if (visible >= maxChars && !inTag) break;
-			inTag = true;
-			currentTag = '';
-			result += ch;
-			continue;
-		}
-		if (inTag) {
-			result += ch;
-			if (ch === '>') {
-				inTag = false;
-				if (currentTag.startsWith('/')) {
-					openTags.pop();
-				} else {
-					const tagName = currentTag.split(/[\s/>]/)[0];
-					if (tagName) openTags.push(tagName);
-				}
-				currentTag = '';
-			} else {
-				currentTag += ch;
+			case 'about':
+				return (
+					`<span class="cli-t-about-wrap">` +
+					`<span class="cli-t-about-ascii-block">${esc(aboutAscii)}</span>` +
+					`\n<span class="cli-t-about-bio">${esc(aboutBio)}</span>` +
+					`</span>\n\n`
+				);
+			case 'contact':
+				return (
+					`<span class="cli-t-bold">Links</span>\n\n` +
+					contactLinks
+						.map((link) =>
+							link.action === 'copy'
+								? `<span class="cli-t-link" role="button" tabindex="0" data-copy-email>${esc(link.label)}</span>`
+								: `<a class="cli-t-link" href="${esc(link.href)}" target="_blank" rel="noopener noreferrer">${esc(link.label)}</a>`
+						)
+						.join('  ') +
+					`\n\n`
+				);
+			case 'portfolio': {
+				const productCount = portfolioEntries.filter(
+					(portfolioEntry) => !isSideProject(portfolioEntry.item)
+				).length;
+				const rows: string[] = ['<span class="cli-t-bold">Work</span>', ''];
+				portfolioEntries.forEach((portfolioEntry, i) => {
+					if (i === productCount)
+						rows.push('', '<span class="cli-t-portfolio-heading">Side Projects</span>');
+					if (i === 0) rows.push('<span class="cli-t-portfolio-heading">Product Design</span>');
+					const labels = portfolioEntry.item.locked
+						? ` <span class="cli-t-item-labels">(locked)</span>`
+						: '';
+					rows.push(
+						`<span class="cli-t-portfolio-row" data-portfolio-source-index="${portfolioEntry.sourceIndex}"><span class="cli-t-bullet">•</span> <span class="cli-t-item">${esc(portfolioEntry.item.title)}</span>${labels}</span>`
+					);
+				});
+				return `${rows.join('\n')}\n`;
 			}
-			continue;
+			case 'system':
+				return `${esc(entry.message)}\n`;
+			case 'error':
+				return `<span class="cli-t-err">${esc(entry.message)}</span>\n`;
 		}
-		if (visible >= maxChars) break;
-		if (ch === '&') {
-			const semi = html.indexOf(';', i);
-			if (semi !== -1 && semi - i < 8) {
-				result += html.slice(i, semi + 1);
-				i = semi;
-				visible += 1;
+	}
+
+	function sliceStyledHtml(html: string, maxChars: number): string {
+		let visible = 0;
+		let inTag = false;
+		let result = '';
+		const openTags: string[] = [];
+		let currentTag = '';
+
+		for (let i = 0; i < html.length; i++) {
+			const ch = html[i];
+			if (ch === '<') {
+				if (visible >= maxChars && !inTag) break;
+				inTag = true;
+				currentTag = '';
+				result += ch;
 				continue;
 			}
+			if (inTag) {
+				result += ch;
+				if (ch === '>') {
+					inTag = false;
+					if (currentTag.startsWith('/')) {
+						openTags.pop();
+					} else {
+						const tagName = currentTag.split(/[\s/>]/)[0];
+						if (tagName) openTags.push(tagName);
+					}
+					currentTag = '';
+				} else {
+					currentTag += ch;
+				}
+				continue;
+			}
+			if (visible >= maxChars) break;
+			if (ch === '&') {
+				const semi = html.indexOf(';', i);
+				if (semi !== -1 && semi - i < 8) {
+					result += html.slice(i, semi + 1);
+					i = semi;
+					visible += 1;
+					continue;
+				}
+			}
+			result += ch;
+			visible += 1;
 		}
-		result += ch;
-		visible += 1;
-	}
 
-	result += '<span class="cli-type-cursor" aria-hidden="true"></span>';
-	for (let j = openTags.length - 1; j >= 0; j--) {
-		result += `</${openTags[j]}>`;
+		result += '<span class="cli-type-cursor" aria-hidden="true"></span>';
+		for (let j = openTags.length - 1; j >= 0; j--) {
+			result += `</${openTags[j]}>`;
+		}
+		return result;
 	}
-	return result;
-}
 
 	function clearTypingTimer() {
 		if (!typingTimer) return;
@@ -310,10 +315,7 @@ function sliceStyledHtml(html: string, maxChars: number): string {
 					step = 2;
 				}
 			}
-			const nextProgress = Math.min(
-				entry.fullText.length,
-				entry.typingProgress + step
-			);
+			const nextProgress = Math.min(entry.fullText.length, entry.typingProgress + step);
 			return {
 				...entry,
 				typingProgress: nextProgress,
@@ -339,11 +341,11 @@ function sliceStyledHtml(html: string, maxChars: number): string {
 
 	function pushEntry(entry: EntryDraft) {
 		const fullText = plainTextForEntry(entry);
-	const styledHtml = styledHtmlForEntry(entry);
+		const styledHtml = styledHtmlForEntry(entry);
 		const nextEntry: Entry = {
 			...entry,
 			fullText,
-		styledHtml,
+			styledHtml,
 			typingProgress: 0,
 			typingComplete: fullText.length === 0
 		};
@@ -351,20 +353,20 @@ function sliceStyledHtml(html: string, maxChars: number): string {
 		onCommandRun?.(entry.cmd, fullText);
 	}
 
-function onHistoryPress(e: PointerEvent) {
-	const target = e.target instanceof Element ? e.target : null;
-	if (!target) return;
-	if (target.closest('[data-copy-email]')) {
-		e.preventDefault();
-		onCopyEmail();
-		return;
+	function onHistoryPress(e: PointerEvent) {
+		const target = e.target instanceof Element ? e.target : null;
+		if (!target) return;
+		if (target.closest('[data-copy-email]')) {
+			e.preventDefault();
+			onCopyEmail();
+			return;
+		}
+		const row = target.closest<HTMLElement>('[data-portfolio-source-index]');
+		if (!row) return;
+		const sourceIndex = Number.parseInt(row.dataset.portfolioSourceIndex ?? '', 10);
+		if (Number.isNaN(sourceIndex)) return;
+		void openPortfolioFromTerminal(sourceIndex);
 	}
-	const row = target.closest<HTMLElement>('[data-portfolio-source-index]');
-	if (!row) return;
-	const sourceIndex = Number.parseInt(row.dataset.portfolioSourceIndex ?? '', 10);
-	if (Number.isNaN(sourceIndex)) return;
-	void openPortfolioFromTerminal(sourceIndex);
-}
 
 	async function openPortfolioFromTerminal(index: number) {
 		const piece = portfolioItems[index];
@@ -585,13 +587,14 @@ function onHistoryPress(e: PointerEvent) {
 
 <style>
 	.mobile-cli {
+		--mobile-cli-body-font-size: 16px;
 		display: flex;
 		flex-direction: column;
 		height: 100%;
 		min-height: 0;
 		font-family: 'IBM Plex Mono', ui-monospace, monospace;
-		font-size: 0.82rem;
-		line-height: 1.45;
+		font-size: var(--mobile-cli-body-font-size);
+		line-height: 1.4;
 		color: var(--bg-color);
 	}
 
@@ -624,7 +627,9 @@ function onHistoryPress(e: PointerEvent) {
 		white-space: pre-wrap;
 		word-break: break-word;
 		overflow-wrap: anywhere;
-		font: inherit;
+		font-family: inherit;
+		font-size: inherit;
+		line-height: inherit;
 		tab-size: 2;
 	}
 
@@ -762,7 +767,7 @@ function onHistoryPress(e: PointerEvent) {
 		background: transparent;
 		color: var(--bg-color);
 		font: inherit;
-		font-size: 16px;
+		font-size: var(--mobile-cli-body-font-size);
 		line-height: 1.4;
 		outline: none;
 		caret-color: var(--cli-terminal-body-fg);

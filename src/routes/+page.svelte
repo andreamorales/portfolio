@@ -760,10 +760,7 @@
 	/>
 </div>
 
-<div
-	class="landing-page"
-	class:landing-page--mobile-terminal-open={mobileTerminalDrawerOpen}
->
+<div class="landing-page" class:landing-page--mobile-terminal-open={mobileTerminalDrawerOpen}>
 	<div class="viewport-frame-lines" aria-hidden="true">
 		<div
 			class="viewport-frame-hit viewport-frame-hit--bottom"
@@ -794,162 +791,155 @@
 	</div>
 	<main class="container flex-column-left">
 		{#if mounted}
-				<div class="landing-landing-row">
-					<div class="landing-hero-anchor" bind:this={landingHeroElement}>
-						<HomeLandingHero
-							portfolioItems={sortedPortfolioItems}
-							onOpenPortfolio={(idx, unlocked, data) => {
-								mobileTerminalDrawerOpen = false;
-								openPortfolioPiece(idx, unlocked, data);
-							}}
-							onCopyEmail={copyEmailToClipboard}
-							{introTypewriterActive}
-							{introTerminalVisible}
-							{mobileTerminalDrawerOpen}
-							onToggleMobileTerminal={toggleMobileTerminal}
-							onGoHome={() => {
-								activeDetailItem = null;
-								updatePieceQuery(null);
-							}}
-						/>
-					</div>
-					{#if activeDetailItem}
-						<div class="landing-portfolio-shell">
-							<div class="detail-panel">
+			<div class="landing-landing-row">
+				<div class="landing-hero-anchor" bind:this={landingHeroElement}>
+					<HomeLandingHero
+						portfolioItems={sortedPortfolioItems}
+						onOpenPortfolio={(idx, unlocked, data) => {
+							mobileTerminalDrawerOpen = false;
+							openPortfolioPiece(idx, unlocked, data);
+						}}
+						onCopyEmail={copyEmailToClipboard}
+						{introTypewriterActive}
+						{introTerminalVisible}
+						{mobileTerminalDrawerOpen}
+						onToggleMobileTerminal={toggleMobileTerminal}
+						onGoHome={() => {
+							activeDetailItem = null;
+							updatePieceQuery(null);
+						}}
+					/>
+				</div>
+				{#if activeDetailItem}
+					<div class="landing-portfolio-shell">
+						<div class="detail-panel">
+							<div class="detail-panel-rainbow detail-panel-rainbow--top" aria-hidden="true"></div>
+							<div class="detail-panel-rainbow detail-panel-rainbow--left" aria-hidden="true"></div>
+							<div class="detail-panel-grid detail-panel-grid--enter">
 								<div
-									class="detail-panel-rainbow detail-panel-rainbow--top"
-									aria-hidden="true"
-								></div>
-								<div
-									class="detail-panel-rainbow detail-panel-rainbow--left"
-									aria-hidden="true"
-								></div>
-								<div class="detail-panel-grid detail-panel-grid--enter">
-									<div
-										class="detail-panel-piece"
-										bind:this={detailPieceEl}
-										on:scroll={handleDetailPieceScroll}
-									>
+									class="detail-panel-piece"
+									bind:this={detailPieceEl}
+									on:scroll={handleDetailPieceScroll}
+								>
+									{#if activeDetailItem.videoUrl}
+										<MobileDetailMedia
+											showPanel={true}
+											isDirectVideo={isDirectVideoFile(activeDetailItem.videoUrl)}
+											videoUrl={activeDetailItem.videoUrl}
+											{mobileVideoVisible}
+											{mobileVideoCompactProgress}
+											bind:mobileVideoEl
+											{handleMobileAudioPlay}
+											{handleMobileAudioPause}
+											{handleMobileMediaTimeUpdate}
+										/>
+									{/if}
+									<!-- Only remount body content when switching pieces (shell/dividers stay put). -->
+									{#key toPieceSlug(activeDetailItem)}
+										<PortfolioExpandedView
+											projectTitle={activeDetailItem.title}
+											tags={activeDetailItem.tags}
+											description={activeDetailItem.description}
+											images={activeDetailItem.images}
+											content={activeDetailItem.content}
+											year={activeDetailItem.year}
+											role={activeDetailItem.role}
+											link={activeDetailItem.link}
+											metrics={activeDetailItem.metrics}
+											team={activeDetailItem.team}
+											locked={!!activeDetailItem.locked && !isPieceUnlocked(activeDetailItem)}
+											encryptedPayload={activeDetailItem.encryptedPayload}
+											immersive={false}
+											onGoHome={() => {
+												activeDetailItem = null;
+												updatePieceQuery(null);
+											}}
+											hasPrevPiece={detailHasPrevPiece}
+											hasNextPiece={detailHasNextPiece}
+											onPrevPiece={() => openAdjacentPortfolioPiece(-1)}
+											onNextPiece={() => openAdjacentPortfolioPiece(1)}
+											staggerReveal={true}
+											staggerBaseDelayMs={activeDetailRevealDelayMs}
+										/>
+									{/key}
+								</div>
+								<div class="detail-panel-sidebar">
+									<div class="detail-panel-video">
 										{#if activeDetailItem.videoUrl}
-											<MobileDetailMedia
-												showPanel={true}
-												isDirectVideo={isDirectVideoFile(activeDetailItem.videoUrl)}
-												videoUrl={activeDetailItem.videoUrl}
-												{mobileVideoVisible}
-												{mobileVideoCompactProgress}
-												bind:mobileVideoEl
-												{handleMobileAudioPlay}
-												{handleMobileAudioPause}
-												{handleMobileMediaTimeUpdate}
-											/>
+											{#if isDirectVideoFile(activeDetailItem.videoUrl)}
+												<!-- svelte-ignore a11y-media-has-caption -->
+												<video
+													class="detail-panel-video-embed"
+													bind:this={detailVideoEl}
+													controls
+													playsinline
+													preload="metadata"
+													src={activeDetailItem.videoUrl}
+													title="Video for {activeDetailItem.title}"
+													on:play={handleDetailMediaPlay}
+													on:pause={handleDetailMediaPause}
+													on:ended={handleDetailMediaPause}
+													on:loadedmetadata={handleDetailVideoTimeUpdate}
+													on:timeupdate={handleDetailVideoTimeUpdate}
+													on:seeked={handleDetailVideoTimeUpdate}
+												></video>
+											{:else}
+												<iframe
+													class="detail-panel-video-embed"
+													src={activeDetailItem.videoUrl}
+													title="Video for {activeDetailItem.title}"
+													frameborder="0"
+													allow="autoplay; encrypted-media"
+													allowfullscreen
+												></iframe>
+											{/if}
+										{:else}
+											<span class="detail-panel-placeholder">Video</span>
 										{/if}
-										<!-- Only remount body content when switching pieces (shell/dividers stay put). -->
-										{#key toPieceSlug(activeDetailItem)}
-											<PortfolioExpandedView
-												projectTitle={activeDetailItem.title}
-												tags={activeDetailItem.tags}
-												description={activeDetailItem.description}
-												images={activeDetailItem.images}
-												content={activeDetailItem.content}
-												year={activeDetailItem.year}
-												role={activeDetailItem.role}
-												link={activeDetailItem.link}
-												metrics={activeDetailItem.metrics}
-												team={activeDetailItem.team}
-												locked={!!activeDetailItem.locked && !isPieceUnlocked(activeDetailItem)}
-												encryptedPayload={activeDetailItem.encryptedPayload}
-												immersive={false}
-												onGoHome={() => {
-													activeDetailItem = null;
-													updatePieceQuery(null);
-												}}
-												hasPrevPiece={detailHasPrevPiece}
-												hasNextPiece={detailHasNextPiece}
-												onPrevPiece={() => openAdjacentPortfolioPiece(-1)}
-												onNextPiece={() => openAdjacentPortfolioPiece(1)}
-												staggerReveal={true}
-												staggerBaseDelayMs={activeDetailRevealDelayMs}
-											/>
-										{/key}
 									</div>
-									<div class="detail-panel-sidebar">
-										<div class="detail-panel-video">
-											{#if activeDetailItem.videoUrl}
-												{#if isDirectVideoFile(activeDetailItem.videoUrl)}
-													<!-- svelte-ignore a11y-media-has-caption -->
-													<video
-														class="detail-panel-video-embed"
-														bind:this={detailVideoEl}
-														controls
-														playsinline
-														preload="metadata"
-														src={activeDetailItem.videoUrl}
-														title="Video for {activeDetailItem.title}"
-														on:play={handleDetailMediaPlay}
-														on:pause={handleDetailMediaPause}
-														on:ended={handleDetailMediaPause}
-														on:loadedmetadata={handleDetailVideoTimeUpdate}
-														on:timeupdate={handleDetailVideoTimeUpdate}
-														on:seeked={handleDetailVideoTimeUpdate}
-													></video>
-												{:else}
-													<iframe
-														class="detail-panel-video-embed"
-														src={activeDetailItem.videoUrl}
-														title="Video for {activeDetailItem.title}"
-														frameborder="0"
-														allow="autoplay; encrypted-media"
-														allowfullscreen
-													></iframe>
-												{/if}
-											{:else}
-												<span class="detail-panel-placeholder">Video</span>
-											{/if}
-										</div>
-										<div
-											class="detail-panel-transcript"
-											class:detail-panel-transcript--can-scroll-up={detailTranscriptCanScrollUp}
-											bind:this={detailTranscriptEl}
-											on:scroll={handleTranscriptScroll}
-										>
-											{#if detailTranscriptLines.length}
-												<p class="detail-panel-transcript-flow">
-													{#each detailTranscriptLines as line, index (`${line.startMs}-${index}`)}
-														<button
-															type="button"
-															data-transcript-index={index}
-															class="detail-panel-transcript-line"
-															on:click={() => jumpToTranscriptLine(line.startMs)}
-															title={`Jump to ${formatMediaTime(line.startMs)}`}
-															aria-label={`Jump video to ${formatMediaTime(line.startMs)}: ${line.text.trim()}`}
-														>
-															{#each line.words as word, wordIndex (`${word.startMs}-${wordIndex}`)}
-																<span
-																	class="detail-panel-transcript-word"
-																	class:detail-panel-transcript-word--active={detailMediaIsPlaying &&
-																		detailVideoCurrentMs >= word.startMs &&
-																		detailVideoCurrentMs < word.endMs}
-																>
-																	{word.text}
-																</span>
-															{/each}
-														</button>
-													{/each}
-												</p>
-											{:else}
-												<span class="detail-panel-placeholder">Transcript</span>
-											{/if}
-										</div>
+									<div
+										class="detail-panel-transcript"
+										class:detail-panel-transcript--can-scroll-up={detailTranscriptCanScrollUp}
+										bind:this={detailTranscriptEl}
+										on:scroll={handleTranscriptScroll}
+									>
+										{#if detailTranscriptLines.length}
+											<p class="detail-panel-transcript-flow">
+												{#each detailTranscriptLines as line, index (`${line.startMs}-${index}`)}
+													<button
+														type="button"
+														data-transcript-index={index}
+														class="detail-panel-transcript-line"
+														on:click={() => jumpToTranscriptLine(line.startMs)}
+														title={`Jump to ${formatMediaTime(line.startMs)}`}
+														aria-label={`Jump video to ${formatMediaTime(line.startMs)}: ${line.text.trim()}`}
+													>
+														{#each line.words as word, wordIndex (`${word.startMs}-${wordIndex}`)}
+															<span
+																class="detail-panel-transcript-word"
+																class:detail-panel-transcript-word--active={detailMediaIsPlaying &&
+																	detailVideoCurrentMs >= word.startMs &&
+																	detailVideoCurrentMs < word.endMs}
+															>
+																{word.text}
+															</span>
+														{/each}
+													</button>
+												{/each}
+											</p>
+										{:else}
+											<span class="detail-panel-placeholder">Transcript</span>
+										{/if}
 									</div>
 								</div>
 							</div>
 						</div>
-					{/if}
-				</div>
+					</div>
+				{/if}
+			</div>
 		{/if}
 	</main>
 </div>
-
 
 <style>
 	:global(body.detail-panel-open) {

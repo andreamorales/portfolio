@@ -108,7 +108,8 @@
 
 		const dy = e.clientY - drawerDragStartY;
 		if (dy >= 0) {
-			const maxPullDown = mobileDrawerEl?.getBoundingClientRect().height ?? Number.POSITIVE_INFINITY;
+			const maxPullDown =
+				mobileDrawerEl?.getBoundingClientRect().height ?? Number.POSITIVE_INFINITY;
 			drawerPullPx = Math.min(dy, maxPullDown);
 		} else {
 			// Resist upward pulls so it feels springy but still tracks the finger.
@@ -139,7 +140,10 @@
 	}
 
 	$: if (browser) {
-		document.documentElement.classList.toggle('mobile-terminal-drawer-active', mobileTerminalDrawerOpen);
+		document.documentElement.classList.toggle(
+			'mobile-terminal-drawer-active',
+			mobileTerminalDrawerOpen
+		);
 	}
 
 	$: if (!mobileTerminalDrawerOpen) {
