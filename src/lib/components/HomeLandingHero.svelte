@@ -81,6 +81,13 @@
 		return parts.join(';');
 	}
 
+	function isEditableElement(el: Element | null): el is HTMLElement {
+		return !!(
+			el instanceof HTMLElement &&
+			(el.matches('input, textarea, select') || el.isContentEditable)
+		);
+	}
+
 	function onDrawerHandlePointerDown(e: PointerEvent) {
 		if (!mobileTerminalDrawerOpen) return;
 		e.stopPropagation();
@@ -156,6 +163,16 @@
 	let prevMobileTerminalDrawerOpen = false;
 	$: {
 		if (prevMobileTerminalDrawerOpen && !mobileTerminalDrawerOpen) {
+			// Blur immediately so iOS does not keep a hidden prompt focused (stale keyboard).
+			mobileDrawerTerminal?.blurPrompt();
+			const activeEl = document.activeElement;
+			if (
+				activeEl instanceof HTMLElement &&
+				activeEl.classList.contains('mobile-cli__input') &&
+				!!activeEl.closest('.mobile-terminal-drawer')
+			) {
+				activeEl.blur();
+			}
 			queueMicrotask(() => mobileDrawerTerminal?.blurPrompt());
 		}
 		prevMobileTerminalDrawerOpen = mobileTerminalDrawerOpen;
@@ -231,7 +248,12 @@
 			activeEl.classList.contains('mobile-cli__input') &&
 			!!activeEl.closest('.mobile-terminal-drawer');
 		const isAppleMobile = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-		if (promptFocused && isAppleMobile && keyboardH < KEYBOARD_HEIGHT_DELTA_PX) {
+		const isNarrowViewport = window.matchMedia('(max-width: 768px)').matches;
+		if (
+			promptFocused &&
+			keyboardH < KEYBOARD_HEIGHT_DELTA_PX &&
+			(isAppleMobile || isNarrowViewport)
+		) {
 			/*
 			 * Safari sometimes fails to publish keyboard geometry. When the prompt is
 			 * focused, apply a conservative fallback lift so the drawer clears the OSK.
@@ -245,6 +267,14 @@
 		const keyboardLikely = keyboardH > KEYBOARD_HEIGHT_DELTA_PX;
 		mobileKeyboardExpanded = keyboardLikely;
 		mobileDrawerVvStyle = `--keyboard-offset:${keyboardH}px`;
+	}
+
+	function onMobilePromptInteract() {
+		// Ensure the drawer responds on the exact tap/focus that opens the keyboard.
+		syncMobileDrawerViewport();
+		setTimeout(() => syncMobileDrawerViewport(), 0);
+		setTimeout(() => syncMobileDrawerViewport(), 120);
+		setTimeout(() => syncMobileDrawerViewport(), 320);
 	}
 
 	onMount(() => {
@@ -293,26 +323,50 @@
 
 	function handleMobileTabClick() {
 		const willOpen = !mobileTerminalDrawerOpen;
+		let hadExternalEditableFocus = false;
 		if (willOpen) {
-			drawerBaseHeight = window.visualViewport?.height ?? window.innerHeight;
+			const activeEl = document.activeElement;
+			const externalEditableEl =
+				isEditableElement(activeEl) && !activeEl.closest('.mobile-terminal-drawer')
+					? activeEl
+					: null;
+			hadExternalEditableFocus = !!externalEditableEl;
+			if (externalEditableEl) {
+				externalEditableEl.blur();
+			}
+			const vv = window.visualViewport;
+			const layoutEstimate = Math.max(
+				window.innerHeight,
+				document.documentElement.clientHeight,
+				vv ? vv.height + vv.offsetTop : 0
+			);
+			drawerBaseHeight = layoutEstimate;
 		}
 		onToggleMobileTerminal();
 		if (willOpen) {
 			backdropDismissArmed = false;
-			/*
-			 * Do not auto-focus on open. On iOS this can summon the keyboard before
-			 * viewport metrics settle, which leaves the keyboard over the drawer.
-			 * Let the user tap the prompt input explicitly (reliable behavior).
-			 */
 			requestAnimationFrame(() => {
 				requestAnimationFrame(() => {
 					syncMobileDrawerViewport();
 					mobileDrawerTerminal?.revealPrompt();
+					mobileDrawerTerminal?.focusPrompt();
+					/*
+					 * If another editable field already had focus, keyboard was likely
+					 * visible before this tap. Re-focus the terminal prompt so we do
+					 * not require a second tap and viewport math tracks the right input.
+					 */
+					if (hadExternalEditableFocus) {
+						mobileDrawerTerminal?.focusPrompt();
+					}
 				});
 			});
 			setTimeout(() => {
 				syncMobileDrawerViewport();
 				mobileDrawerTerminal?.revealPrompt();
+				mobileDrawerTerminal?.focusPrompt();
+				if (hadExternalEditableFocus) {
+					mobileDrawerTerminal?.focusPrompt();
+				}
 			}, 350);
 			setTimeout(() => {
 				syncMobileDrawerViewport();
@@ -436,6 +490,7 @@
 				{portfolioItems}
 				{onOpenPortfolio}
 				{onCopyEmail}
+				onPromptInteract={onMobilePromptInteract}
 				commandInputId="cli-command-input-mobile"
 				onCommandRun={onMobileCommandRun}
 			/>
@@ -982,5 +1037,18 @@
 	:global(html.mobile-terminal-drawer-active),
 	:global(html.mobile-terminal-drawer-active body) {
 		overscroll-behavior-y: none;
+	}
+
+	/*
+	 * When the detail panel is open on mobile, body gets overflow-y:auto which
+	 * makes the page scrollable.  If the keyboard opens while the drawer is up,
+	 * the browser can auto-scroll the body, skewing the visualViewport metrics
+	 * that syncMobileDrawerViewport relies on.  Lock body scroll while the
+	 * drawer is active so the keyboard offset is computed from a stable layout.
+	 */
+	@media (max-width: 768px) {
+		:global(html.mobile-terminal-drawer-active body.detail-panel-open) {
+			overflow: hidden !important;
+		}
 	}
 </style>

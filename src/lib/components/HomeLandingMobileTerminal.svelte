@@ -18,6 +18,7 @@
 		unlockedData?: SecurePortfolioPayloadData
 	) => void = () => {};
 	export let onCopyEmail: () => void = () => {};
+	export let onPromptInteract: () => void = () => {};
 	export let onCommandRun: ((cmd: string, outputPreview: string) => void) | null = null;
 	export let commandInputId = 'cli-command-input-mobile';
 
@@ -65,6 +66,10 @@
 
 	export function blurPrompt() {
 		inputEl?.blur();
+	}
+
+	function handlePromptInteract() {
+		onPromptInteract();
 	}
 
 	function createEntryId() {
@@ -340,18 +345,27 @@
 		typingTimer = setInterval(() => advanceTyping(entryId), 18);
 	}
 
-	function pushEntry(entry: EntryDraft) {
+	function pushEntry(
+		entry: EntryDraft,
+		options: {
+			notifyParent?: boolean;
+			instant?: boolean;
+		} = {}
+	) {
 		const fullText = plainTextForEntry(entry);
 		const styledHtml = styledHtmlForEntry(entry);
+		const instant = options.instant ?? false;
 		const nextEntry: Entry = {
 			...entry,
 			fullText,
 			styledHtml,
-			typingProgress: 0,
-			typingComplete: fullText.length === 0
+			typingProgress: instant ? fullText.length : 0,
+			typingComplete: instant || fullText.length === 0
 		};
 		history = [...history, nextEntry];
-		onCommandRun?.(entry.cmd, fullText);
+		if (options.notifyParent ?? true) {
+			onCommandRun?.(entry.cmd, fullText);
+		}
 	}
 
 	function onHistoryPress(e: PointerEvent) {
@@ -535,6 +549,7 @@
 	onDestroy(() => {
 		clearTypingTimer();
 	});
+
 </script>
 
 <div class="mobile-cli">
@@ -570,6 +585,8 @@
 				inputmode="text"
 				enterkeyhint="go"
 				placeholder="Enter password"
+				on:pointerdown={handlePromptInteract}
+				on:focus={handlePromptInteract}
 			/>
 		{:else}
 			<input
@@ -585,7 +602,9 @@
 				spellcheck={false}
 				inputmode="text"
 				enterkeyhint="go"
-				placeholder="--help"
+				placeholder=""
+				on:pointerdown={handlePromptInteract}
+				on:focus={handlePromptInteract}
 			/>
 		{/if}
 		<button type="submit" class="mobile-cli__submit">Return</button>
