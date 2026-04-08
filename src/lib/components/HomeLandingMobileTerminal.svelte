@@ -49,6 +49,7 @@
 	let entryCounter = 0;
 	let typingTimer: ReturnType<typeof setInterval> | null = null;
 	let lastTypingEntryId: string | null = null;
+	let navigatedAway = false;
 	const sideProjectSlugs = new Set(['la-guila-toys', 'torch']);
 
 	export function focusPrompt() {
@@ -386,14 +387,15 @@
 		}
 
 		pendingLockedPortfolioIndex = null;
+		inputValue = '';
 		pushEntry({
 			id: createEntryId(),
 			cmd: `open ${piece.title}`,
 			kind: 'system',
 			message: `Opening: ${piece.title}`
 		});
-		inputValue = '';
-		await tick();
+		navigatedAway = true;
+		blurPrompt();
 		onOpenPortfolio(index);
 	}
 
@@ -437,6 +439,7 @@
 		}
 
 		pendingLockedPortfolioIndex = null;
+		inputValue = '';
 		const openedTitle = decrypted.projectTitle ?? piece.title;
 		pushEntry({
 			id: createEntryId(),
@@ -444,7 +447,8 @@
 			kind: 'system',
 			message: `Opening: ${openedTitle}`
 		});
-		await tick();
+		navigatedAway = true;
+		blurPrompt();
 		onOpenPortfolio(idx, true, decrypted);
 	}
 
@@ -501,7 +505,10 @@
 		}
 
 		await tick();
-		focusPrompt();
+		if (!navigatedAway) {
+			focusPrompt();
+		}
+		navigatedAway = false;
 	}
 
 	function onSubmit(e: SubmitEvent) {
@@ -696,9 +703,8 @@
 		display: block;
 		width: 100%;
 		max-width: 100%;
-		overflow-x: auto;
+		overflow-x: hidden;
 		overflow-y: visible;
-		-webkit-overflow-scrolling: touch;
 	}
 
 	.mobile-cli__typewriter :global(.cli-t-about-ascii-block) {
@@ -706,14 +712,19 @@
 		margin: 0;
 		padding: 0;
 		width: max-content;
-		max-width: 100%;
-		font-size: calc(1.45 * 1.5 * clamp(0.07rem, 0.1vw + 0.04rem, 0.16rem));
-		line-height: 1;
+		/*
+		 * 170 chars wide — scale so each character is roughly 0.6 × font-size.
+		 * On a 390px iPhone with ~12px padding each side: (390−24)/170/0.6 ≈ 3.6px.
+		 * Using vw keeps it proportional; the min() caps it on wider viewports.
+		 */
+		font-size: min(calc((100vw - 2rem) / 170 / 0.6), 2.8px);
+		line-height: 1.35;
 		letter-spacing: 0;
 		font-variant-ligatures: none;
 		white-space: pre;
 		tab-size: 2;
 		color: var(--cli-terminal-body-fg);
+		transform-origin: top left;
 	}
 
 	.mobile-cli__typewriter :global(.cli-t-about-bio) {

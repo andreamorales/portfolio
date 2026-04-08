@@ -26,6 +26,9 @@
 	type Phrase = { text: string; startMs: number; endMs: number };
 	let captionPhrases: Phrase[] = [];
 	let activePhrase: Phrase | null = null;
+	let scrubMaxMs = 1;
+	let scrubValueMs = 0;
+	let scrubFillPercent = 0;
 
 	$: {
 		if (mobileTickerCues.length) {
@@ -61,6 +64,15 @@
 	$: {
 		activePhrase =
 			captionPhrases.find((p) => currentMs >= p.startMs && currentMs < p.endMs) ?? null;
+	}
+
+	$: {
+		scrubMaxMs = Math.max(1, Number.isFinite(mobileAudioDurationMs) ? mobileAudioDurationMs : 1);
+		scrubValueMs = Math.min(
+			Math.max(0, Number.isFinite(mobileAudioScrubMs) ? mobileAudioScrubMs : 0),
+			scrubMaxMs
+		);
+		scrubFillPercent = Math.max(0, Math.min(100, (scrubValueMs / scrubMaxMs) * 100));
 	}
 </script>
 
@@ -144,11 +156,10 @@
 						class="mobile-media-scrubber"
 						type="range"
 						min="0"
-						max={Math.max(0, Math.floor(mobileAudioDurationMs))}
-						value={Math.min(
-							Math.max(0, Math.floor(mobileAudioScrubMs)),
-							Math.max(0, Math.floor(mobileAudioDurationMs))
-						)}
+						max={scrubMaxMs}
+						value={scrubValueMs}
+						step="any"
+						style={`--scrub-fill:${scrubFillPercent}%;`}
 						on:input={handleMobileAudioSeekInput}
 						on:change={commitMobileAudioSeek}
 						on:pointerup={commitMobileAudioSeek}
@@ -321,6 +332,7 @@
 		padding-bottom: 0.25rem;
 		padding-left: max(0.75rem, env(safe-area-inset-left));
 		padding-right: max(0.75rem, env(safe-area-inset-right));
+		min-height: 2.2rem;
 	}
 
 	.mobile-media-controls__primary {
@@ -341,21 +353,101 @@
 	.mobile-media-scrubber-wrap {
 		flex: 1 1 auto;
 		min-width: 0;
+		display: flex;
+		align-items: center;
+		align-self: center;
 	}
 
 	.mobile-media-scrubber {
 		width: 100%;
-		accent-color: var(--text-color);
-		height: 1px;
+		height: 22px;
+		margin: 0;
+		padding: 0;
+		background: transparent;
+		border: none;
+		border-radius: 0;
+		box-shadow: none;
+		-webkit-appearance: none;
+		appearance: none;
+		touch-action: pan-x;
+		-webkit-tap-highlight-color: transparent;
+		align-self: center;
+	}
+
+	.mobile-media-scrubber::-webkit-slider-runnable-track {
+		height: 6px;
+		border-radius: 999px;
+		border: none;
+		box-shadow: none;
+		background: linear-gradient(
+			to right,
+			var(--text-color) 0%,
+			var(--text-color) var(--scrub-fill, 0%),
+			color-mix(in srgb, var(--text-color) 20%, transparent) var(--scrub-fill, 0%),
+			color-mix(in srgb, var(--text-color) 20%, transparent) 100%
+		);
+	}
+
+	.mobile-media-scrubber::-webkit-slider-thumb {
+		-webkit-appearance: none;
+		appearance: none;
+		/* Keep touch target large but remove visible box artifact. */
+		width: 22px;
+		height: 22px;
+		border-radius: 999px;
+		border: none;
+		background: transparent;
+		box-shadow: none;
+		outline: none;
+		margin-top: -8px;
+		cursor: ew-resize;
+	}
+
+	.mobile-media-scrubber::-moz-range-track {
+		height: 6px;
+		border: none;
+		border-radius: 999px;
+		box-shadow: none;
+		background: color-mix(in srgb, var(--text-color) 20%, transparent);
+	}
+
+	.mobile-media-scrubber::-moz-range-progress {
+		height: 6px;
+		border: none;
+		border-radius: 999px;
+		box-shadow: none;
+		background: var(--text-color);
+	}
+
+	.mobile-media-scrubber::-moz-range-thumb {
+		width: 22px;
+		height: 22px;
+		border-radius: 999px;
+		border: none;
+		background: transparent;
+		box-shadow: none;
+		cursor: ew-resize;
+	}
+
+	.mobile-media-scrubber:focus {
+		outline: none;
+		box-shadow: none;
+	}
+
+	.mobile-media-scrubber:focus-visible {
+		outline: none;
+		box-shadow: none;
 	}
 
 	.mobile-media-time {
 		color: var(--text-color);
 		font-family: inherit;
 		font-size: var(--font-size-xs);
+		line-height: 1;
 		opacity: 0.8;
 		min-width: 2.4rem;
 		text-align: right;
+		align-self: center;
 	}
 
 	.mobile-media-play {
@@ -363,10 +455,11 @@
 		background: transparent;
 		color: var(--text-color);
 		padding: 0;
-		line-height: 0;
+		line-height: 1;
 		cursor: pointer;
 		opacity: 0.88;
 		flex: 0 0 auto;
+		align-self: center;
 	}
 
 	.mobile-media-play:hover {
@@ -391,6 +484,8 @@
 		cursor: pointer;
 		color: var(--text-color);
 		flex: 0 0 auto;
+		align-self: center;
+		line-height: 1;
 	}
 
 	.mobile-video-switch {

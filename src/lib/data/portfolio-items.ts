@@ -2,16 +2,22 @@ import { writable } from 'svelte/store';
 import mostRecentEncrypted from '$lib/data/secure/most-recent1.encrypted.json';
 import mongodbCaptions from '$lib/data/transcripts/mongodb.captions.json';
 import mongodbVideoUrl from '$lib/videos/mongodb.mp4?url';
+import mongodbFirstFrameUrl from '$lib/images/video-posters/mongodb-first-frame.jpg?url';
 import laguilaCaptions from '$lib/data/transcripts/laguila.captions.json';
 import laguilaVideoUrl from '$lib/videos/laguila.mp4?url';
+import laguilaFirstFrameUrl from '$lib/images/video-posters/laguila-first-frame.jpg?url';
 import firehydrantCaptions from '$lib/data/transcripts/firehydrant.captions.json';
 import firehydrantVideoUrl from '$lib/videos/firehydrant.mp4?url';
+import firehydrantFirstFrameUrl from '$lib/images/video-posters/firehydrant-first-frame.jpg?url';
 import pantoCaptions from '$lib/data/transcripts/panto.captions.json';
 import pantoVideoUrl from '$lib/videos/panto.mp4?url';
+import pantoFirstFrameUrl from '$lib/images/video-posters/panto-first-frame.jpg?url';
 import robloxCaptions from '$lib/data/transcripts/roblox.captions.json';
 import robloxVideoUrl from '$lib/videos/roblox.mp4?url';
+import robloxFirstFrameUrl from '$lib/images/video-posters/roblox-first-frame.jpg?url';
 import torchCaptions from '$lib/data/transcripts/torch.captions.json';
 import torchVideoUrl from '$lib/videos/torch.mp4?url';
+import torchFirstFrameUrl from '$lib/images/video-posters/torch-first-frame.jpg?url';
 import type { SecurePortfolioEncryptedPayload } from '$lib/utils/secureCaseStudy';
 
 interface PortfolioImage {
@@ -52,6 +58,7 @@ export interface PortfolioItem {
 	expanded: boolean;
 	description: string;
 	videoUrl: string;
+	videoPosterUrl?: string;
 	quickNavThumbnail: string;
 	images: PortfolioImage[];
 	content: ContentItem[];
@@ -91,6 +98,7 @@ const initialPortfolioItems = [
 		description:
 			"Reimagining MongoDB's Realm Schema designer with a focus on tackling mobile developers unfamiliar with database schemas.",
 		videoUrl: mongodbVideoUrl,
+		videoPosterUrl: mongodbFirstFrameUrl,
 		transcriptCues: mongodbCaptions.captions,
 		quickNavThumbnail: '/images/portfolio/mongodb/thumbnail.webp',
 		images: [
@@ -212,6 +220,7 @@ const initialPortfolioItems = [
 		expanded: false,
 		description: 'Increasing the quality of design systemically, in the most efficient way',
 		videoUrl: firehydrantVideoUrl,
+		videoPosterUrl: firehydrantFirstFrameUrl,
 		transcriptCues: firehydrantCaptions.captions,
 		quickNavThumbnail: '/images/portfolio/firehydrant/thumbnail.webp',
 		images: [
@@ -376,6 +385,7 @@ const initialPortfolioItems = [
 		description:
 			'Teaching Roblox devs how to use API keys, whether they are beginners or advanced users.',
 		videoUrl: robloxVideoUrl,
+		videoPosterUrl: robloxFirstFrameUrl,
 		transcriptCues: robloxCaptions.captions,
 		quickNavThumbnail: '/images/portfolio/roblox/thumbnail.webp',
 		images: [
@@ -491,6 +501,7 @@ const initialPortfolioItems = [
 		description:
 			'Panto helps AI app layer companies evaluate the true usefulness of their data in order to post-train better AI models.',
 		videoUrl: pantoVideoUrl,
+		videoPosterUrl: pantoFirstFrameUrl,
 		transcriptCues: pantoCaptions.captions,
 		quickNavThumbnail: '/images/portfolio/panto/thumbnail.webp',
 		images: [
@@ -613,6 +624,7 @@ const initialPortfolioItems = [
 		description:
 			"La Güila Toys is a line of toys that explore death and the passage of time, making bleak topics playful. I've created more than 20 toys in total.",
 		videoUrl: laguilaVideoUrl,
+		videoPosterUrl: laguilaFirstFrameUrl,
 		transcriptCues: laguilaCaptions.captions,
 		quickNavThumbnail: '/images/portfolio/laguila/thumbnail.webp',
 		images: [
@@ -707,6 +719,7 @@ const initialPortfolioItems = [
 		description:
 			'Torch is a freeform Live Action Roleplaying game exploring themes of multigenerational storytelling and collective memory.',
 		videoUrl: torchVideoUrl,
+		videoPosterUrl: torchFirstFrameUrl,
 		transcriptCues: torchCaptions.captions,
 		quickNavThumbnail: '/images/portfolio/torch/thumbnail.webp',
 		images: [

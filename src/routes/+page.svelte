@@ -586,6 +586,15 @@
 			: DETAIL_CONTENT_REVEAL_DELAY_MS;
 		activeDetailItem = mergeUnlockedPieceData(picked);
 		updatePieceQuery(activeDetailItem);
+
+		tick().then(() => {
+			if (typeof window !== 'undefined') {
+				window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+			}
+			if (detailPieceEl) {
+				detailPieceEl.scrollTop = 0;
+			}
+		});
 	}
 
 	async function scrollPortfolioDetailToTop() {
@@ -732,6 +741,7 @@
 	class="mobile-top-stack"
 	class:mobile-top-stack--with-audio={!!activeDetailItem?.videoUrl &&
 		isDirectVideoFile(activeDetailItem.videoUrl)}
+	class:mobile-top-stack--terminal-open={mobileTerminalDrawerOpen}
 >
 	<MobileTopStack
 		showNav={!!activeDetailItem}
@@ -760,7 +770,7 @@
 	/>
 </div>
 
-<div class="landing-page" class:landing-page--mobile-terminal-open={mobileTerminalDrawerOpen}>
+<div class="landing-page">
 	<div class="viewport-frame-lines" aria-hidden="true">
 		<div
 			class="viewport-frame-hit viewport-frame-hit--bottom"
@@ -818,6 +828,8 @@
 							<div class="detail-panel-grid detail-panel-grid--enter">
 								<div
 									class="detail-panel-piece"
+									class:detail-panel-piece--with-audio={!!activeDetailItem.videoUrl &&
+										isDirectVideoFile(activeDetailItem.videoUrl)}
 									bind:this={detailPieceEl}
 									on:scroll={handleDetailPieceScroll}
 								>
@@ -826,6 +838,7 @@
 											showPanel={true}
 											isDirectVideo={isDirectVideoFile(activeDetailItem.videoUrl)}
 											videoUrl={activeDetailItem.videoUrl}
+											videoFallbackImage={activeDetailItem.videoPosterUrl ?? ''}
 											{mobileVideoVisible}
 											{mobileVideoCompactProgress}
 											bind:mobileVideoEl
@@ -1616,6 +1629,7 @@
 			height: 100dvh;
 			max-height: 100dvh;
 			background: var(--bg-color);
+			padding-top: calc(3rem + env(safe-area-inset-top, 0px));
 		}
 
 		.detail-panel-sidebar {
@@ -1631,6 +1645,10 @@
 			display: none;
 		}
 
+		/*
+		 * Below terminal backdrop (10199) / drawer (10200) so rainbow nav + audio stay
+		 * visible through the translucent blur; above in-page content.
+		 */
 		.mobile-top-stack {
 			display: flex;
 			flex-direction: column;
@@ -1640,19 +1658,16 @@
 			left: 0;
 			right: 0;
 			width: 100%;
-			z-index: 10050;
+			z-index: 10170;
 		}
 
-		/* Entire landing subtree stacks below `.mobile-top-stack` unless we lift it: internal z-index cannot beat a sibling fixed bar. */
-		.landing-page--mobile-terminal-open {
-			z-index: 10060;
+		/* Match terminal backdrop blur (HomeLandingHero) so nav/audio read as part of the frosted layer. */
+		.mobile-top-stack--terminal-open {
+			filter: blur(2px);
+			-webkit-filter: blur(2px);
 		}
 
-		:global(.mobile-top-stack + .landing-page .detail-panel-piece) {
-			padding-top: calc(3rem + env(safe-area-inset-top, 0px));
-		}
-
-		:global(.mobile-top-stack--with-audio + .landing-page .detail-panel-piece) {
+		.detail-panel-piece--with-audio {
 			padding-top: calc(6.5rem + env(safe-area-inset-top, 0px));
 		}
 	}
