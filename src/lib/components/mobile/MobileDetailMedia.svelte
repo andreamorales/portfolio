@@ -2,8 +2,7 @@
 	export let showPanel = false;
 	export let isDirectVideo = false;
 	export let videoUrl = '';
-	/** Shown until the first frame decodes (iOS often needs poster + seek). */
-	export let videoPoster = '';
+	export let videoFallbackImage = '';
 	export let mobileVideoVisible = true;
 	export let mobileVideoCompactProgress = 0;
 	export let mobileVideoEl: HTMLVideoElement | null = null;
@@ -12,10 +11,14 @@
 	export let handleMobileMediaTimeUpdate: (event: Event) => void;
 
 	let primedUrl = '';
+	let primingFrame = false;
+	let frameReady = false;
+	let hasUserPlayed = false;
 
 	$: {
-		videoUrl;
 		primedUrl = '';
+		frameReady = false;
+		hasUserPlayed = false;
 	}
 
 	/**
@@ -23,25 +26,71 @@
 	 * browser will decode a frame without a play gesture; unmute on play (user
 	 * taps the media control) so the file’s audio is still heard.
 	 */
-	function primeFirstFrame(e: Event) {
+	async function primeFirstFrame(e: Event) {
 		const v = e.currentTarget as HTMLVideoElement;
 		if (primedUrl === videoUrl) return;
+		if (hasUserPlayed) return;
 		if (v.readyState < HTMLMediaElement.HAVE_METADATA) return;
+		// Never interrupt a real user play gesture.
+		if (!v.paused) return;
 		try {
+			primingFrame = true;
 			const t =
 				v.duration > 0 && Number.isFinite(v.duration)
 					? Math.min(0.08, Math.max(0.001, v.duration * 0.0005))
 					: 0.001;
-			v.currentTime = t;
+			if (Math.abs(v.currentTime - t) > 0.0005) {
+				v.currentTime = t;
+			}
 			primedUrl = videoUrl;
+			queueMicrotask(() => {
+				if (
+					v.videoWidth > 0 &&
+					v.videoHeight > 0 &&
+					v.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
+				) {
+					frameReady = true;
+				}
+			});
 		} catch {
 			/* noop */
+		} finally {
+			primingFrame = false;
 		}
 	}
 
+	function markFrameReady(e: Event) {
+		const v = e.currentTarget as HTMLVideoElement;
+		if (
+			v.videoWidth > 0 &&
+			v.videoHeight > 0 &&
+			v.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
+		) {
+			frameReady = true;
+		}
+	}
+
+	function onVideoLoadedMetadata(e: Event) {
+		handleMobileMediaTimeUpdate(e);
+		markFrameReady(e);
+	}
+
+	function onVideoTimeUpdate(e: Event) {
+		handleMobileMediaTimeUpdate(e);
+		markFrameReady(e);
+	}
+
 	function onVideoPlay(e: Event) {
+		hasUserPlayed = true;
+		frameReady = true;
+		if (primingFrame) return;
 		(e.currentTarget as HTMLVideoElement).muted = false;
 		handleMobileAudioPlay();
+	}
+
+	function onVideoPause() {
+		if (primingFrame) return;
+		handleMobileAudioPause();
 	}
 </script>
 
@@ -51,22 +100,35 @@
 			{#if mobileVideoVisible}
 				<div class="mobile-media-video-panel">
 					<div class="mobile-media-video-shell">
-						<!-- svelte-ignore a11y-media-has-caption -->
+						{#if !frameReady}
+							<div class="mobile-media-video-fallback" aria-hidden="true">
+								{#if videoFallbackImage}
+									<img
+										class="mobile-media-video-fallback-image"
+										src={videoFallbackImage}
+										alt=""
+										loading="eager"
+										decoding="async"
+									/>
+								{:else}
+									<div class="mobile-media-video-fallback-solid"></div>
+								{/if}
+							</div>
+						{/if}
 						<video
 							class="mobile-media-video-preview"
 							bind:this={mobileVideoEl}
 							preload="auto"
 							playsinline
 							muted
-							poster={videoPoster || undefined}
 							src={videoUrl}
 							on:play={onVideoPlay}
-							on:pause={handleMobileAudioPause}
-							on:loadedmetadata={handleMobileMediaTimeUpdate}
+							on:pause={onVideoPause}
+							on:loadedmetadata={onVideoLoadedMetadata}
 							on:loadeddata={primeFirstFrame}
 							on:canplay={primeFirstFrame}
-							on:timeupdate={handleMobileMediaTimeUpdate}
-							on:seeked={handleMobileMediaTimeUpdate}
+							on:timeupdate={onVideoTimeUpdate}
+							on:seeked={onVideoTimeUpdate}
 						></video>
 					</div>
 				</div>
@@ -116,6 +178,28 @@
 		background: var(--bg-color);
 		object-fit: cover;
 		display: block;
+	}
+
+	.mobile-media-video-fallback {
+		position: absolute;
+		inset: 0;
+		z-index: 1;
+		border: 1px solid var(--text-color);
+		background: var(--bg-color);
+		pointer-events: none;
+	}
+
+	.mobile-media-video-fallback-image {
+		width: 100%;
+		height: 100%;
+		display: block;
+		object-fit: cover;
+	}
+
+	.mobile-media-video-fallback-solid {
+		width: 100%;
+		height: 100%;
+		background: var(--bg-color);
 	}
 
 	.mobile-media-unsupported {

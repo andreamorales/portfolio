@@ -586,6 +586,15 @@
 			: DETAIL_CONTENT_REVEAL_DELAY_MS;
 		activeDetailItem = mergeUnlockedPieceData(picked);
 		updatePieceQuery(activeDetailItem);
+
+		tick().then(() => {
+			if (typeof window !== 'undefined') {
+				window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+			}
+			if (detailPieceEl) {
+				detailPieceEl.scrollTop = 0;
+			}
+		});
 	}
 
 	async function scrollPortfolioDetailToTop() {
@@ -819,6 +828,8 @@
 							<div class="detail-panel-grid detail-panel-grid--enter">
 								<div
 									class="detail-panel-piece"
+									class:detail-panel-piece--with-audio={!!activeDetailItem.videoUrl &&
+										isDirectVideoFile(activeDetailItem.videoUrl)}
 									bind:this={detailPieceEl}
 									on:scroll={handleDetailPieceScroll}
 								>
@@ -827,7 +838,7 @@
 											showPanel={true}
 											isDirectVideo={isDirectVideoFile(activeDetailItem.videoUrl)}
 											videoUrl={activeDetailItem.videoUrl}
-											videoPoster={activeDetailItem.quickNavThumbnail}
+											videoFallbackImage={activeDetailItem.videoPosterUrl ?? ''}
 											{mobileVideoVisible}
 											{mobileVideoCompactProgress}
 											bind:mobileVideoEl
@@ -1618,6 +1629,7 @@
 			height: 100dvh;
 			max-height: 100dvh;
 			background: var(--bg-color);
+			padding-top: calc(3rem + env(safe-area-inset-top, 0px));
 		}
 
 		.detail-panel-sidebar {
@@ -1655,11 +1667,7 @@
 			-webkit-filter: blur(2px);
 		}
 
-		:global(.mobile-top-stack + .landing-page .detail-panel-piece) {
-			padding-top: calc(3rem + env(safe-area-inset-top, 0px));
-		}
-
-		:global(.mobile-top-stack--with-audio + .landing-page .detail-panel-piece) {
+		.detail-panel-piece--with-audio {
 			padding-top: calc(6.5rem + env(safe-area-inset-top, 0px));
 		}
 	}
