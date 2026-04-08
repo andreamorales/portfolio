@@ -2,12 +2,47 @@
 	export let showPanel = false;
 	export let isDirectVideo = false;
 	export let videoUrl = '';
+	/** Shown until the first frame decodes (iOS often needs poster + seek). */
+	export let videoPoster = '';
 	export let mobileVideoVisible = true;
 	export let mobileVideoCompactProgress = 0;
 	export let mobileVideoEl: HTMLVideoElement | null = null;
 	export let handleMobileAudioPlay: () => void;
 	export let handleMobileAudioPause: () => void;
 	export let handleMobileMediaTimeUpdate: (event: Event) => void;
+
+	let primedUrl = '';
+
+	$: {
+		videoUrl;
+		primedUrl = '';
+	}
+
+	/**
+	 * iOS often skips painting frame 0 until a non-zero seek. Start muted so the
+	 * browser will decode a frame without a play gesture; unmute on play (user
+	 * taps the media control) so the file’s audio is still heard.
+	 */
+	function primeFirstFrame(e: Event) {
+		const v = e.currentTarget as HTMLVideoElement;
+		if (primedUrl === videoUrl) return;
+		if (v.readyState < HTMLMediaElement.HAVE_METADATA) return;
+		try {
+			const t =
+				v.duration > 0 && Number.isFinite(v.duration)
+					? Math.min(0.08, Math.max(0.001, v.duration * 0.0005))
+					: 0.001;
+			v.currentTime = t;
+			primedUrl = videoUrl;
+		} catch {
+			/* noop */
+		}
+	}
+
+	function onVideoPlay(e: Event) {
+		(e.currentTarget as HTMLVideoElement).muted = false;
+		handleMobileAudioPlay();
+	}
 </script>
 
 {#if showPanel}
@@ -20,12 +55,16 @@
 						<video
 							class="mobile-media-video-preview"
 							bind:this={mobileVideoEl}
-							preload="metadata"
+							preload="auto"
 							playsinline
+							muted
+							poster={videoPoster || undefined}
 							src={videoUrl}
-							on:play={handleMobileAudioPlay}
+							on:play={onVideoPlay}
 							on:pause={handleMobileAudioPause}
 							on:loadedmetadata={handleMobileMediaTimeUpdate}
+							on:loadeddata={primeFirstFrame}
+							on:canplay={primeFirstFrame}
 							on:timeupdate={handleMobileMediaTimeUpdate}
 							on:seeked={handleMobileMediaTimeUpdate}
 						></video>

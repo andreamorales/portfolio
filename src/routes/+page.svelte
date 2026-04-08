@@ -826,6 +826,7 @@
 											showPanel={true}
 											isDirectVideo={isDirectVideoFile(activeDetailItem.videoUrl)}
 											videoUrl={activeDetailItem.videoUrl}
+											videoPoster={activeDetailItem.quickNavThumbnail}
 											{mobileVideoVisible}
 											{mobileVideoCompactProgress}
 											bind:mobileVideoEl
