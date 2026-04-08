@@ -74,7 +74,7 @@
 		font-variation-settings:
 			'CASL' 0,
 			'wght' 400;
-		/* Above `.mobile-top-stack` (10050) and `.landing-page--mobile-terminal-open` (10060) */
+		/* Above `.mobile-top-stack` (10170) and terminal backdrop (10199) */
 		z-index: 10250;
 		cursor: pointer;
 		pointer-events: auto;

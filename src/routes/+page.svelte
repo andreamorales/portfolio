@@ -732,6 +732,7 @@
 	class="mobile-top-stack"
 	class:mobile-top-stack--with-audio={!!activeDetailItem?.videoUrl &&
 		isDirectVideoFile(activeDetailItem.videoUrl)}
+	class:mobile-top-stack--terminal-open={mobileTerminalDrawerOpen}
 >
 	<MobileTopStack
 		showNav={!!activeDetailItem}
@@ -760,7 +761,7 @@
 	/>
 </div>
 
-<div class="landing-page" class:landing-page--mobile-terminal-open={mobileTerminalDrawerOpen}>
+<div class="landing-page">
 	<div class="viewport-frame-lines" aria-hidden="true">
 		<div
 			class="viewport-frame-hit viewport-frame-hit--bottom"
@@ -1632,6 +1633,10 @@
 			display: none;
 		}
 
+		/*
+		 * Below terminal backdrop (10199) / drawer (10200) so rainbow nav + audio stay
+		 * visible through the translucent blur; above in-page content.
+		 */
 		.mobile-top-stack {
 			display: flex;
 			flex-direction: column;
@@ -1641,12 +1646,13 @@
 			left: 0;
 			right: 0;
 			width: 100%;
-			z-index: 10050;
+			z-index: 10170;
 		}
 
-		/* Entire landing subtree stacks below `.mobile-top-stack` unless we lift it: internal z-index cannot beat a sibling fixed bar. */
-		.landing-page--mobile-terminal-open {
-			z-index: 10060;
+		/* Match terminal backdrop blur (HomeLandingHero) so nav/audio read as part of the frosted layer. */
+		.mobile-top-stack--terminal-open {
+			filter: blur(2px);
+			-webkit-filter: blur(2px);
 		}
 
 		:global(.mobile-top-stack + .landing-page .detail-panel-piece) {
