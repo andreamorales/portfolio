@@ -543,7 +543,11 @@
 			role: payload.role,
 			link: payload.link,
 			metrics: payload.metrics,
-			team: payload.team
+			team: payload.team,
+			...(payload.videoUrl ? { videoUrl: payload.videoUrl } : {}),
+			...(payload.videoPosterUrl ? { videoPosterUrl: payload.videoPosterUrl } : {}),
+			...(payload.transcriptCues?.length ? { transcriptCues: payload.transcriptCues } : {}),
+			...(payload.hideHeroImage ? { hideHeroImage: true } : {})
 		};
 	}
 
@@ -854,6 +858,7 @@
 											tags={activeDetailItem.tags}
 											description={activeDetailItem.description}
 											images={activeDetailItem.images}
+											hideHeroImage={!!activeDetailItem.hideHeroImage}
 											content={activeDetailItem.content}
 											year={activeDetailItem.year}
 											role={activeDetailItem.role}
@@ -862,6 +867,14 @@
 											team={activeDetailItem.team}
 											locked={!!activeDetailItem.locked && !isPieceUnlocked(activeDetailItem)}
 											encryptedPayload={activeDetailItem.encryptedPayload}
+											onUnlock={(data) => {
+												if (!activeDetailItem) return;
+												const slug = toPieceSlug(activeDetailItem);
+												unlockedPieceSlugs = new Set([...unlockedPieceSlugs, slug]);
+												unlockedPieceDataBySlug = new Map(unlockedPieceDataBySlug);
+												unlockedPieceDataBySlug.set(slug, data);
+												activeDetailItem = mergeUnlockedPieceData(activeDetailItem);
+											}}
 											immersive={false}
 											onGoHome={() => {
 												activeDetailItem = null;
@@ -885,10 +898,13 @@
 													class="detail-panel-video-embed"
 													bind:this={detailVideoEl}
 													controls
+													controlsList="nodownload"
+													disablePictureInPicture
 													playsinline
 													preload="metadata"
 													src={activeDetailItem.videoUrl}
 													title="Video for {activeDetailItem.title}"
+													on:contextmenu|preventDefault
 													on:play={handleDetailMediaPlay}
 													on:pause={handleDetailMediaPause}
 													on:ended={handleDetailMediaPause}
@@ -1382,6 +1398,8 @@
 		border: none;
 		object-fit: cover;
 		vertical-align: middle;
+		-webkit-touch-callout: none;
+		user-select: none;
 	}
 
 	.detail-panel-transcript {

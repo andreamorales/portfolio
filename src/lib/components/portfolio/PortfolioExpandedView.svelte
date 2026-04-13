@@ -7,7 +7,8 @@
 	import PortfolioEndHome from '$lib/components/portfolio/PortfolioEndHome.svelte';
 	import {
 		decryptSecurePortfolioPayload,
-		type SecurePortfolioEncryptedPayload
+		type SecurePortfolioEncryptedPayload,
+		type SecurePortfolioPayloadData
 	} from '$lib/utils/secureCaseStudy';
 
 	/** Unique mask id per instance (component can appear more than once on a page). */
@@ -19,6 +20,7 @@
 	export let tags: string[] = [];
 	export let description: string;
 	export let images: Array<{ src: string; alt: string; caption?: string }> = [];
+	export let hideHeroImage = false;
 	export let content: Array<{
 		type: string;
 		value: string;
@@ -40,6 +42,7 @@
 	export let onNextPiece: (() => void) | null = null;
 	export let locked = false;
 	export let encryptedPayload: SecurePortfolioEncryptedPayload | null = null;
+	export let onUnlock: ((data: SecurePortfolioPayloadData) => void) | null = null;
 	export let staggerReveal = false;
 	export let staggerBaseDelayMs = 0;
 
@@ -76,12 +79,12 @@
 	/* If user unlocks from the page itself, skip the large initial panel delay so content starts right away. */
 	$: effectiveStaggerBaseDelayMs = locked && isUnlocked ? 0 : staggerBaseDelayMs;
 
-	// Computed prop for featured image - use first image from images array
+	// Computed prop for featured image - use first image from images array (unless hidden for this case study)
 	$: {
-		if (images && images.length > 0) {
-			featuredImage = images[0].src;
-		} else {
+		if (hideHeroImage || !images || images.length === 0) {
 			featuredImage = '';
+		} else {
+			featuredImage = images[0].src;
 		}
 	}
 
@@ -108,6 +111,63 @@
 	function childDelayStyle(group: RevealGroup | null, step: number): string | undefined {
 		const anchor = (group ?? introReveal).childStartDelayMs;
 		return revealStyle(anchor + step * REVEAL_CHILD_STEP_MS);
+	}
+
+	/** Known acronyms to keep ALL CAPS in headings (title + sentence-case byline). */
+	const HEADING_ACRONYMS = [
+		'AI',
+		'ML',
+		'UI',
+		'UX',
+		'API',
+		'QA',
+		'PM',
+		'IT',
+		'HR',
+		'GPU',
+		'CPU',
+		'NLP',
+		'FDA',
+		'CTO',
+		'CEO',
+		'VPN',
+		'SQL',
+		'UX/UI'
+	];
+	const headingAcronymSet = new Set(HEADING_ACRONYMS);
+
+	/** Title case each word; preserve ALL-CAPS acronyms (e.g. AI, ML). */
+	function formatHeadingTitlePart(str: string): string {
+		return str
+			.trim()
+			.split(/\s+/)
+			.map((word) => {
+				if (!word) return word;
+				const letters = word.replace(/[^a-zA-Z]/g, '');
+				if (!letters) return word;
+				if (letters.length >= 2 && /^[A-Z]+$/.test(letters)) {
+					return word.replace(/[a-zA-Z]+/g, (m) => m.toUpperCase());
+				}
+				if (headingAcronymSet.has(letters.toUpperCase())) {
+					return word.replace(/[a-zA-Z]+/g, (m) => m.toUpperCase());
+				}
+				const lower = word.toLowerCase();
+				return lower.charAt(0).toUpperCase() + lower.slice(1);
+			})
+			.join(' ');
+	}
+
+	/** Sentence case: first character only; then restore acronyms to ALL CAPS. */
+	function formatHeadingByline(str: string): string {
+		const s = str.trim();
+		if (!s) return '';
+		const lower = s.toLowerCase();
+		let result = lower.charAt(0).toUpperCase() + lower.slice(1);
+		for (const a of HEADING_ACRONYMS) {
+			const re = new RegExp(`\\b${a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+			result = result.replace(re, a);
+		}
+		return result;
 	}
 
 	/** First segment includes the colon; second is trimmed (mobile stacks on two lines). */
@@ -195,6 +255,7 @@
 				enteredPassword = '';
 				passwordError = '';
 				isUnlocked = true;
+				onUnlock?.(decrypted);
 			})
 			.finally(() => {
 				isUnlocking = false;
@@ -415,7 +476,26 @@
 				<!-- Content blocks (text and images) -->
 				<div class="content-blocks">
 					{#each content as block, index (`${block.type}-${block.value}-${index}`)}
-						{#if block.type === 'text'}
+						{#if block.type === 'heading'}
+							{@const colonIdx = block.value.indexOf(':')}
+							<div
+								class="heading-block reveal-child"
+								style={revealStyle(
+									(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
+								)}
+							>
+								{#if colonIdx !== -1}
+									<h3 class="heading-title">
+										{formatHeadingTitlePart(block.value.slice(0, colonIdx))}:
+									</h3>
+									<p class="heading-byline">
+										{formatHeadingByline(block.value.slice(colonIdx + 1))}
+									</p>
+								{:else}
+									<h3 class="heading-title">{formatHeadingTitlePart(block.value)}</h3>
+								{/if}
+							</div>
+						{:else if block.type === 'text'}
 							<div
 								class="text-block reveal-child"
 								style={revealStyle(
@@ -468,6 +548,30 @@
 									{#if getImageCaption(block.value)}
 										<p class="image-caption">{getImageCaption(block.value)}</p>
 									{/if}
+								{/if}
+							</div>
+						{:else if block.type === 'video'}
+							<div
+								class="image-block reveal-child"
+								style={revealStyle(
+									(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
+								)}
+							>
+								<div class="image-frame">
+									<!-- svelte-ignore a11y-media-has-caption -->
+									<video
+										class="content-video"
+										controls
+										controlsList="nodownload"
+										disablePictureInPicture
+										playsinline
+										preload="metadata"
+										on:contextmenu|preventDefault
+										src={block.value}
+									></video>
+								</div>
+								{#if block.caption}
+									<p class="image-caption">{block.caption}</p>
 								{/if}
 							</div>
 						{/if}
@@ -604,6 +708,50 @@
 		gap: var(--spacing-sm);
 	}
 
+	.heading-block {
+		display: flex;
+		flex-direction: column;
+		gap: 0;
+		margin-top: var(--spacing-lg);
+		padding-top: var(--spacing-md);
+		border-top: 1px solid var(--text-color);
+		width: 100%;
+	}
+
+	.heading-title {
+		margin: 0;
+		font-family: 'Instrument Serif', serif;
+		font-size: clamp(1.55rem, 2.65vw, 2.2rem);
+		line-height: 1.08;
+		letter-spacing: -0.04em;
+		color: var(--text-color);
+		font-weight: normal;
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 420;
+	}
+
+	/* Tablet only: section titles (before ":") much larger than desktop / mobile */
+	@media (min-width: 769px) and (max-width: 1024px) {
+		.heading-title {
+			font-size: clamp(2.1rem, 4.5vw, 3.05rem);
+			line-height: 1.04;
+		}
+	}
+
+	.heading-byline {
+		margin: 0;
+		margin-top: -0.14em;
+		max-width: 65ch;
+		font-family: inherit;
+		font-size: var(--font-size-lg);
+		line-height: 1.12;
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 400;
+		color: var(--text-color);
+	}
+
 	.text-block {
 		font-size: var(--font-size-base);
 		line-height: 1.6;
@@ -627,7 +775,8 @@
 		position: relative;
 	}
 
-	.image-block .image-frame img {
+	.image-block .image-frame img,
+	.image-block .image-frame .content-video {
 		width: 100%;
 		max-height: 70vh;
 		object-fit: contain;
@@ -635,6 +784,8 @@
 		border-radius: var(--border-radius-sm);
 		transform: translateZ(0);
 		will-change: transform;
+		-webkit-touch-callout: none;
+		user-select: none;
 	}
 
 	.image-caption {
@@ -690,7 +841,7 @@
 			display: inline;
 			color: var(--text-color);
 			font-family: inherit;
-			line-height: 1.75;
+			line-height: 1.38;
 			background: none;
 			-webkit-mask-image: none;
 			mask-image: none;
@@ -817,6 +968,7 @@
 	}
 
 	.hero-description,
+	.heading-byline,
 	.text-block,
 	.image-caption,
 	.details-label,
@@ -831,6 +983,7 @@
 	}
 
 	:global(html.dark-theme) .hero-description,
+	:global(html.dark-theme) .heading-byline,
 	:global(html.dark-theme) .text-block,
 	:global(html.dark-theme) .image-caption,
 	:global(html.dark-theme) .details-label,
@@ -846,6 +999,7 @@
 
 	/* Slightly lighter body weight in dark mode for easier reading on deep backgrounds */
 	:global(html.dark-theme) .hero-description,
+	:global(html.dark-theme) .heading-byline,
 	:global(html.dark-theme) .text-block,
 	:global(html.dark-theme) .project-link,
 	:global(html.dark-theme) .muted-text,
@@ -949,6 +1103,12 @@
 			letter-spacing: -0.045em;
 		}
 
+		.heading-title {
+			font-size: clamp(1.65rem, 6.5vw, 2.35rem);
+			line-height: 1.05;
+			letter-spacing: -0.045em;
+		}
+
 		.project-title__line--second {
 			display: block;
 			margin-top: 0.04em;
@@ -962,7 +1122,7 @@
 
 		.text-block {
 			font-size: var(--font-size-base);
-			line-height: 1.78;
+			line-height: 1.38;
 		}
 
 		.text-block :global(p) {
@@ -971,17 +1131,17 @@
 
 		.image-caption {
 			font-size: var(--font-size-base);
-			line-height: 1.62;
+			line-height: 1.45;
 		}
 
 		.details-label {
 			font-size: var(--font-size-base);
-			line-height: 1.55;
+			line-height: 1.4;
 		}
 
 		.details-value {
 			font-size: var(--font-size-base);
-			line-height: 1.68;
+			line-height: 1.45;
 		}
 
 		.locked-gate-label {
@@ -991,7 +1151,7 @@
 
 		.locked-gate-copy {
 			font-size: var(--font-size-base);
-			line-height: 1.72;
+			line-height: 1.38;
 		}
 
 		.locked-gate-error {
@@ -1263,12 +1423,17 @@
 	@media (max-width: 768px) {
 		.hero-description {
 			font-size: var(--font-size-xl);
-			line-height: 1.72;
+			line-height: 1.32;
+		}
+
+		.heading-byline {
+			font-size: var(--font-size-xl);
+			line-height: 1.08;
 		}
 
 		.team-member {
 			font-size: var(--font-size-base);
-			line-height: 1.62;
+			line-height: 1.4;
 		}
 
 		/* Stack side-by-side images vertically on mobile. */

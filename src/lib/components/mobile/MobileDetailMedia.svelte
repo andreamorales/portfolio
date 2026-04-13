@@ -16,6 +16,7 @@
 	let hasUserPlayed = false;
 
 	$: {
+		void videoUrl;
 		primedUrl = '';
 		frameReady = false;
 		hasUserPlayed = false;
@@ -121,7 +122,10 @@
 							preload="auto"
 							playsinline
 							muted
+							controlsList="nodownload"
+							disablePictureInPicture
 							src={videoUrl}
+							on:contextmenu|preventDefault
 							on:play={onVideoPlay}
 							on:pause={onVideoPause}
 							on:loadedmetadata={onVideoLoadedMetadata}
@@ -178,6 +182,8 @@
 		background: var(--bg-color);
 		object-fit: cover;
 		display: block;
+		-webkit-touch-callout: none;
+		user-select: none;
 	}
 
 	.mobile-media-video-fallback {
