@@ -16,6 +16,7 @@
 	let hasUserPlayed = false;
 
 	$: {
+		void videoUrl;
 		primedUrl = '';
 		frameReady = false;
 		hasUserPlayed = false;

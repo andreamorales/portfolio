@@ -476,31 +476,35 @@
 				<!-- Content blocks (text and images) -->
 				<div class="content-blocks">
 					{#each content as block, index (`${block.type}-${block.value}-${index}`)}
-					{#if block.type === 'heading'}
-						{@const colonIdx = block.value.indexOf(':')}
-						<div
-							class="heading-block reveal-child"
-							style={revealStyle(
-								(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
-							)}
-						>
-							{#if colonIdx !== -1}
-								<h3 class="heading-title">{formatHeadingTitlePart(block.value.slice(0, colonIdx))}:</h3>
-								<p class="heading-byline">{formatHeadingByline(block.value.slice(colonIdx + 1))}</p>
-							{:else}
-								<h3 class="heading-title">{formatHeadingTitlePart(block.value)}</h3>
-							{/if}
-						</div>
-					{:else if block.type === 'text'}
-						<div
-							class="text-block reveal-child"
-							style={revealStyle(
-								(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
-							)}
-						>
-							<p>{block.value}</p>
-						</div>
-					{:else if block.type === 'image'}
+						{#if block.type === 'heading'}
+							{@const colonIdx = block.value.indexOf(':')}
+							<div
+								class="heading-block reveal-child"
+								style={revealStyle(
+									(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
+								)}
+							>
+								{#if colonIdx !== -1}
+									<h3 class="heading-title">
+										{formatHeadingTitlePart(block.value.slice(0, colonIdx))}:
+									</h3>
+									<p class="heading-byline">
+										{formatHeadingByline(block.value.slice(colonIdx + 1))}
+									</p>
+								{:else}
+									<h3 class="heading-title">{formatHeadingTitlePart(block.value)}</h3>
+								{/if}
+							</div>
+						{:else if block.type === 'text'}
+							<div
+								class="text-block reveal-child"
+								style={revealStyle(
+									(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
+								)}
+							>
+								<p>{block.value}</p>
+							</div>
+						{:else if block.type === 'image'}
 							<div
 								class="image-block {block.layout === 'side-by-side'
 									? 'side-by-side'
@@ -546,30 +550,30 @@
 									{/if}
 								{/if}
 							</div>
-					{:else if block.type === 'video'}
-						<div
-							class="image-block reveal-child"
-							style={revealStyle(
-								(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
-							)}
-						>
-							<div class="image-frame">
-								<!-- svelte-ignore a11y-media-has-caption -->
-								<video
-									class="content-video"
-									controls
-									controlsList="nodownload"
-									disablePictureInPicture
-									playsinline
-									preload="metadata"
-									on:contextmenu|preventDefault
-									src={block.value}
-								></video>
+						{:else if block.type === 'video'}
+							<div
+								class="image-block reveal-child"
+								style={revealStyle(
+									(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
+								)}
+							>
+								<div class="image-frame">
+									<!-- svelte-ignore a11y-media-has-caption -->
+									<video
+										class="content-video"
+										controls
+										controlsList="nodownload"
+										disablePictureInPicture
+										playsinline
+										preload="metadata"
+										on:contextmenu|preventDefault
+										src={block.value}
+									></video>
+								</div>
+								{#if block.caption}
+									<p class="image-caption">{block.caption}</p>
+								{/if}
 							</div>
-							{#if block.caption}
-								<p class="image-caption">{block.caption}</p>
-							{/if}
-						</div>
 						{/if}
 					{/each}
 				</div>

@@ -865,17 +865,17 @@
 											link={activeDetailItem.link}
 											metrics={activeDetailItem.metrics}
 											team={activeDetailItem.team}
-										locked={!!activeDetailItem.locked && !isPieceUnlocked(activeDetailItem)}
-										encryptedPayload={activeDetailItem.encryptedPayload}
-										onUnlock={(data) => {
-											if (!activeDetailItem) return;
-											const slug = toPieceSlug(activeDetailItem);
-											unlockedPieceSlugs = new Set([...unlockedPieceSlugs, slug]);
-											unlockedPieceDataBySlug = new Map(unlockedPieceDataBySlug);
-											unlockedPieceDataBySlug.set(slug, data);
-											activeDetailItem = mergeUnlockedPieceData(activeDetailItem);
-										}}
-										immersive={false}
+											locked={!!activeDetailItem.locked && !isPieceUnlocked(activeDetailItem)}
+											encryptedPayload={activeDetailItem.encryptedPayload}
+											onUnlock={(data) => {
+												if (!activeDetailItem) return;
+												const slug = toPieceSlug(activeDetailItem);
+												unlockedPieceSlugs = new Set([...unlockedPieceSlugs, slug]);
+												unlockedPieceDataBySlug = new Map(unlockedPieceDataBySlug);
+												unlockedPieceDataBySlug.set(slug, data);
+												activeDetailItem = mergeUnlockedPieceData(activeDetailItem);
+											}}
+											immersive={false}
 											onGoHome={() => {
 												activeDetailItem = null;
 												updatePieceQuery(null);

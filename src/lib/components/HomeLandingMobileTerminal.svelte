@@ -549,7 +549,6 @@
 	onDestroy(() => {
 		clearTypingTimer();
 	});
-
 </script>
 
 <div class="mobile-cli">
