@@ -70,6 +70,7 @@ export interface PortfolioItem {
 	transcriptCues?: TranscriptCue[];
 	locked?: boolean;
 	encryptedPayload?: SecurePortfolioEncryptedPayload;
+	hideHeroImage?: boolean;
 }
 
 const initialPortfolioItems = [

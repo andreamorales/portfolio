@@ -545,7 +545,8 @@
 			metrics: payload.metrics,
 			team: payload.team,
 			...(payload.videoUrl ? { videoUrl: payload.videoUrl } : {}),
-			...(payload.videoPosterUrl ? { videoPosterUrl: payload.videoPosterUrl } : {})
+			...(payload.videoPosterUrl ? { videoPosterUrl: payload.videoPosterUrl } : {}),
+			...(payload.hideHeroImage ? { hideHeroImage: true } : {})
 		};
 	}
 
@@ -856,6 +857,7 @@
 											tags={activeDetailItem.tags}
 											description={activeDetailItem.description}
 											images={activeDetailItem.images}
+											hideHeroImage={!!activeDetailItem.hideHeroImage}
 											content={activeDetailItem.content}
 											year={activeDetailItem.year}
 											role={activeDetailItem.role}
@@ -895,10 +897,13 @@
 													class="detail-panel-video-embed"
 													bind:this={detailVideoEl}
 													controls
+													controlsList="nodownload"
+													disablePictureInPicture
 													playsinline
 													preload="metadata"
 													src={activeDetailItem.videoUrl}
 													title="Video for {activeDetailItem.title}"
+													on:contextmenu|preventDefault
 													on:play={handleDetailMediaPlay}
 													on:pause={handleDetailMediaPause}
 													on:ended={handleDetailMediaPause}
@@ -1392,6 +1397,8 @@
 		border: none;
 		object-fit: cover;
 		vertical-align: middle;
+		-webkit-touch-callout: none;
+		user-select: none;
 	}
 
 	.detail-panel-transcript {

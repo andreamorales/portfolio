@@ -20,6 +20,7 @@
 	export let tags: string[] = [];
 	export let description: string;
 	export let images: Array<{ src: string; alt: string; caption?: string }> = [];
+	export let hideHeroImage = false;
 	export let content: Array<{
 		type: string;
 		value: string;
@@ -78,12 +79,12 @@
 	/* If user unlocks from the page itself, skip the large initial panel delay so content starts right away. */
 	$: effectiveStaggerBaseDelayMs = locked && isUnlocked ? 0 : staggerBaseDelayMs;
 
-	// Computed prop for featured image - use first image from images array
+	// Computed prop for featured image - use first image from images array (unless hidden for this case study)
 	$: {
-		if (images && images.length > 0) {
-			featuredImage = images[0].src;
-		} else {
+		if (hideHeroImage || !images || images.length === 0) {
 			featuredImage = '';
+		} else {
+			featuredImage = images[0].src;
 		}
 	}
 
@@ -545,6 +546,30 @@
 									{/if}
 								{/if}
 							</div>
+					{:else if block.type === 'video'}
+						<div
+							class="image-block reveal-child"
+							style={revealStyle(
+								(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
+							)}
+						>
+							<div class="image-frame">
+								<!-- svelte-ignore a11y-media-has-caption -->
+								<video
+									class="content-video"
+									controls
+									controlsList="nodownload"
+									disablePictureInPicture
+									playsinline
+									preload="metadata"
+									on:contextmenu|preventDefault
+									src={block.value}
+								></video>
+							</div>
+							{#if block.caption}
+								<p class="image-caption">{block.caption}</p>
+							{/if}
+						</div>
 						{/if}
 					{/each}
 				</div>
@@ -746,7 +771,8 @@
 		position: relative;
 	}
 
-	.image-block .image-frame img {
+	.image-block .image-frame img,
+	.image-block .image-frame .content-video {
 		width: 100%;
 		max-height: 70vh;
 		object-fit: contain;
@@ -754,6 +780,8 @@
 		border-radius: var(--border-radius-sm);
 		transform: translateZ(0);
 		will-change: transform;
+		-webkit-touch-callout: none;
+		user-select: none;
 	}
 
 	.image-caption {

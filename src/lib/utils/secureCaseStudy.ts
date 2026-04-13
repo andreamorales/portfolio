@@ -34,6 +34,8 @@ export interface SecurePortfolioPayloadData {
 	team: SecurePortfolioTeamMember[];
 	videoUrl?: string;
 	videoPosterUrl?: string;
+	/** When true, do not render the large hero above the body (first gallery image is not used as hero). */
+	hideHeroImage?: boolean;
 }
 
 export interface SecurePortfolioEncryptedPayload {
