@@ -68,7 +68,6 @@
 		padding: 0;
 		cursor: pointer;
 		color: var(--text-color);
-		opacity: 0.5;
 		transition: opacity 0.15s ease;
 		line-height: 0;
 		pointer-events: auto;
@@ -80,10 +79,6 @@
 		height: 24px;
 		shape-rendering: crispEdges;
 		image-rendering: pixelated;
-	}
-
-	.theme-toggle:hover {
-		opacity: 1;
 	}
 
 	.theme-toggle:focus-visible {

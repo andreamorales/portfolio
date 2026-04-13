@@ -543,7 +543,9 @@
 			role: payload.role,
 			link: payload.link,
 			metrics: payload.metrics,
-			team: payload.team
+			team: payload.team,
+			...(payload.videoUrl ? { videoUrl: payload.videoUrl } : {}),
+			...(payload.videoPosterUrl ? { videoPosterUrl: payload.videoPosterUrl } : {})
 		};
 	}
 
@@ -860,9 +862,17 @@
 											link={activeDetailItem.link}
 											metrics={activeDetailItem.metrics}
 											team={activeDetailItem.team}
-											locked={!!activeDetailItem.locked && !isPieceUnlocked(activeDetailItem)}
-											encryptedPayload={activeDetailItem.encryptedPayload}
-											immersive={false}
+										locked={!!activeDetailItem.locked && !isPieceUnlocked(activeDetailItem)}
+										encryptedPayload={activeDetailItem.encryptedPayload}
+										onUnlock={(data) => {
+											if (!activeDetailItem) return;
+											const slug = toPieceSlug(activeDetailItem);
+											unlockedPieceSlugs = new Set([...unlockedPieceSlugs, slug]);
+											unlockedPieceDataBySlug = new Map(unlockedPieceDataBySlug);
+											unlockedPieceDataBySlug.set(slug, data);
+											activeDetailItem = mergeUnlockedPieceData(activeDetailItem);
+										}}
+										immersive={false}
 											onGoHome={() => {
 												activeDetailItem = null;
 												updatePieceQuery(null);

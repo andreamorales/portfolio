@@ -83,7 +83,7 @@ const initialPortfolioItems = [
 		quickNavThumbnail: '/images/portfolio/most-recent/thumbnail.svg',
 		images: [],
 		content: [],
-		year: 'Most Recent',
+		year: '2025-today',
 		role: 'Pass Protected',
 		link: '',
 		metrics: [],

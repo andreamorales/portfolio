@@ -32,6 +32,8 @@ export interface SecurePortfolioPayloadData {
 	link: string;
 	metrics: string[];
 	team: SecurePortfolioTeamMember[];
+	videoUrl?: string;
+	videoPosterUrl?: string;
 }
 
 export interface SecurePortfolioEncryptedPayload {

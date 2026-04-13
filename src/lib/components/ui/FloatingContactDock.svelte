@@ -153,21 +153,14 @@
 		border: none;
 		background: none;
 		color: var(--text-color);
-		opacity: 0.5;
 		cursor: pointer;
 		line-height: 0;
 		text-decoration: none;
-		transition: opacity 0.15s ease;
-	}
-
-	.floating-contact-dock__link:hover {
-		opacity: 1;
 	}
 
 	.floating-contact-dock__link:focus-visible {
 		outline: 2px solid var(--text-color);
 		outline-offset: 3px;
-		opacity: 1;
 	}
 
 	.floating-contact-dock__button {
