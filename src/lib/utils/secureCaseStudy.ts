@@ -21,6 +21,14 @@ export interface SecurePortfolioTeamMember {
 	relationship: string;
 }
 
+export interface SecurePortfolioTranscriptCue {
+	text: string;
+	startMs: number;
+	endMs: number;
+	timestampMs?: number;
+	confidence?: number;
+}
+
 export interface SecurePortfolioPayloadData {
 	projectTitle?: string;
 	tags?: string[];
@@ -34,6 +42,8 @@ export interface SecurePortfolioPayloadData {
 	team: SecurePortfolioTeamMember[];
 	videoUrl?: string;
 	videoPosterUrl?: string;
+	/** Word-level cues (Whisper); keep inside encrypted payload only for pass-protected studies. */
+	transcriptCues?: SecurePortfolioTranscriptCue[];
 	/** When true, do not render the large hero above the body (first gallery image is not used as hero). */
 	hideHeroImage?: boolean;
 }

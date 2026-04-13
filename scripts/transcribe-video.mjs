@@ -15,13 +15,33 @@ const WHISPER_CPP_VERSION = '1.5.5';
 const MODEL = process.env.WHISPER_MODEL ?? 'base.en';
 
 function usage() {
-	console.log('Usage: node scripts/transcribe-video.mjs <input-video> [output-json]');
+	console.log('Usage: node scripts/transcribe-video.mjs <input-video-or-url> [output-json]');
 	console.log('');
 	console.log('Examples:');
 	console.log('  node scripts/transcribe-video.mjs src/lib/videos/test.mov');
 	console.log(
 		'  node scripts/transcribe-video.mjs src/lib/videos/test.mov src/lib/data/transcripts/test.captions.json'
 	);
+	console.log(
+		'  node scripts/transcribe-video.mjs https://example.com/talk.mp4 src/lib/data/transcripts/talk.captions.json'
+	);
+}
+
+function isRemoteInput(input) {
+	return /^https?:\/\//i.test(input);
+}
+
+function baseNameFromInput(inputPath, inputArg) {
+	if (isRemoteInput(inputArg)) {
+		try {
+			const u = new URL(inputArg);
+			const seg = u.pathname.split('/').filter(Boolean).pop() ?? 'remote';
+			return seg.replace(/\.[^.]+$/, '') || 'remote';
+		} catch {
+			return 'remote';
+		}
+	}
+	return path.basename(inputPath, path.extname(inputPath));
 }
 
 function toAbsolute(inputPath) {
@@ -42,10 +62,13 @@ async function main() {
 		process.exit(1);
 	}
 
-	const inputPath = toAbsolute(inputArg);
-	ensureExists(inputPath, 'Input video');
+	const remote = isRemoteInput(inputArg);
+	const inputPath = remote ? inputArg : toAbsolute(inputArg);
+	if (!remote) {
+		ensureExists(inputPath, 'Input video');
+	}
 
-	const baseName = path.basename(inputPath, path.extname(inputPath));
+	const baseName = baseNameFromInput(inputPath, inputArg);
 	const outputPath = toAbsolute(outputArg ?? `src/lib/data/transcripts/${baseName}.captions.json`);
 	const outputDir = path.dirname(outputPath);
 
@@ -57,7 +80,11 @@ async function main() {
 
 	await fs.mkdir(workDir, { recursive: true });
 
-	console.log(`\n[1/5] Converting to 16kHz wav with ffmpeg...`);
+	console.log(
+		remote
+			? `\n[1/5] Converting remote source to 16kHz wav with ffmpeg...\n    ${inputPath}`
+			: `\n[1/5] Converting to 16kHz wav with ffmpeg...`
+	);
 	try {
 		execFileSync('ffmpeg', ['-y', '-i', inputPath, '-ar', '16000', '-ac', '1', wavPath], {
 			stdio: 'inherit'
@@ -96,7 +123,7 @@ async function main() {
 
 	const payload = {
 		generatedAt: new Date().toISOString(),
-		sourceVideo: path.relative(process.cwd(), inputPath),
+		sourceVideo: remote ? inputPath : path.relative(process.cwd(), inputPath),
 		whisperModel: MODEL,
 		whisperCppVersion: WHISPER_CPP_VERSION,
 		captions

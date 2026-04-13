@@ -48,3 +48,9 @@ private/*.plain.json
 whisper.cpp/
 .cache/
 tmp.json
+
+# Wrangler local state (never commit — can include huge R2/cache blobs)
+.wrangler/
+
+# Layer Health — cues live only inside encrypted case study (merge into ../most-recent1.plaintext.json)
+src/lib/data/transcripts/mostrecent2026_1.captions.json
