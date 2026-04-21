@@ -875,8 +875,8 @@ textarea {
 	--palette-grey-200: #ebe4d6;
 	--palette-grey-300: #cfc7b8;
 	--palette-grey-400: #a8a091;
-	--palette-grey-500: #7f786f;
-	--palette-grey-600: #5c564f;
+	--palette-grey-500: #635c54;
+	--palette-grey-600: #544e47;
 	--palette-grey-700: #3d3a38;
 	--palette-grey-muted: #8a847a;
 	--palette-grey-hint: #9d968b;
@@ -887,7 +887,7 @@ textarea {
 	--palette-rainbow-3: #c9a63a;
 	--palette-rainbow-4: #4f8f6a;
 	--palette-rainbow-5: #3a8f8f;
-	--palette-rainbow-6: #5a7fb8;
+	--palette-rainbow-6: #45689e;
 	--palette-rainbow-7: #8b6fb8;
 	--palette-rainbow-8: #b06a8f;
 
@@ -962,9 +962,9 @@ textarea {
 	--palette-grey-500: #403c38;
 	--palette-grey-600: #524d48;
 	--palette-grey-700: #645e58;
-	--palette-grey-muted: #6b655e;
+	--palette-grey-muted: #8a847b;
 	/* Placeholders / subtle hints — must read on --palette-grey-100 inputs */
-	--palette-grey-hint: #8a8378;
+	--palette-grey-hint: #9e968a;
 
 	/* Rainbow — deep/muted accents (beige + greys unchanged) */
 	--palette-rainbow-1: #a85252;
@@ -972,7 +972,7 @@ textarea {
 	--palette-rainbow-3: #ab8e3c;
 	--palette-rainbow-4: #488a64;
 	--palette-rainbow-5: #3c8a82;
-	--palette-rainbow-6: #5676a8;
+	--palette-rainbow-6: #7a9fd4;
 	--palette-rainbow-7: #7e68a8;
 	--palette-rainbow-8: #9c6484;
 

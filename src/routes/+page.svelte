@@ -860,6 +860,9 @@
 											images={activeDetailItem.images}
 											hideHeroImage={!!activeDetailItem.hideHeroImage}
 											content={activeDetailItem.content}
+											slides={activeDetailItem.slides ?? []}
+											videoCurrentMs={detailVideoCurrentMs}
+											videoIsPlaying={detailMediaIsPlaying}
 											year={activeDetailItem.year}
 											role={activeDetailItem.role}
 											link={activeDetailItem.link}

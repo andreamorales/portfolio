@@ -37,6 +37,17 @@ interface ContentItem {
 	};
 }
 
+export interface SlideItem {
+	title?: string;
+	text?: string;
+	image?: string;
+	imageAlt?: string;
+	imageCaption?: string;
+	layout?: 'text-only' | 'image-only' | 'text-left' | 'text-right' | 'full-bleed';
+	/** Video timestamp (ms) at which this slide should become active. */
+	startMs?: number;
+}
+
 interface TeamMember {
 	role: string;
 	name: string;
@@ -62,6 +73,7 @@ export interface PortfolioItem {
 	quickNavThumbnail: string;
 	images: PortfolioImage[];
 	content: ContentItem[];
+	slides?: SlideItem[];
 	year: string;
 	role: string;
 	link: string;
@@ -703,6 +715,78 @@ const initialPortfolioItems = [
 			{ type: 'image', value: '/images/portfolio/laguila/stump.webp' },
 			{ type: 'image', value: '/images/portfolio/laguila/bigghost.webp' },
 			{ type: 'image', value: '/images/portfolio/laguila/lilghost.webp' }
+		],
+		slides: [
+			{
+				title: 'La Güila Toys',
+				text: 'A line of toys that explore death and the passage of time, making bleak topics playful.',
+				image: '/images/portfolio/laguila/hero.webp',
+				imageAlt: 'Complete toy collection',
+				layout: 'text-left',
+				startMs: 0
+			},
+			{
+				title: 'The Spark',
+				text: 'In 2023, in an effort to continue my exploration into designing playful interfaces and products, I became very interested in learning how to design resin toys.',
+				layout: 'text-only',
+				startMs: 42000
+			},
+			{
+				title: 'Learning at FIT',
+				text: 'I began by attending a toy design class at FIT, in Manhattan. I learned the basics of 3D drawn design focused on children toys.',
+				image: '/images/portfolio/laguila/draft.webp',
+				imageAlt: 'Initial toy design drafts from FIT class',
+				imageCaption: 'Initial toy design drafts from FIT class.',
+				layout: 'text-right',
+				startMs: 67000
+			},
+			{
+				title: 'Self-Taught Sculpting',
+				text: 'After that, I self-taught the basics of sculpting and resin pouring.',
+				image: '/images/portfolio/laguila/sculpt.webp',
+				imageAlt: 'Self-taught toy sculpting process',
+				imageCaption: 'Self-taught toy sculpting process.',
+				layout: 'text-left',
+				startMs: 103000
+			},
+			{
+				image: '/images/portfolio/laguila/pour.webp',
+				imageAlt: 'Self-taught mold pouring process',
+				imageCaption: 'Self-taught mold pouring process.',
+				layout: 'full-bleed',
+				startMs: 121000
+			},
+			{
+				title: 'The Armadillos',
+				text: 'The Armadillo toy series, inspired by Mexican alebrijes — brightly colored folk art sculptures.',
+				image: '/images/portfolio/laguila/armadillos.webp',
+				imageAlt: 'The Armadillo toy series',
+				layout: 'text-right',
+				startMs: 138000
+			},
+			{
+				title: '20+ Designs',
+				text: 'All of this resulted in 20+ toy designs, two of which have been featured in art galleries.',
+				image: '/images/portfolio/laguila/stump.webp',
+				imageAlt: 'The Stump toy design',
+				imageCaption: 'The Stump toy design.',
+				layout: 'text-left',
+				startMs: 151000
+			},
+			{
+				image: '/images/portfolio/laguila/bigghost.webp',
+				imageAlt: 'The Big Ghost toy',
+				imageCaption: 'The Big Ghost toy.',
+				layout: 'image-only',
+				startMs: 167000
+			},
+			{
+				image: '/images/portfolio/laguila/lilghost.webp',
+				imageAlt: 'The Little Ghost toy',
+				imageCaption: 'The Little Ghost toy.',
+				layout: 'image-only',
+				startMs: 178000
+			}
 		],
 		year: '2023-2025',
 		role: 'Toy Designer',

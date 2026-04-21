@@ -5,11 +5,14 @@
 <script lang="ts">
 	import Label from '$lib/components/ui/input/Label.svelte';
 	import PortfolioEndHome from '$lib/components/portfolio/PortfolioEndHome.svelte';
+	import PortfolioCaseMetadata from '$lib/components/portfolio/PortfolioCaseMetadata.svelte';
+	import PortfolioSlides from '$lib/components/portfolio/PortfolioSlides.svelte';
 	import {
 		decryptSecurePortfolioPayload,
 		type SecurePortfolioEncryptedPayload,
 		type SecurePortfolioPayloadData
 	} from '$lib/utils/secureCaseStudy';
+	import type { SlideItem } from '$lib/data/portfolio-items';
 
 	/** Unique mask id per instance (component can appear more than once on a page). */
 	const portfolioEndSmileyMaskId = `portfolio-end-smiley-mask-${++portfolioEndSmileyMaskSeq}`;
@@ -28,7 +31,9 @@
 		layout?: string;
 		sideImage?: { value: string; caption?: string };
 	}> = [];
-	// Remove heroImage prop since we'll use images array
+	export let slides: SlideItem[] = [];
+	export let videoCurrentMs = 0;
+	export let videoIsPlaying = false;
 	export let year: string = '';
 	export let role: string = '';
 	export let link: string = '';
@@ -46,7 +51,6 @@
 	export let staggerReveal = false;
 	export let staggerBaseDelayMs = 0;
 
-	// Initialize the featuredImage variable
 	let featuredImage: string = '';
 	let enteredPassword = '';
 	let passwordError = '';
@@ -54,6 +58,9 @@
 	let isUnlocked = false;
 	let unusedGalleryImages: Array<{ src: string; alt: string; caption?: string }> = [];
 	let effectiveStaggerBaseDelayMs = 0;
+	let viewMode: 'text' | 'slides' = 'text';
+
+	$: hasSlides = slides && slides.length > 0;
 
 	const REVEAL_TIME_SCALE = 1.35;
 	const ms = (value: number) => Math.round(value * REVEAL_TIME_SCALE);
@@ -367,88 +374,41 @@
 			/>
 		{/if}
 	{:else}
-		<!-- Project details grid -->
-		<div
-			class="project-details-grid reveal-parent"
-			style={revealStyle((detailsReveal ?? introReveal).parentDelayMs)}
-		>
-			<div class="details-row reveal-child" style={childDelayStyle(detailsReveal, 0)}>
-				<div class="details-cell">
-					<div class="details-label reveal-child" style={childDelayStyle(detailsReveal, 0)}>
-						Year
-					</div>
-					<div class="details-value reveal-child" style={childDelayStyle(detailsReveal, 0)}>
-						{year}
-					</div>
-				</div>
-				<div class="details-cell">
-					<div class="details-label reveal-child" style={childDelayStyle(detailsReveal, 1)}>
-						Role
-					</div>
-					<div class="details-value reveal-child" style={childDelayStyle(detailsReveal, 1)}>
-						{role}
-					</div>
-				</div>
-				<div class="details-cell">
-					<div class="details-label reveal-child" style={childDelayStyle(detailsReveal, 2)}>
-						Link
-					</div>
-					<div class="details-value reveal-child" style={childDelayStyle(detailsReveal, 2)}>
-						{#if link === 'Discontinued'}
-							<span class="discontinued-text">Discontinued</span>
-						{:else if link}
-							<a href={link} target="_blank" rel="noopener noreferrer" class="project-link">
-								View Project
-							</a>
-						{:else}
-							<span class="muted-text">Not Available</span>
-						{/if}
-					</div>
-				</div>
+		{#if hasSlides}
+			<div
+				class="view-mode-toggle reveal-child"
+				style={revealStyle((detailsReveal ?? introReveal).childStartDelayMs)}
+			>
+				<button
+					class="view-mode-btn"
+					class:active={viewMode === 'text'}
+					on:click={() => (viewMode = 'text')}
+				>
+					Text
+				</button>
+				<button
+					class="view-mode-btn"
+					class:active={viewMode === 'slides'}
+					on:click={() => (viewMode = 'slides')}
+				>
+					Slides
+				</button>
 			</div>
-			<div class="details-row metrics-row reveal-child" style={childDelayStyle(detailsReveal, 3)}>
-				{#each metrics.slice(0, 2) as metric, index (`${metric}-${index}`)}
-					<div class="details-cell">
-						<div
-							class="details-label reveal-child"
-							style={childDelayStyle(detailsReveal, 3 + index)}
-						>
-							Impact
-						</div>
-						<div
-							class="details-value reveal-child"
-							style={childDelayStyle(detailsReveal, 3 + index)}
-						>
-							{metric}
-						</div>
-					</div>
-				{/each}
-				<div class="details-cell">
-					<div class="details-label reveal-child" style={childDelayStyle(detailsReveal, 5)}>
-						Team
-					</div>
-					<div
-						class="details-value team-list reveal-child"
-						style={childDelayStyle(detailsReveal, 5)}
-					>
-						{#if team && team.length > 0}
-							{#each team as member (`${member.role}-${member.name}`)}
-								<div class="team-member">
-									<span class="role">{member.role}:</span>
-									<span class="name">{member.name}</span>
-									<span class="relationship">({member.relationship})</span>
-								</div>
-							{/each}
-						{:else}
-							<span class="muted-text">Solo project</span>
-						{/if}
-					</div>
-				</div>
-			</div>
-		</div>
+		{/if}
 
-		<!-- Featured hero image -->
-		{#if featuredImage}
+		{#if !hasSlides || viewMode === 'text'}
+			<div
+				class="reveal-parent"
+				style={revealStyle((detailsReveal ?? introReveal).parentDelayMs)}
+			>
+				<div class="reveal-child" style={revealStyle((detailsReveal ?? introReveal).childStartDelayMs)}>
+					<PortfolioCaseMetadata {year} {role} {link} {metrics} {team} variant="page" />
+				</div>
+			</div>
+		{/if}
+
+		<!-- Featured hero image (hidden in slides-only view) -->
+		{#if featuredImage && !(hasSlides && viewMode === 'slides')}
 			<div
 				class="hero-image-container reveal-parent"
 				style={revealStyle((heroReveal ?? introReveal).parentDelayMs)}
@@ -472,135 +432,164 @@
 			class="content-container flex-column reveal-parent"
 			style={revealStyle((contentReveal ?? introReveal).parentDelayMs)}
 		>
-			<div class="content-view width-100">
-				<!-- Content blocks (text and images) -->
-				<div class="content-blocks">
-					{#each content as block, index (`${block.type}-${block.value}-${index}`)}
-						{#if block.type === 'heading'}
-							{@const colonIdx = block.value.indexOf(':')}
-							<div
-								class="heading-block reveal-child"
-								style={revealStyle(
-									(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
-								)}
-							>
-								{#if colonIdx !== -1}
-									<h3 class="heading-title">
-										{formatHeadingTitlePart(block.value.slice(0, colonIdx))}:
-									</h3>
-									<p class="heading-byline">
-										{formatHeadingByline(block.value.slice(colonIdx + 1))}
-									</p>
-								{:else}
-									<h3 class="heading-title">{formatHeadingTitlePart(block.value)}</h3>
-								{/if}
-							</div>
-						{:else if block.type === 'text'}
-							<div
-								class="text-block reveal-child"
-								style={revealStyle(
-									(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
-								)}
-							>
-								<p>{block.value}</p>
-							</div>
-						{:else if block.type === 'image'}
-							<div
-								class="image-block {block.layout === 'side-by-side'
-									? 'side-by-side'
-									: ''} reveal-child"
-								style={revealStyle(
-									(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
-								)}
-							>
-								{#if block.layout === 'side-by-side'}
-									<div class="image-pair">
-										<div class="image-container">
-											<div class="image-frame">
-												<img
-													src={block.value}
-													alt={getImageCaption(block.value) || 'Project image'}
-												/>
-											</div>
-											{#if getImageCaption(block.value)}
-												<p class="image-caption">{getImageCaption(block.value)}</p>
-											{/if}
-										</div>
-										{#if block.sideImage}
-											{@const sideImage = block.sideImage}
+			<div class="content-view width-100" class:content-view--slides={viewMode === 'slides' && hasSlides}>
+				{#if viewMode === 'slides' && hasSlides}
+					<PortfolioSlides
+						{slides}
+						{staggerReveal}
+						revealDelayMs={(contentReveal ?? introReveal).childStartDelayMs + REVEAL_CHILD_STEP_MS}
+						{videoCurrentMs}
+						{videoIsPlaying}
+						{hasPrevPiece}
+						{hasNextPiece}
+						onPrevPiece={onPrevPiece}
+						onNextPiece={onNextPiece}
+						{onGoHome}
+						{year}
+						{role}
+						{link}
+						{metrics}
+						{team}
+					/>
+				{:else}
+					<!-- Content blocks (text and images) -->
+					<div class="content-blocks">
+						{#each content as block, index (`${block.type}-${block.value}-${index}`)}
+							{#if block.type === 'heading'}
+								{@const colonIdx = block.value.indexOf(':')}
+								<div
+									class="heading-block reveal-child"
+									style={revealStyle(
+										(contentReveal ?? introReveal).childStartDelayMs +
+											index * REVEAL_CHILD_STEP_MS
+									)}
+								>
+									{#if colonIdx !== -1}
+										<h3 class="heading-title">
+											{formatHeadingTitlePart(block.value.slice(0, colonIdx))}:
+										</h3>
+										<p class="heading-byline">
+											{formatHeadingByline(block.value.slice(colonIdx + 1))}
+										</p>
+									{:else}
+										<h3 class="heading-title">{formatHeadingTitlePart(block.value)}</h3>
+									{/if}
+								</div>
+							{:else if block.type === 'text'}
+								<div
+									class="text-block reveal-child"
+									style={revealStyle(
+										(contentReveal ?? introReveal).childStartDelayMs +
+											index * REVEAL_CHILD_STEP_MS
+									)}
+								>
+									<p>{block.value}</p>
+								</div>
+							{:else if block.type === 'image'}
+								<div
+									class="image-block {block.layout === 'side-by-side'
+										? 'side-by-side'
+										: ''} reveal-child"
+									style={revealStyle(
+										(contentReveal ?? introReveal).childStartDelayMs +
+											index * REVEAL_CHILD_STEP_MS
+									)}
+								>
+									{#if block.layout === 'side-by-side'}
+										<div class="image-pair">
 											<div class="image-container">
 												<div class="image-frame">
 													<img
-														src={sideImage.value}
-														alt={getImageCaption(sideImage.value) || 'Project image'}
+														src={block.value}
+														alt={getImageCaption(block.value) || 'Project image'}
 													/>
 												</div>
-												{#if getImageCaption(sideImage.value)}
-													<p class="image-caption">{getImageCaption(sideImage.value)}</p>
+												{#if getImageCaption(block.value)}
+													<p class="image-caption">{getImageCaption(block.value)}</p>
 												{/if}
 											</div>
+											{#if block.sideImage}
+												{@const sideImage = block.sideImage}
+												<div class="image-container">
+													<div class="image-frame">
+														<img
+															src={sideImage.value}
+															alt={getImageCaption(sideImage.value) || 'Project image'}
+														/>
+													</div>
+													{#if getImageCaption(sideImage.value)}
+														<p class="image-caption">
+															{getImageCaption(sideImage.value)}
+														</p>
+													{/if}
+												</div>
+											{/if}
+										</div>
+									{:else}
+										<div class="image-frame">
+											<img
+												src={block.value}
+												alt={getImageCaption(block.value) || 'Project image'}
+											/>
+										</div>
+										{#if getImageCaption(block.value)}
+											<p class="image-caption">{getImageCaption(block.value)}</p>
 										{/if}
-									</div>
-								{:else}
-									<div class="image-frame">
-										<img src={block.value} alt={getImageCaption(block.value) || 'Project image'} />
-									</div>
-									{#if getImageCaption(block.value)}
-										<p class="image-caption">{getImageCaption(block.value)}</p>
 									{/if}
-								{/if}
-							</div>
-						{:else if block.type === 'video'}
-							<div
-								class="image-block reveal-child"
-								style={revealStyle(
-									(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
-								)}
-							>
-								<div class="image-frame">
-									<!-- svelte-ignore a11y-media-has-caption -->
-									<video
-										class="content-video"
-										controls
-										controlsList="nodownload"
-										disablePictureInPicture
-										playsinline
-										preload="metadata"
-										on:contextmenu|preventDefault
-										src={block.value}
-									></video>
 								</div>
-								{#if block.caption}
-									<p class="image-caption">{block.caption}</p>
-								{/if}
-							</div>
-						{/if}
-					{/each}
-				</div>
-
-				<!-- Image gallery - only show unused images -->
-				{#if unusedGalleryImages.length > 0}
-					<div class="image-gallery">
-						{#each unusedGalleryImages as image, index (image.src)}
-							<div
-								class="gallery-item reveal-child"
-								style={revealStyle(
-									(contentReveal ?? introReveal).childStartDelayMs +
-										(content.length + index) * REVEAL_CHILD_STEP_MS
-								)}
-							>
-								<div class="image-frame">
-									<img src={image.src} alt={image.alt} />
+							{:else if block.type === 'video'}
+								<div
+									class="image-block reveal-child"
+									style={revealStyle(
+										(contentReveal ?? introReveal).childStartDelayMs +
+											index * REVEAL_CHILD_STEP_MS
+									)}
+								>
+									<div class="image-frame">
+										<!-- svelte-ignore a11y-media-has-caption -->
+										<video
+											class="content-video"
+											controls
+											controlsList="nodownload"
+											disablePictureInPicture
+											playsinline
+											preload="metadata"
+											on:contextmenu|preventDefault
+											src={block.value}
+										></video>
+									</div>
+									{#if block.caption}
+										<p class="image-caption">{block.caption}</p>
+									{/if}
 								</div>
-								{#if image.caption}
-									<p class="image-caption">{image.caption}</p>
-								{/if}
-							</div>
+							{/if}
 						{/each}
 					</div>
+
+					<!-- Image gallery - only show unused images -->
+					{#if unusedGalleryImages.length > 0}
+						<div class="image-gallery">
+							{#each unusedGalleryImages as image, index (image.src)}
+								<div
+									class="gallery-item reveal-child"
+									style={revealStyle(
+										(contentReveal ?? introReveal).childStartDelayMs +
+											(content.length + index) * REVEAL_CHILD_STEP_MS
+									)}
+								>
+									<div class="image-frame">
+										<img src={image.src} alt={image.alt} />
+									</div>
+									{#if image.caption}
+										<p class="image-caption">{image.caption}</p>
+									{/if}
+								</div>
+							{/each}
+						</div>
+					{/if}
 				{/if}
 
-				{#if onGoHome}
+				{#if onGoHome && !(viewMode === 'slides' && hasSlides)}
 					<PortfolioEndHome
 						maskId={portfolioEndSmileyMaskId}
 						onGoHome={() => onGoHome?.()}
@@ -663,6 +652,52 @@
 		animation-duration: var(--reveal-child-duration, 560ms);
 	}
 
+	.view-mode-toggle {
+		display: flex;
+		align-items: center;
+		gap: 0;
+		padding: 0 1.5rem;
+	}
+
+	.view-mode-btn {
+		padding: 6px 14px;
+		border: 1px solid var(--black, #363636);
+		background: transparent;
+		color: var(--text-color);
+		font-family: inherit;
+		font-size: var(--font-size-xs);
+		line-height: 1.4;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		cursor: pointer;
+		transition: background 200ms ease, color 200ms ease;
+		font-variation-settings: 'CASL' 0, 'wght' 450;
+	}
+
+	.view-mode-btn:first-child {
+		border-radius: var(--border-radius-full) 0 0 var(--border-radius-full);
+		border-right: none;
+	}
+
+	.view-mode-btn:last-child {
+		border-radius: 0 var(--border-radius-full) var(--border-radius-full) 0;
+	}
+
+	.view-mode-btn.active {
+		background: var(--text-color);
+		color: var(--bg-color);
+	}
+
+	.view-mode-btn:hover:not(.active) {
+		background: var(--alpha-black-002, rgba(0, 0, 0, 0.04));
+	}
+
+	@media (max-width: 600px) {
+		.view-mode-toggle {
+			padding: 0;
+		}
+	}
+
 	.content-container {
 		width: 100%;
 		max-width: 800px;
@@ -700,6 +735,11 @@
 		padding-bottom: var(--spacing-lg);
 		padding-left: var(--spacing-lg);
 		padding-right: var(--spacing-lg);
+	}
+
+	.content-view--slides {
+		padding-left: 0;
+		padding-right: 0;
 	}
 
 	.content-blocks {
@@ -970,130 +1010,34 @@
 	.hero-description,
 	.heading-byline,
 	.text-block,
-	.image-caption,
-	.details-label,
-	.details-value,
-	.project-link,
-	.muted-text,
-	.discontinued-text,
-	.role,
-	.name,
-	.relationship {
+	.image-caption {
 		letter-spacing: -0.01em;
 	}
 
 	:global(html.dark-theme) .hero-description,
 	:global(html.dark-theme) .heading-byline,
 	:global(html.dark-theme) .text-block,
-	:global(html.dark-theme) .image-caption,
-	:global(html.dark-theme) .details-label,
-	:global(html.dark-theme) .details-value,
-	:global(html.dark-theme) .project-link,
-	:global(html.dark-theme) .muted-text,
-	:global(html.dark-theme) .discontinued-text,
-	:global(html.dark-theme) .role,
-	:global(html.dark-theme) .name,
-	:global(html.dark-theme) .relationship {
+	:global(html.dark-theme) .image-caption {
 		letter-spacing: 0.03em;
 	}
 
 	/* Slightly lighter body weight in dark mode for easier reading on deep backgrounds */
 	:global(html.dark-theme) .hero-description,
 	:global(html.dark-theme) .heading-byline,
-	:global(html.dark-theme) .text-block,
-	:global(html.dark-theme) .project-link,
-	:global(html.dark-theme) .muted-text,
-	:global(html.dark-theme) .discontinued-text {
+	:global(html.dark-theme) .text-block {
 		font-variation-settings:
 			'CASL' 0,
 			'wght' 360;
 	}
 
-	:global(html.dark-theme) .image-caption,
-	:global(html.dark-theme) .details-label,
-	:global(html.dark-theme) .name,
-	:global(html.dark-theme) .relationship {
+	:global(html.dark-theme) .image-caption {
 		font-variation-settings:
 			'CASL' 0,
 			'wght' 330;
 	}
 
-	:global(html.dark-theme) .image-caption,
-	:global(html.dark-theme) .details-label,
-	:global(html.dark-theme) .name,
-	:global(html.dark-theme) .relationship {
-		color: var(--palette-grey-hint);
-	}
-
-	:global(html.dark-theme) .role {
-		color: var(--text-color);
-		font-variation-settings:
-			'CASL' 0,
-			'wght' 460;
-	}
-
-	:global(html.dark-theme) .team-list:has(.team-member:nth-child(2)) .team-member::before {
-		color: var(--palette-grey-hint);
-	}
-
-	:global(html.dark-theme) .details-value {
-		font-variation-settings:
-			'CASL' 0,
-			'wght' 460;
-	}
-
 	:global(html.dark-theme) .highlight-line {
 		letter-spacing: 0.025em;
-	}
-
-	/* Project details grid */
-	.project-details-grid {
-		width: 100%;
-		background-color: transparent;
-		font-family: inherit;
-		border-top: 1px solid var(--black);
-	}
-
-	.details-row {
-		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		border-bottom: 1px solid var(--black);
-	}
-
-	.details-row:first-child {
-		border-bottom: none;
-	}
-
-	.metrics-row {
-		border-top: 1px solid var(--black);
-	}
-
-	.details-cell {
-		display: flex;
-		flex-direction: column;
-		padding: var(--spacing-sm);
-		border-right: 1px solid var(--black);
-	}
-
-	.details-cell:last-child {
-		border-right: none;
-	}
-
-	.details-label {
-		font-size: var(--font-size-xxs);
-		color: var(--palette-grey-600);
-		font-variation-settings:
-			'CASL' 0,
-			'wght' 400;
-	}
-
-	.details-value {
-		font-size: var(--font-size-sm);
-		color: var(--text-color);
-		font-variation-settings:
-			'CASL' 0,
-			'wght' 500;
-		word-wrap: break-word;
 	}
 
 	@media (max-width: 768px) {
@@ -1130,16 +1074,6 @@
 		}
 
 		.image-caption {
-			font-size: var(--font-size-base);
-			line-height: 1.45;
-		}
-
-		.details-label {
-			font-size: var(--font-size-base);
-			line-height: 1.4;
-		}
-
-		.details-value {
 			font-size: var(--font-size-base);
 			line-height: 1.45;
 		}
@@ -1190,28 +1124,6 @@
 
 		.project-tags {
 			justify-content: flex-start;
-		}
-
-		.project-details-grid {
-			border-left: 1px solid var(--black);
-			border-right: 1px solid var(--black);
-		}
-
-		.details-row {
-			grid-template-columns: 1fr;
-		}
-
-		.details-cell:not(:last-child) {
-			border-right: none;
-			border-bottom: 1px solid var(--black);
-		}
-
-		.metrics-row .details-cell:nth-last-child(2) {
-			border-bottom: none;
-		}
-
-		.metrics-row .details-cell:last-child {
-			border-top: 1px solid var(--black);
 		}
 
 		.locked-gate {
@@ -1300,30 +1212,6 @@
 		}
 	}
 
-	.project-link {
-		color: var(--palette-rainbow-6);
-		text-decoration: underline;
-		text-underline-offset: 3px;
-		transition: opacity var(--transition);
-	}
-
-	.project-link:hover {
-		opacity: 0.75;
-	}
-
-	.muted-text {
-		color: var(--muted-text);
-		font-style: italic;
-	}
-
-	.discontinued-text {
-		color: var(--muted-text);
-		font-style: italic;
-		font-variation-settings:
-			'CASL' 0,
-			'wght' 400;
-	}
-
 	.hero-description {
 		width: 100%;
 		max-width: 65ch;
@@ -1342,47 +1230,6 @@
 		line-height: 1.3;
 		letter-spacing: -0.03em;
 		padding: 0;
-	}
-
-	.team-list {
-		display: flex;
-		flex-direction: column;
-		gap: var(--spacing-xxs);
-	}
-
-	.team-member {
-		font-size: var(--font-size-xs);
-		line-height: 1.4;
-		padding-left: 0;
-		position: relative;
-	}
-
-	/* Only add bullets when there's more than one team member */
-	.team-list:has(.team-member:nth-child(2)) .team-member {
-		padding-left: var(--spacing-sm);
-	}
-
-	.team-list:has(.team-member:nth-child(2)) .team-member::before {
-		content: '•';
-		position: absolute;
-		left: 0;
-		color: var(--palette-grey-600);
-	}
-
-	.role {
-		color: var(--text-color);
-		font-variation-settings:
-			'CASL' 0,
-			'wght' 500;
-	}
-
-	.name,
-	.relationship {
-		color: var(--palette-grey-600);
-	}
-
-	.relationship {
-		font-style: italic;
 	}
 
 	.image-pair {
@@ -1429,11 +1276,6 @@
 		.heading-byline {
 			font-size: var(--font-size-xl);
 			line-height: 1.08;
-		}
-
-		.team-member {
-			font-size: var(--font-size-base);
-			line-height: 1.4;
 		}
 
 		/* Stack side-by-side images vertically on mobile. */
