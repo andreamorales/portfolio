@@ -256,18 +256,18 @@
 		overflow-y: auto;
 		--black: var(--white, #f3ead6);
 		--text-color: var(--white, #f3ead6);
-		--palette-grey-600: rgba(243, 234, 214, 0.55);
-		--palette-grey-hint: rgba(243, 234, 214, 0.55);
-		--muted-text: rgba(243, 234, 214, 0.45);
+		--palette-grey-600: rgba(243, 234, 214, 0.72);
+		--palette-grey-hint: rgba(243, 234, 214, 0.72);
+		--muted-text: rgba(243, 234, 214, 0.65);
 		--palette-rainbow-6: #f0c674;
 	}
 
 	:global(html.dark-theme) .slide-content--metadata {
 		--black: var(--palette-bg, #141312);
 		--text-color: var(--palette-bg, #141312);
-		--palette-grey-600: rgba(20, 19, 18, 0.6);
-		--palette-grey-hint: rgba(20, 19, 18, 0.6);
-		--muted-text: rgba(20, 19, 18, 0.5);
+		--palette-grey-600: rgba(20, 19, 18, 0.75);
+		--palette-grey-hint: rgba(20, 19, 18, 0.75);
+		--muted-text: rgba(20, 19, 18, 0.65);
 		--palette-rainbow-6: #8b6914;
 	}
 

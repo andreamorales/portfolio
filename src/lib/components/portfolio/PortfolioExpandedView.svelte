@@ -59,8 +59,14 @@
 	let unusedGalleryImages: Array<{ src: string; alt: string; caption?: string }> = [];
 	let effectiveStaggerBaseDelayMs = 0;
 	let viewMode: 'text' | 'slides' = 'text';
+	let hasToggledView = false;
 
 	$: hasSlides = slides && slides.length > 0;
+
+	function setViewMode(mode: 'text' | 'slides') {
+		viewMode = mode;
+		hasToggledView = true;
+	}
 
 	const REVEAL_TIME_SCALE = 1.35;
 	const ms = (value: number) => Math.round(value * REVEAL_TIME_SCALE);
@@ -274,6 +280,7 @@
 	class="portfolio-expanded-view flex-column"
 	class:immersive
 	class:portfolio-expanded-view--staggered={staggerReveal}
+	class:portfolio-expanded-view--instant={hasToggledView}
 	style={staggerReveal
 		? `--reveal-parent-duration: ${REVEAL_PARENT_FADE_DURATION_MS}ms; --reveal-child-duration: ${REVEAL_CHILD_FADE_DURATION_MS}ms;`
 		: undefined}
@@ -380,16 +387,16 @@
 				style={revealStyle((detailsReveal ?? introReveal).childStartDelayMs)}
 			>
 				<button
-					class="view-mode-btn"
-					class:active={viewMode === 'text'}
-					on:click={() => (viewMode = 'text')}
-				>
-					Text
-				</button>
-				<button
-					class="view-mode-btn"
-					class:active={viewMode === 'slides'}
-					on:click={() => (viewMode = 'slides')}
+				class="view-mode-btn"
+				class:active={viewMode === 'text'}
+				on:click={() => setViewMode('text')}
+			>
+				Text
+			</button>
+			<button
+				class="view-mode-btn"
+				class:active={viewMode === 'slides'}
+				on:click={() => setViewMode('slides')}
 				>
 					Slides
 				</button>
@@ -434,10 +441,10 @@
 		>
 			<div class="content-view width-100" class:content-view--slides={viewMode === 'slides' && hasSlides}>
 				{#if viewMode === 'slides' && hasSlides}
-					<PortfolioSlides
-						{slides}
-						{staggerReveal}
-						revealDelayMs={(contentReveal ?? introReveal).childStartDelayMs + REVEAL_CHILD_STEP_MS}
+				<PortfolioSlides
+					{slides}
+					staggerReveal={staggerReveal && !hasToggledView}
+					revealDelayMs={(contentReveal ?? introReveal).childStartDelayMs + REVEAL_CHILD_STEP_MS}
 						{videoCurrentMs}
 						{videoIsPlaying}
 						{hasPrevPiece}
@@ -650,6 +657,12 @@
 
 	.portfolio-expanded-view--staggered .reveal-child {
 		animation-duration: var(--reveal-child-duration, 560ms);
+	}
+
+	.portfolio-expanded-view--instant .reveal-parent,
+	.portfolio-expanded-view--instant .reveal-child {
+		opacity: 1 !important;
+		animation: none !important;
 	}
 
 	.view-mode-toggle {

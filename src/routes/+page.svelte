@@ -1462,7 +1462,7 @@
 		border-radius: 0.22rem;
 		background: transparent;
 		color: var(--text-color);
-		opacity: 0.72;
+		opacity: 1;
 		font: inherit;
 		line-height: inherit;
 		text-transform: none;

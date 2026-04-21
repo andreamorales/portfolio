@@ -181,6 +181,10 @@
 		font-style: italic;
 	}
 
+	:global(html.dark-theme) .project-details-grid {
+		--black: var(--palette-grey-700);
+	}
+
 	:global(html.dark-theme) .details-label,
 	:global(html.dark-theme) .name,
 	:global(html.dark-theme) .relationship {
