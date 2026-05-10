@@ -221,11 +221,7 @@
 				{/if}
 			</div>
 		{:else}
-			<button
-				class="slide-nav slide-nav--next"
-				on:click={next}
-				aria-label="Next slide"
-			>
+			<button class="slide-nav slide-nav--next" on:click={next} aria-label="Next slide">
 				<svg
 					class="slide-nav__icon"
 					xmlns="http://www.w3.org/2000/svg"
@@ -501,8 +497,12 @@
 		text-transform: uppercase;
 		cursor: pointer;
 		opacity: 0.6;
-		transition: opacity 200ms ease, background 200ms ease;
-		font-variation-settings: 'CASL' 0, 'wght' 450;
+		transition:
+			opacity 200ms ease,
+			background 200ms ease;
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 450;
 		white-space: nowrap;
 	}
 
@@ -645,7 +645,9 @@
 		margin: 0;
 		font-size: var(--font-size-base);
 		line-height: 1.6;
-		font-variation-settings: 'CASL' 0, 'wght' 370;
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 370;
 		color: inherit;
 		letter-spacing: -0.01em;
 		opacity: 0.85;
@@ -653,7 +655,9 @@
 
 	/* Dark mode text tuning */
 	:global(html.dark-theme) .slide-body {
-		font-variation-settings: 'CASL' 0, 'wght' 400;
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 400;
 		letter-spacing: -0.01em;
 	}
 

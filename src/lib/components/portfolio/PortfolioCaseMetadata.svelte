@@ -8,7 +8,10 @@
 	export let variant: 'page' | 'embedded' = 'page';
 </script>
 
-<div class="portfolio-case-metadata" class:portfolio-case-metadata--embedded={variant === 'embedded'}>
+<div
+	class="portfolio-case-metadata"
+	class:portfolio-case-metadata--embedded={variant === 'embedded'}
+>
 	<div class="project-details-grid">
 		<div class="details-row">
 			<div class="details-cell">
@@ -25,7 +28,9 @@
 					{#if link === 'Discontinued'}
 						<span class="discontinued-text">Discontinued</span>
 					{:else if link}
-						<a href={link} target="_blank" rel="noopener noreferrer" class="project-link">View Project</a>
+						<a href={link} target="_blank" rel="noopener noreferrer" class="project-link"
+							>View Project</a
+						>
 					{:else}
 						<span class="muted-text">Not Available</span>
 					{/if}

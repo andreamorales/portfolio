@@ -387,16 +387,16 @@
 				style={revealStyle((detailsReveal ?? introReveal).childStartDelayMs)}
 			>
 				<button
-				class="view-mode-btn"
-				class:active={viewMode === 'text'}
-				on:click={() => setViewMode('text')}
-			>
-				Text
-			</button>
-			<button
-				class="view-mode-btn"
-				class:active={viewMode === 'slides'}
-				on:click={() => setViewMode('slides')}
+					class="view-mode-btn"
+					class:active={viewMode === 'text'}
+					on:click={() => setViewMode('text')}
+				>
+					Text
+				</button>
+				<button
+					class="view-mode-btn"
+					class:active={viewMode === 'slides'}
+					on:click={() => setViewMode('slides')}
 				>
 					Slides
 				</button>
@@ -404,11 +404,11 @@
 		{/if}
 
 		{#if !hasSlides || viewMode === 'text'}
-			<div
-				class="reveal-parent"
-				style={revealStyle((detailsReveal ?? introReveal).parentDelayMs)}
-			>
-				<div class="reveal-child" style={revealStyle((detailsReveal ?? introReveal).childStartDelayMs)}>
+			<div class="reveal-parent" style={revealStyle((detailsReveal ?? introReveal).parentDelayMs)}>
+				<div
+					class="reveal-child"
+					style={revealStyle((detailsReveal ?? introReveal).childStartDelayMs)}
+				>
 					<PortfolioCaseMetadata {year} {role} {link} {metrics} {team} variant="page" />
 				</div>
 			</div>
@@ -439,18 +439,21 @@
 			class="content-container flex-column reveal-parent"
 			style={revealStyle((contentReveal ?? introReveal).parentDelayMs)}
 		>
-			<div class="content-view width-100" class:content-view--slides={viewMode === 'slides' && hasSlides}>
+			<div
+				class="content-view width-100"
+				class:content-view--slides={viewMode === 'slides' && hasSlides}
+			>
 				{#if viewMode === 'slides' && hasSlides}
-				<PortfolioSlides
-					{slides}
-					staggerReveal={staggerReveal && !hasToggledView}
-					revealDelayMs={(contentReveal ?? introReveal).childStartDelayMs + REVEAL_CHILD_STEP_MS}
+					<PortfolioSlides
+						{slides}
+						staggerReveal={staggerReveal && !hasToggledView}
+						revealDelayMs={(contentReveal ?? introReveal).childStartDelayMs + REVEAL_CHILD_STEP_MS}
 						{videoCurrentMs}
 						{videoIsPlaying}
 						{hasPrevPiece}
 						{hasNextPiece}
-						onPrevPiece={onPrevPiece}
-						onNextPiece={onNextPiece}
+						{onPrevPiece}
+						{onNextPiece}
 						{onGoHome}
 						{year}
 						{role}
@@ -467,8 +470,7 @@
 								<div
 									class="heading-block reveal-child"
 									style={revealStyle(
-										(contentReveal ?? introReveal).childStartDelayMs +
-											index * REVEAL_CHILD_STEP_MS
+										(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
 									)}
 								>
 									{#if colonIdx !== -1}
@@ -486,8 +488,7 @@
 								<div
 									class="text-block reveal-child"
 									style={revealStyle(
-										(contentReveal ?? introReveal).childStartDelayMs +
-											index * REVEAL_CHILD_STEP_MS
+										(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
 									)}
 								>
 									<p>{block.value}</p>
@@ -498,8 +499,7 @@
 										? 'side-by-side'
 										: ''} reveal-child"
 									style={revealStyle(
-										(contentReveal ?? introReveal).childStartDelayMs +
-											index * REVEAL_CHILD_STEP_MS
+										(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
 									)}
 								>
 									{#if block.layout === 'side-by-side'}
@@ -548,8 +548,7 @@
 								<div
 									class="image-block reveal-child"
 									style={revealStyle(
-										(contentReveal ?? introReveal).childStartDelayMs +
-											index * REVEAL_CHILD_STEP_MS
+										(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
 									)}
 								>
 									<div class="image-frame">
@@ -683,8 +682,12 @@
 		letter-spacing: 0.04em;
 		text-transform: uppercase;
 		cursor: pointer;
-		transition: background 200ms ease, color 200ms ease;
-		font-variation-settings: 'CASL' 0, 'wght' 450;
+		transition:
+			background 200ms ease,
+			color 200ms ease;
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 450;
 	}
 
 	.view-mode-btn:first-child {
