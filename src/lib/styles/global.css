@@ -881,6 +881,9 @@ textarea {
 	--palette-grey-muted: #8a847a;
 	--palette-grey-hint: #9d968b;
 
+	/** Hairlines under Timeline / Link / Impact / Summary labels — lighter than `--palette-grey-600` label ink */
+	--portfolio-metadata-rule: var(--palette-grey-300);
+
 	/* Rainbow — slightly desaturated so they read on cream + next to charcoal */
 	--palette-rainbow-1: #c45a5a;
 	--palette-rainbow-2: #d4823a;
@@ -965,6 +968,9 @@ textarea {
 	--palette-grey-muted: #8a847b;
 	/* Placeholders / subtle hints — must read on --palette-grey-100 inputs */
 	--palette-grey-hint: #9e968a;
+
+	/** Soft divider on dark page bg (`--portfolio-metadata-rule`) */
+	--portfolio-metadata-rule: var(--palette-grey-400);
 
 	/* Rainbow — deep/muted accents (beige + greys unchanged) */
 	--palette-rainbow-1: #a85252;

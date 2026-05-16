@@ -13,6 +13,7 @@
 		type SecurePortfolioPayloadData
 	} from '$lib/utils/secureCaseStudy';
 	import type { SlideItem } from '$lib/data/portfolio-items';
+	import type { PortfolioMetricInput } from '$lib/utils/portfolioMetrics';
 
 	/** Unique mask id per instance (component can appear more than once on a page). */
 	const portfolioEndSmileyMaskId = `portfolio-end-smiley-mask-${++portfolioEndSmileyMaskSeq}`;
@@ -35,9 +36,8 @@
 	export let videoCurrentMs = 0;
 	export let videoIsPlaying = false;
 	export let year: string = '';
-	export let role: string = '';
 	export let link: string = '';
-	export let metrics: Array<string> = [];
+	export let metrics: PortfolioMetricInput[] | string[] = [];
 	export let team: Array<{ role: string; name: string; relationship: string }> = [];
 	export let immersive = false;
 	export let onGoHome: (() => void) | null = null;
@@ -62,6 +62,19 @@
 	let hasToggledView = false;
 
 	$: hasSlides = slides && slides.length > 0;
+	$: viewModeIsText = viewMode === 'text';
+	$: viewModeIsSlides = viewMode === 'slides';
+
+	function paragraphsFromSummary(text: string): string[] {
+		const trimmed = text.trim();
+		if (!trimmed) return [];
+		return trimmed
+			.split(/\n\n/)
+			.map((p) => p.trim())
+			.filter(Boolean);
+	}
+
+	$: summaryParagraphs = paragraphsFromSummary(description);
 
 	function setViewMode(mode: 'text' | 'slides') {
 		viewMode = mode;
@@ -261,7 +274,6 @@
 				images = decrypted.images;
 				content = decrypted.content;
 				year = decrypted.year;
-				role = decrypted.role;
 				link = decrypted.link;
 				metrics = decrypted.metrics;
 				team = decrypted.team;
@@ -304,14 +316,19 @@
 			{/if}
 		</div>
 
-		<div
-			class="hero-description reveal-child"
-			style={revealStyle(introReveal.childStartDelayMs + REVEAL_CHILD_STEP_MS)}
-		>
-			{#each description.split('. ') as line, index (`${line}-${index}`)}
-				<span class="highlight-line">{line}{line.endsWith('.') ? '' : '.'} </span>
-			{/each}
-		</div>
+		{#if locked && !isUnlocked}
+			<div
+				class="hero-description reveal-child"
+				style={revealStyle(introReveal.childStartDelayMs + REVEAL_CHILD_STEP_MS)}
+			>
+				{#each summaryParagraphs as para, index (`intro-sum-${index}`)}
+					{#if index > 0}
+						<br /><br />
+					{/if}
+					<span class="highlight-line">{para}</span>
+				{/each}
+			</div>
+		{/if}
 	</div>
 
 	{#if locked && !isUnlocked}
@@ -381,35 +398,27 @@
 			/>
 		{/if}
 	{:else}
-		{#if hasSlides}
-			<div
-				class="view-mode-toggle reveal-child"
-				style={revealStyle((detailsReveal ?? introReveal).childStartDelayMs)}
-			>
-				<button
-					class="view-mode-btn"
-					class:active={viewMode === 'text'}
-					on:click={() => setViewMode('text')}
-				>
-					Text
-				</button>
-				<button
-					class="view-mode-btn"
-					class:active={viewMode === 'slides'}
-					on:click={() => setViewMode('slides')}
-				>
-					Slides
-				</button>
-			</div>
-		{/if}
-
 		{#if !hasSlides || viewMode === 'text'}
-			<div class="reveal-parent" style={revealStyle((detailsReveal ?? introReveal).parentDelayMs)}>
+			<div
+				class="portfolio-case-metadata-rail reveal-parent"
+				style={revealStyle((detailsReveal ?? introReveal).parentDelayMs)}
+			>
 				<div
-					class="reveal-child"
+					class="reveal-child portfolio-meta-about-row"
 					style={revealStyle((detailsReveal ?? introReveal).childStartDelayMs)}
 				>
-					<PortfolioCaseMetadata {year} {role} {link} {metrics} {team} variant="page" />
+					<PortfolioCaseMetadata {year} {link} {metrics} variant="page" />
+					<div class="portfolio-summary-column">
+						<div class="portfolio-summary-heading">
+							<div class="details-label">Summary</div>
+							<div class="details-label-rule" aria-hidden="true"></div>
+						</div>
+						<div class="hero-description hero-description--beside-meta">
+							{#each summaryParagraphs as para, index (`beside-sum-${index}`)}
+								<p class="case-summary-line">{para}</p>
+							{/each}
+						</div>
+					</div>
 				</div>
 			</div>
 		{/if}
@@ -443,9 +452,11 @@
 				class="content-view width-100"
 				class:content-view--slides={viewMode === 'slides' && hasSlides}
 			>
+				<div class="content-view-main">
 				{#if viewMode === 'slides' && hasSlides}
 					<PortfolioSlides
 						{slides}
+						introSummaryParagraphs={summaryParagraphs}
 						staggerReveal={staggerReveal && !hasToggledView}
 						revealDelayMs={(contentReveal ?? introReveal).childStartDelayMs + REVEAL_CHILD_STEP_MS}
 						{videoCurrentMs}
@@ -456,10 +467,8 @@
 						{onNextPiece}
 						{onGoHome}
 						{year}
-						{role}
 						{link}
 						{metrics}
-						{team}
 					/>
 				{:else}
 					<!-- Content blocks (text and images) -->
@@ -605,6 +614,39 @@
 						onNextPiece={onNextPiece ?? undefined}
 					/>
 				{/if}
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	{#if hasSlides && (!locked || isUnlocked)}
+		<div class="portfolio-view-mode-dock">
+			<div
+				class="portfolio-view-mode-segmented reveal-child"
+				style={revealStyle(
+					(contentReveal ?? introReveal).childStartDelayMs + REVEAL_CHILD_STEP_MS
+				)}
+				role="group"
+				aria-label="Case study view mode"
+			>
+				<button
+					type="button"
+					class="portfolio-view-mode-choice"
+					class:portfolio-view-mode-choice--active={viewModeIsText}
+					aria-pressed={viewModeIsText}
+					on:click={() => setViewMode('text')}
+				>
+					text
+				</button>
+				<button
+					type="button"
+					class="portfolio-view-mode-choice"
+					class:portfolio-view-mode-choice--active={viewModeIsSlides}
+					aria-pressed={viewModeIsSlides}
+					on:click={() => setViewMode('slides')}
+				>
+					slides
+				</button>
 			</div>
 		</div>
 	{/if}
@@ -664,53 +706,180 @@
 		animation: none !important;
 	}
 
-	.view-mode-toggle {
-		display: flex;
-		align-items: center;
-		gap: 0;
-		padding: 0 1.5rem;
+	.portfolio-case-metadata-rail {
+		width: 100%;
+		box-sizing: border-box;
+		padding-inline: 1.5rem;
 	}
 
-	.view-mode-btn {
-		padding: 6px 14px;
-		border: 1px solid var(--black, #363636);
-		background: transparent;
-		color: var(--text-color);
+	.portfolio-meta-about-row {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		column-gap: var(--spacing-lg);
+		align-items: start;
+	}
+
+	.portfolio-summary-column {
+		display: flex;
+		flex-direction: column;
+		gap: 0.125rem;
+		align-items: flex-start;
+		min-width: 0;
+		width: 100%;
+		max-width: 100%;
+		box-sizing: border-box;
+	}
+
+	.portfolio-summary-heading {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-xxs);
+		width: 100%;
+		min-width: 0;
+	}
+
+	.portfolio-summary-heading .details-label-rule {
+		margin: 0;
+		align-self: stretch;
+		flex-shrink: 0;
+		height: 0;
+		border: none;
+		border-top: 1px solid var(--portfolio-metadata-rule);
+	}
+
+	.portfolio-summary-column .details-label {
+		font-size: var(--font-size-xxs);
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		line-height: 1.35;
+		color: var(--palette-grey-600);
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 600;
+	}
+
+	:global(html.dark-theme) .portfolio-summary-column .details-label {
+		color: var(--palette-grey-hint);
+	}
+
+	.case-summary-line {
+		margin: 0;
+		color: inherit;
+		font: inherit;
+		font-variation-settings: inherit;
+		letter-spacing: inherit;
+	}
+
+	.portfolio-view-mode-segmented {
+		display: inline-flex;
+		align-items: stretch;
+		width: fit-content;
+		max-width: 100%;
+		flex-shrink: 0;
 		font-family: inherit;
 		font-size: var(--font-size-xs);
-		line-height: 1.4;
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
+		line-height: 1.45;
+		color: var(--muted-text);
+		border-radius: var(--border-radius);
+		border: 1px solid var(--grey-light);
+		overflow: hidden;
+		background: var(--bg-color);
+	}
+
+	:global(html.dark-theme) .portfolio-view-mode-segmented {
+		border-color: rgba(255, 255, 255, 0.14);
+		background: var(--bg-color);
+	}
+
+	.portfolio-view-mode-choice {
+		position: relative;
+		border: none;
+		border-radius: 0;
+		background: var(--bg-color);
+		padding: 0.24em 0.65em;
+		margin: 0;
+		font: inherit;
+		font-size: inherit;
+		line-height: inherit;
+		color: inherit;
 		cursor: pointer;
-		transition:
-			background 200ms ease,
-			color 200ms ease;
+		text-decoration: none;
+		min-height: unset;
+		height: auto;
+		transform: none;
+		text-transform: lowercase;
+		-webkit-tap-highlight-color: transparent;
 		font-variation-settings:
 			'CASL' 0,
 			'wght' 450;
+		transition:
+			background-color var(--transition-fast) var(--easing-standard),
+			color var(--transition-fast) var(--easing-standard);
 	}
 
-	.view-mode-btn:first-child {
-		border-radius: var(--border-radius-full) 0 0 var(--border-radius-full);
-		border-right: none;
+	.portfolio-view-mode-choice + .portfolio-view-mode-choice {
+		box-shadow: inset 1px 0 0 var(--grey-light);
 	}
 
-	.view-mode-btn:last-child {
-		border-radius: 0 var(--border-radius-full) var(--border-radius-full) 0;
+	:global(html.dark-theme) .portfolio-view-mode-choice + .portfolio-view-mode-choice {
+		box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.12);
 	}
 
-	.view-mode-btn.active {
+	.portfolio-view-mode-choice:hover {
+		transform: none;
+		color: var(--text-color);
+		background: rgba(0, 0, 0, 0.04);
+	}
+
+	:global(html.dark-theme) .portfolio-view-mode-choice:hover {
+		background: rgba(255, 255, 255, 0.08);
+	}
+
+	.portfolio-view-mode-choice:focus-visible {
+		outline: none;
+		box-shadow:
+			inset 0 0 0 2px var(--cursor-blue),
+			inset 1px 0 0 var(--grey-light);
+		z-index: 1;
+	}
+
+	.portfolio-view-mode-choice:first-child:focus-visible {
+		box-shadow: inset 0 0 0 2px var(--cursor-blue);
+	}
+
+	:global(html.dark-theme) .portfolio-view-mode-choice:focus-visible {
+		box-shadow:
+			inset 0 0 0 2px var(--cursor-teal),
+			inset 1px 0 0 rgba(255, 255, 255, 0.12);
+	}
+
+	:global(html.dark-theme) .portfolio-view-mode-choice:first-child:focus-visible {
+		box-shadow: inset 0 0 0 2px var(--cursor-teal);
+	}
+
+	.portfolio-view-mode-choice--active {
+		color: var(--bg-color);
 		background: var(--text-color);
+	}
+
+	.portfolio-view-mode-choice--active:hover {
+		background: color-mix(in srgb, var(--text-color) 86%, #000);
 		color: var(--bg-color);
 	}
 
-	.view-mode-btn:hover:not(.active) {
-		background: var(--alpha-black-002, rgba(0, 0, 0, 0.04));
+	:global(html.dark-theme) .portfolio-view-mode-choice--active:hover {
+		background: color-mix(in srgb, var(--text-color) 90%, #fff);
+		color: var(--bg-color);
 	}
 
 	@media (max-width: 600px) {
-		.view-mode-toggle {
-			padding: 0;
+		.portfolio-case-metadata-rail {
+			padding-inline: 0;
+		}
+
+		.portfolio-meta-about-row {
+			grid-template-columns: 1fr;
+			row-gap: var(--spacing-md);
 		}
 	}
 
@@ -719,14 +888,25 @@
 		max-width: 800px;
 		display: flex;
 		flex-direction: column;
+		flex: 1 1 auto;
+		min-height: 0;
 	}
 
 	.content-view {
 		width: 100%;
 		min-width: 100%;
 		box-sizing: border-box;
-		flex: 1;
-		flex-grow: 1;
+		flex: 1 1 auto;
+		min-height: 0;
+		position: relative;
+		isolation: isolate;
+		display: flex;
+		flex-direction: column;
+		gap: 0;
+		padding-top: 0;
+		padding-bottom: 0;
+		padding-left: var(--spacing-lg);
+		padding-right: var(--spacing-lg);
 	}
 
 	:global(.portfolio-content) .content-view {
@@ -743,14 +923,29 @@
 		max-width: 100%;
 	}
 
-	.content-view {
+	.content-view-main {
+		flex: 1 1 auto;
 		display: flex;
 		flex-direction: column;
 		gap: var(--spacing-xl);
-		padding-top: 0;
-		padding-bottom: var(--spacing-lg);
-		padding-left: var(--spacing-lg);
-		padding-right: var(--spacing-lg);
+		min-height: 0;
+	}
+
+	.portfolio-view-mode-dock {
+		position: sticky;
+		bottom: var(--spacing-md);
+		align-self: flex-start;
+		width: fit-content;
+		max-width: calc(100% - var(--spacing-lg) * 2);
+		z-index: var(--z-40);
+		flex-shrink: 0;
+		margin-top: 0;
+		margin-left: var(--spacing-lg);
+		pointer-events: none;
+	}
+
+	.portfolio-view-mode-dock .portfolio-view-mode-segmented {
+		pointer-events: auto;
 	}
 
 	.content-view--slides {
@@ -1046,6 +1241,13 @@
 			'wght' 360;
 	}
 
+	/* Match sibling metadata weight in dark theme. */
+	:global(html.dark-theme) .hero-description.hero-description--beside-meta {
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 360;
+	}
+
 	:global(html.dark-theme) .image-caption {
 		font-variation-settings:
 			'CASL' 0,
@@ -1057,6 +1259,10 @@
 	}
 
 	@media (max-width: 768px) {
+		.portfolio-summary-column .details-label {
+			line-height: 1.4;
+		}
+
 		.project-title {
 			font-size: clamp(3.25rem, 15vw, 5rem);
 			line-height: 1;
@@ -1125,6 +1331,11 @@
 		.content-view {
 			padding-left: 0;
 			padding-right: 0;
+		}
+
+		.portfolio-view-mode-dock {
+			margin-left: var(--spacing-md);
+			max-width: calc(100% - var(--spacing-md) * 2);
 		}
 
 		.content-blocks,
@@ -1241,6 +1452,22 @@
 		text-align: left;
 	}
 
+	/* Match `.text-block` body copy (not oversized intro hero typography). */
+	.hero-description.hero-description--beside-meta {
+		margin: 0;
+		min-width: 0;
+		width: auto;
+		max-width: min(74ch, 100%);
+		font-size: var(--font-size-base);
+		line-height: 1.43;
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 370;
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-md);
+	}
+
 	.highlight-line {
 		display: inline;
 		line-height: 1.3;
@@ -1286,6 +1513,11 @@
 	@media (max-width: 768px) {
 		.hero-description {
 			font-size: var(--font-size-xl);
+			line-height: 1.32;
+		}
+
+		.hero-description.hero-description--beside-meta {
+			font-size: var(--font-size-base);
 			line-height: 1.32;
 		}
 

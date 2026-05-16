@@ -864,7 +864,6 @@
 											videoCurrentMs={detailVideoCurrentMs}
 											videoIsPlaying={detailMediaIsPlaying}
 											year={activeDetailItem.year}
-											role={activeDetailItem.role}
 											link={activeDetailItem.link}
 											metrics={activeDetailItem.metrics}
 											team={activeDetailItem.team}
@@ -1317,7 +1316,7 @@
 
 	.detail-panel-piece :global(.portfolio-expanded-view) {
 		height: auto !important;
-		min-height: max-content;
+		min-height: 100%;
 		overflow: visible !important;
 		max-width: 100% !important;
 		margin: 0 !important;

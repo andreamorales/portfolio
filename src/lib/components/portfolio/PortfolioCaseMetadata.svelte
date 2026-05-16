@@ -1,29 +1,38 @@
 <script lang="ts">
+	import {
+		normalizePortfolioMetrics,
+		type PortfolioMetricInput
+	} from '$lib/utils/portfolioMetrics';
+
 	export let year = '';
-	export let role = '';
 	export let link = '';
-	export let metrics: string[] = [];
-	export let team: Array<{ role: string; name: string; relationship: string }> = [];
+	export let metrics: PortfolioMetricInput[] | string[] = [];
 	/** 'page' matches the main column; 'embedded' sits above slides (full-width row). */
 	export let variant: 'page' | 'embedded' = 'page';
+
+	$: impactMetrics = normalizePortfolioMetrics(metrics);
+	$: impactsToShow = impactMetrics.slice(0, 2);
+	$: impactsUsePixelMarks = impactsToShow.length > 1;
 </script>
 
 <div
 	class="portfolio-case-metadata"
 	class:portfolio-case-metadata--embedded={variant === 'embedded'}
 >
-	<div class="project-details-grid">
-		<div class="details-row">
-			<div class="details-cell">
-				<div class="details-label">Year</div>
-				<div class="details-value">{year}</div>
+	<div class="case-meta">
+		<div class="case-meta-stack">
+			<div class="case-meta-field">
+				<div class="case-meta-label-block">
+					<div class="details-label">Timeline</div>
+					<div class="details-label-rule" aria-hidden="true"></div>
+				</div>
+				<div class="details-value">{year || '—'}</div>
 			</div>
-			<div class="details-cell">
-				<div class="details-label">Role</div>
-				<div class="details-value">{role}</div>
-			</div>
-			<div class="details-cell">
-				<div class="details-label">Link</div>
+			<div class="case-meta-field">
+				<div class="case-meta-label-block">
+					<div class="details-label">Link</div>
+					<div class="details-label-rule" aria-hidden="true"></div>
+				</div>
 				<div class="details-value">
 					{#if link === 'Discontinued'}
 						<span class="discontinued-text">Discontinued</span>
@@ -36,27 +45,37 @@
 					{/if}
 				</div>
 			</div>
-		</div>
-		<div class="details-row metrics-row">
-			{#each metrics.slice(0, 2) as metric, index (`${metric}-${index}`)}
-				<div class="details-cell">
+			<div class="case-meta-field">
+				<div class="case-meta-label-block">
 					<div class="details-label">Impact</div>
-					<div class="details-value">{metric}</div>
+					<div class="details-label-rule" aria-hidden="true"></div>
 				</div>
-			{/each}
-			<div class="details-cell">
-				<div class="details-label">Team</div>
-				<div class="details-value team-list">
-					{#if team && team.length > 0}
-						{#each team as member (`${member.role}-${member.name}`)}
-							<div class="team-member">
-								<span class="role">{member.role}:</span>
-								<span class="name">{member.name}</span>
-								<span class="relationship">({member.relationship})</span>
-							</div>
+				<div class="details-value impact-wrap">
+					{#if impactsToShow.length > 0}
+						{#each impactsToShow as m, index (`${m.text}-${index}`)}
+							<p class="impact-item" class:impact-item--with-pixel-mark={impactsUsePixelMarks}>
+								{#if impactsUsePixelMarks}
+									<svg
+										class="impact-item__pixel"
+										xmlns="http://www.w3.org/2000/svg"
+										viewBox="0 0 1 1"
+										width="4"
+										height="4"
+										fill="currentColor"
+										shape-rendering="crispEdges"
+										aria-hidden="true"
+										style="image-rendering: pixelated"
+									>
+										<rect width="1" height="1" />
+									</svg>
+									<span class="impact-item__text">{m.text}</span>
+								{:else}
+									{m.text}
+								{/if}
+							</p>
 						{/each}
 					{:else}
-						<span class="muted-text">Solo project</span>
+						<span class="muted-text">—</span>
 					{/if}
 				</div>
 			</div>
@@ -67,58 +86,72 @@
 <style>
 	.portfolio-case-metadata {
 		width: 100%;
+		min-width: 0;
+		max-width: 100%;
+		box-sizing: border-box;
 	}
 
 	.portfolio-case-metadata--embedded {
 		margin-bottom: 0;
 	}
 
-	.project-details-grid {
+	.case-meta {
 		width: 100%;
-		background-color: transparent;
 		font-family: inherit;
-		border-top: 1px solid var(--black);
 	}
 
-	.details-row {
-		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		border-bottom: 1px solid var(--black);
-	}
-
-	.details-row:first-child {
-		border-bottom: none;
-	}
-
-	.metrics-row {
-		border-top: 1px solid var(--black);
-	}
-
-	.details-cell {
+	.case-meta-stack {
 		display: flex;
 		flex-direction: column;
-		padding: var(--spacing-sm);
-		border-right: 1px solid var(--black);
+		align-items: flex-start;
+		gap: var(--spacing-lg);
+		min-width: 0;
 	}
 
-	.details-cell:last-child {
-		border-right: none;
+	.case-meta-field {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-xs);
+		min-width: 0;
+		width: 100%;
+	}
+
+	.case-meta-label-block {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-xxs);
+		width: 100%;
+		min-width: 0;
+	}
+
+	.details-label-rule {
+		margin: 0;
+		align-self: stretch;
+		flex-shrink: 0;
+		height: 0;
+		border: none;
+		border-top: 1px solid var(--portfolio-metadata-rule);
 	}
 
 	.details-label {
 		font-size: var(--font-size-xxs);
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		line-height: 1.35;
 		color: var(--palette-grey-600);
 		font-variation-settings:
 			'CASL' 0,
-			'wght' 400;
+			'wght' 600;
 	}
 
 	.details-value {
-		font-size: var(--font-size-sm);
+		font-size: var(--font-size-base);
+		line-height: 1.6;
+		letter-spacing: -0.01em;
 		color: var(--text-color);
 		font-variation-settings:
 			'CASL' 0,
-			'wght' 500;
+			'wght' 370;
 		word-wrap: break-word;
 	}
 
@@ -146,108 +179,63 @@
 			'wght' 400;
 	}
 
-	.team-list {
+	.impact-wrap {
 		display: flex;
 		flex-direction: column;
+		gap: var(--spacing-xs);
+		min-width: 0;
+	}
+
+	.impact-item {
+		margin: 0;
+		font-size: inherit;
+		line-height: inherit;
+		font-variation-settings: inherit;
+		color: inherit;
+	}
+
+	.impact-item--with-pixel-mark {
+		display: flex;
+		align-items: flex-start;
 		gap: var(--spacing-xxs);
+		min-width: 0;
 	}
 
-	.team-member {
-		font-size: var(--font-size-xs);
-		line-height: 1.4;
-		padding-left: 0;
-		position: relative;
+	.impact-item__pixel {
+		flex-shrink: 0;
+		display: block;
+		margin-top: 0.32em;
+		opacity: 0.72;
 	}
 
-	.team-list:has(.team-member:nth-child(2)) .team-member {
-		padding-left: var(--spacing-sm);
+	:global(html.dark-theme) .impact-item__pixel {
+		opacity: 0.82;
 	}
 
-	.team-list:has(.team-member:nth-child(2)) .team-member::before {
-		content: '•';
-		position: absolute;
-		left: 0;
-		color: var(--palette-grey-600);
-	}
-
-	.role {
-		color: var(--text-color);
-		font-variation-settings:
-			'CASL' 0,
-			'wght' 500;
-	}
-
-	.name,
-	.relationship {
-		color: var(--palette-grey-600);
-	}
-
-	.relationship {
-		font-style: italic;
-	}
-
-	:global(html.dark-theme) .project-details-grid {
-		--black: var(--palette-grey-700);
-	}
-
-	:global(html.dark-theme) .details-label,
-	:global(html.dark-theme) .name,
-	:global(html.dark-theme) .relationship {
-		color: var(--palette-grey-hint);
+	.impact-item__text {
+		min-width: 0;
 	}
 
 	:global(html.dark-theme) .details-value {
+		letter-spacing: 0.03em;
 		font-variation-settings:
 			'CASL' 0,
-			'wght' 460;
+			'wght' 360;
 	}
 
-	:global(html.dark-theme) .role {
-		color: var(--text-color);
-	}
-
-	:global(html.dark-theme) .team-list:has(.team-member:nth-child(2)) .team-member::before {
+	:global(html.dark-theme) .details-label {
 		color: var(--palette-grey-hint);
 	}
 
 	@media (max-width: 768px) {
 		.details-label {
-			font-size: var(--font-size-base);
+			font-size: var(--font-size-xxs);
 			line-height: 1.4;
 		}
 
 		.details-value {
 			font-size: var(--font-size-base);
-			line-height: 1.45;
-		}
-
-		.team-member {
-			font-size: var(--font-size-base);
-			line-height: 1.4;
-		}
-	}
-
-	@media (max-width: 600px) {
-		.project-details-grid {
-			border-left: 1px solid var(--black);
-			border-right: 1px solid var(--black);
-		}
-
-		.details-row {
-			grid-template-columns: 1fr;
-		}
-
-		.details-cell:not(:last-child) {
-			border-right: none;
-			border-bottom: 1px solid var(--black);
-		}
-
-		.metrics-row .details-cell:nth-last-child(2) {
-			border-bottom: none;
-		}
-
-		.metrics-row .details-cell:last-child {
-			border-top: 1px solid var(--black);
+			line-height: 1.38;
 		}
 	}
 </style>

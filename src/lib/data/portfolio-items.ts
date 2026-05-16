@@ -91,7 +91,8 @@ const initialPortfolioItems = [
 		slug: 'most-recent1',
 		tags: ['UX/UI', 'FRONTEND'],
 		expanded: false,
-		description: 'Password-protected case study for my most recent product work.',
+		description:
+			'This portfolio piece is password protected until the accompanying case study is ready to publish.\n\nEnter the passphrase to read the narrative, artifacts, and outcomes.',
 		videoUrl: '',
 		quickNavThumbnail: '/images/portfolio/most-recent/thumbnail.svg',
 		images: [],
@@ -109,7 +110,7 @@ const initialPortfolioItems = [
 		tags: ['UX/UI'],
 		expanded: false,
 		description:
-			"Reimagining MongoDB's Realm Schema designer with a focus on tackling mobile developers unfamiliar with database schemas.",
+			'A redesign of MongoDB Realm Schema Designer centered on clearer structure and less cognitive load—especially for mobile developers who still build intuition around database schemas.\n\nCollaborative research and iteration with PM and engineering produced a tightened flow and materially stronger completion of participants\' first schema after ship.',
 		videoUrl: mongodbVideoUrl,
 		videoPosterUrl: mongodbFirstFrameUrl,
 		transcriptCues: mongodbCaptions.captions,
@@ -231,7 +232,8 @@ const initialPortfolioItems = [
 		title: 'FireHydrant: Design System',
 		tags: ['UX/UI'],
 		expanded: false,
-		description: 'Increasing the quality of design systemically, in the most efficient way',
+		description:
+			'A design-led effort to raise UX quality despite a fragmented design-system foundation and constrained team capacity.\n\nAligning designers and frontend engineering on pragmatic governance, OSS-based primitives (Chakra UI), and shared patterns improved consistency and noticeably shortened design–engineering turnaround.',
 		videoUrl: firehydrantVideoUrl,
 		videoPosterUrl: firehydrantFirstFrameUrl,
 		transcriptCues: firehydrantCaptions.captions,
@@ -396,7 +398,7 @@ const initialPortfolioItems = [
 		tags: ['UX/UI'],
 		expanded: false,
 		description:
-			'Teaching Roblox devs how to use API keys, whether they are beginners or advanced users.',
+			'Teaching Roblox Creator Hub developers to use API keys and OAuth permissions—meeting both beginners and power users—in a deliberately short delivery window.\n\nRapid wireframing and lightweight research cycles with PM and engineering produced a clearer, more approachable flow that supported a large jump in documented API tooling usage.',
 		videoUrl: robloxVideoUrl,
 		videoPosterUrl: robloxFirstFrameUrl,
 		transcriptCues: robloxCaptions.captions,
@@ -512,7 +514,7 @@ const initialPortfolioItems = [
 		tags: ['UX/UI', 'FRONTEND'],
 		expanded: false,
 		description:
-			'Panto helps AI app layer companies evaluate the true usefulness of their data in order to post-train better AI models.',
+			'Panto helps teams analyze which unstructured data feeds still improve downstream models—a focused answer to noisy “more data always helps” tooling.\n\nAs co-founders we refined the wedge with early partners; I led product design and built the frontend for the MVP.',
 		videoUrl: pantoVideoUrl,
 		videoPosterUrl: pantoFirstFrameUrl,
 		transcriptCues: pantoCaptions.captions,
@@ -635,7 +637,7 @@ const initialPortfolioItems = [
 		tags: ['TOY DESIGN'],
 		expanded: false,
 		description:
-			"La Güila Toys is a line of toys that explore death and the passage of time, making bleak topics playful. I've created more than 20 toys in total.",
+			'La Güila Toys is a resin toy series that treats mortality and the passage of time playfully.\n\nSince 2023 I\u2019ve made over twenty pieces, pairing formal study at FIT with self-taught sculpting, molding, and finishing.',
 		videoUrl: laguilaVideoUrl,
 		videoPosterUrl: laguilaFirstFrameUrl,
 		transcriptCues: laguilaCaptions.captions,
@@ -802,7 +804,7 @@ const initialPortfolioItems = [
 		tags: ['GAME DESIGN'],
 		expanded: false,
 		description:
-			'Torch is a freeform Live Action Roleplaying game exploring themes of multigenerational storytelling and collective memory.',
+			'Torch is a live-action roleplaying game about spontaneous nationhood that asks players to improvise interconnected stories spanning centuries.\n\nIt won Golden Cobra\'s Best Multi-Generational Game award and premiered at Metatopia 2018; Juan Apéstegui illustrated the tabletop edition.',
 		videoUrl: torchVideoUrl,
 		videoPosterUrl: torchFirstFrameUrl,
 		transcriptCues: torchCaptions.captions,

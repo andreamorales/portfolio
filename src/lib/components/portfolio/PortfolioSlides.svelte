@@ -1,13 +1,14 @@
 <script lang="ts">
 	import type { SlideItem } from '$lib/data/portfolio-items';
 	import PortfolioCaseMetadata from '$lib/components/portfolio/PortfolioCaseMetadata.svelte';
+	import type { PortfolioMetricInput } from '$lib/utils/portfolioMetrics';
 
 	export let slides: SlideItem[] = [];
+	/** Case summary paragraphs (`description` split by blank lines); shown only on carousel slide index 0. */
+	export let introSummaryParagraphs: string[] = [];
 	export let year = '';
-	export let role = '';
 	export let link = '';
-	export let metrics: string[] = [];
-	export let team: Array<{ role: string; name: string; relationship: string }> = [];
+	export let metrics: PortfolioMetricInput[] | string[] = [];
 	export let staggerReveal = false;
 	export let revealDelayMs = 0;
 	export let videoCurrentMs = 0;
@@ -31,6 +32,7 @@
 	$: hasText = !!(slide?.title || slide?.text);
 	$: hasImage = !!slide?.image;
 	$: isFirstSlide = currentSlide === 0;
+	$: useIntroText = dataIndex === 0 && introSummaryParagraphs.length > 0;
 	$: isLastSlide = currentSlide === totalSlides - 1;
 
 	$: hasTiming = slides.some((s) => s.startMs != null);
@@ -130,7 +132,7 @@
 		{#key currentSlide}
 			{#if isMetadataSlide}
 				<div class="slide-content slide-content--metadata">
-					<PortfolioCaseMetadata variant="embedded" {year} {role} {link} {metrics} {team} />
+					<PortfolioCaseMetadata variant="embedded" {year} {link} {metrics} />
 				</div>
 			{:else}
 				<div
@@ -148,17 +150,39 @@
 							{/if}
 						</div>
 					{:else if layout === 'image-only'}
-						<div class="slide-image-centered">
-							{#if hasImage}
-								<img src={slide.image} alt={slide.imageAlt || ''} />
-							{/if}
-						</div>
+						{#if useIntroText}
+							<div class="slide-split">
+								<div class="slide-text-half">
+									{#if slide.title}
+										<h3 class="slide-title">{slide.title}</h3>
+									{/if}
+									{#each introSummaryParagraphs as para, sumIdx (`slide-sum-${sumIdx}`)}
+										<p class="slide-body">{para}</p>
+									{/each}
+								</div>
+								<div class="slide-image-half">
+									{#if hasImage}
+										<img src={slide.image} alt={slide.imageAlt || ''} />
+									{/if}
+								</div>
+							</div>
+						{:else}
+							<div class="slide-image-centered">
+								{#if hasImage}
+									<img src={slide.image} alt={slide.imageAlt || ''} />
+								{/if}
+							</div>
+						{/if}
 					{:else if layout === 'text-only'}
 						<div class="slide-text-full">
 							{#if slide.title}
 								<h3 class="slide-title">{slide.title}</h3>
 							{/if}
-							{#if slide.text}
+							{#if useIntroText}
+								{#each introSummaryParagraphs as para, sumIdx (`slide-sum-${sumIdx}`)}
+									<p class="slide-body">{para}</p>
+								{/each}
+							{:else if slide.text}
 								<p class="slide-body">{slide.text}</p>
 							{/if}
 						</div>
@@ -169,7 +193,11 @@
 								{#if slide.title}
 									<h3 class="slide-title">{slide.title}</h3>
 								{/if}
-								{#if slide.text}
+								{#if useIntroText}
+									{#each introSummaryParagraphs as para, sumIdx (`slide-sum-${sumIdx}`)}
+										<p class="slide-body">{para}</p>
+									{/each}
+								{:else if slide.text}
 									<p class="slide-body">{slide.text}</p>
 								{/if}
 							</div>
@@ -254,6 +282,7 @@
 		--text-color: var(--white, #f3ead6);
 		--palette-grey-600: rgba(243, 234, 214, 0.72);
 		--palette-grey-hint: rgba(243, 234, 214, 0.72);
+		--portfolio-metadata-rule: rgba(243, 234, 214, 0.22);
 		--muted-text: rgba(243, 234, 214, 0.65);
 		--palette-rainbow-6: #f0c674;
 	}
@@ -263,6 +292,7 @@
 		--text-color: var(--palette-bg, #141312);
 		--palette-grey-600: rgba(20, 19, 18, 0.75);
 		--palette-grey-hint: rgba(20, 19, 18, 0.75);
+		--portfolio-metadata-rule: rgba(20, 19, 18, 0.2);
 		--muted-text: rgba(20, 19, 18, 0.65);
 		--palette-rainbow-6: #8b6914;
 	}
@@ -538,7 +568,6 @@
 		animation: slide-fade-in 360ms cubic-bezier(0.22, 0.61, 0.36, 1);
 	}
 
-	/* Text-only layout */
 	.layout-text-only {
 		align-items: center;
 		justify-content: center;
