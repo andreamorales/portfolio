@@ -200,7 +200,7 @@
 
 	.impact-item--with-pixel-mark {
 		display: flex;
-		align-items: center;
+		align-items: flex-start;
 		gap: var(--spacing-xxs);
 		min-width: 0;
 	}
@@ -209,6 +209,9 @@
 		flex-shrink: 0;
 		display: block;
 		opacity: 0.72;
+		/* Line box is taller than glyphs; flex-start left the square hugging the top.
+		   Nudge down so the marker sits on the first line (still flex-start for multi-line). */
+		margin-top: calc((1lh - 4px) / 2);
 	}
 
 	:global(html.dark-theme) .impact-item__pixel {
