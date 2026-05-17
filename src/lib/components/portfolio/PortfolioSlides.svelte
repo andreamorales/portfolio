@@ -69,9 +69,23 @@
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
+		if (isFullscreen && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) return;
 		if (e.key === 'ArrowRight') next();
 		else if (e.key === 'ArrowLeft') prev();
 		else if (e.key === 'Escape' && isFullscreen) exitFullscreen();
+	}
+
+	function handleFullscreenWindowKeydown(e: KeyboardEvent) {
+		if (!isFullscreen) return;
+		if (e.key === 'ArrowRight') {
+			e.preventDefault();
+			next();
+		} else if (e.key === 'ArrowLeft') {
+			e.preventDefault();
+			prev();
+		} else if (e.key === 'Escape') {
+			exitFullscreen();
+		}
 	}
 
 	let slideEl: HTMLElement;
@@ -108,7 +122,10 @@
 </script>
 
 <!-- svelte-ignore a11y-no-noninteractive-tabindex a11y-no-noninteractive-element-interactions -->
-<svelte:window on:fullscreenchange={onFullscreenChange} />
+<svelte:window
+	on:fullscreenchange={onFullscreenChange}
+	on:keydown={handleFullscreenWindowKeydown}
+/>
 <div
 	class="slides-container"
 	class:slides-container--staggered={staggerReveal}
@@ -326,7 +343,7 @@
 		--palette-grey-hint: rgba(20, 19, 18, 0.75);
 		--portfolio-metadata-rule: rgba(20, 19, 18, 0.2);
 		--muted-text: rgba(20, 19, 18, 0.65);
-		--palette-rainbow-6: #8b6914;
+		--palette-rainbow-6: var(--portfolio-metadata-link-on-ink);
 	}
 
 	.slides-container {

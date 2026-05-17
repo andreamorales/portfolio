@@ -972,6 +972,17 @@ textarea {
 	/** Soft divider on dark page bg (`--portfolio-metadata-rule`) */
 	--portfolio-metadata-rule: var(--palette-grey-400);
 
+	/*
+	  Metadata “View project” on the default dark page — same vibrant accent as
+	  `.slide-content--metadata` in light slide chrome (#f0c674 in PortfolioSlides).
+	*/
+	--portfolio-metadata-link: #f0c674;
+	/*
+	  Metadata link on the inverted slide band (warm ink / beige fill, dark type):
+	  needs a darker gold for contrast — do not use for the page rail.
+	*/
+	--portfolio-metadata-link-on-ink: #8b6914;
+
 	/* Rainbow — deep/muted accents (beige + greys unchanged) */
 	--palette-rainbow-1: #a85252;
 	--palette-rainbow-2: #b87440;

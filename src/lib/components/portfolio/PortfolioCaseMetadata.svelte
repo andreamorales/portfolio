@@ -162,6 +162,10 @@
 		transition: opacity var(--transition);
 	}
 
+	:global(html.dark-theme) .project-link {
+		color: var(--portfolio-metadata-link);
+	}
+
 	.project-link:hover {
 		opacity: 0.75;
 	}
