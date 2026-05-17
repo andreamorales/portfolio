@@ -37,6 +37,17 @@ interface ContentItem {
 	};
 }
 
+export interface SlideItem {
+	title?: string;
+	text?: string;
+	image?: string;
+	imageAlt?: string;
+	imageCaption?: string;
+	layout?: 'text-only' | 'image-only' | 'text-left' | 'text-right' | 'full-bleed';
+	/** Video timestamp (ms) at which this slide should become active. */
+	startMs?: number;
+}
+
 interface TeamMember {
 	role: string;
 	name: string;
@@ -62,6 +73,7 @@ export interface PortfolioItem {
 	quickNavThumbnail: string;
 	images: PortfolioImage[];
 	content: ContentItem[];
+	slides?: SlideItem[];
 	year: string;
 	role: string;
 	link: string;
@@ -79,7 +91,8 @@ const initialPortfolioItems = [
 		slug: 'most-recent1',
 		tags: ['UX/UI', 'FRONTEND'],
 		expanded: false,
-		description: 'Password-protected case study for my most recent product work.',
+		description:
+			'This portfolio piece is password protected until the accompanying case study is ready to publish.\n\nEnter the passphrase to read the narrative, artifacts, and outcomes.',
 		videoUrl: '',
 		quickNavThumbnail: '/images/portfolio/most-recent/thumbnail.svg',
 		images: [],
@@ -97,7 +110,7 @@ const initialPortfolioItems = [
 		tags: ['UX/UI'],
 		expanded: false,
 		description:
-			"Reimagining MongoDB's Realm Schema designer with a focus on tackling mobile developers unfamiliar with database schemas.",
+			"I redesigned MongoDB's Realm Schema Designer to cut cognitive load—especially for mobile developers still building intuition around database schemas.\n\nThrough research and iteration with PM and engineering, I tightened the flow and drove first-schema completion from near zero to over 100% in two weeks.",
 		videoUrl: mongodbVideoUrl,
 		videoPosterUrl: mongodbFirstFrameUrl,
 		transcriptCues: mongodbCaptions.captions,
@@ -207,6 +220,70 @@ const initialPortfolioItems = [
 			'P0 bugs from original product reduced by 100%',
 			'4 components contributed to LeafyGreen, the MongoDB design system'
 		],
+		slides: [
+			{
+				title: 'MongoDB: Realm Schema',
+				text: 'Redesigning the schema designer to reduce cognitive load for mobile developers.',
+				image: '/images/portfolio/mongodb/hero.webp',
+				imageAlt: 'Schema Designer Interface',
+				layout: 'text-left',
+				startMs: 0
+			},
+			{
+				title: 'Blue Sky Workshops',
+				text: 'Design led a two-week series of workshops and rapid prototyping. The hunch: Schema was difficult to use and not designed for easy context switching.',
+				image: '/images/portfolio/mongodb/bluesky.gif',
+				imageAlt: 'Blue Sky Workshop',
+				layout: 'text-right',
+				startMs: 30000
+			},
+			{
+				title: 'The Problem',
+				text: 'The existing UI failed basic heuristic evaluations and required constant context switching between disconnected parts of the interface.',
+				image: '/images/portfolio/mongodb/before.webp',
+				imageAlt: 'Previous Interface',
+				layout: 'text-left',
+				startMs: 60000
+			},
+			{
+				title: 'Research & Validation',
+				text: 'Generative research, prototyping, and evaluative research confirmed our hunch—the schema feature was a real pain point.',
+				image: '/images/portfolio/mongodb/uxr.webp',
+				imageAlt: 'User Research',
+				layout: 'text-right',
+				startMs: 90000
+			},
+			{
+				image: '/images/portfolio/mongodb/workshop.gif',
+				imageAlt: 'Collaborative design workshop',
+				layout: 'full-bleed',
+				startMs: 110000
+			},
+			{
+				title: 'Design Iteration',
+				text: 'Five months of wireframe iteration informed by research, ongoing user testing, and input from designers, PMs, and engineers.',
+				image: '/images/portfolio/mongodb/figma.webp',
+				imageAlt: 'Figma Components',
+				layout: 'text-left',
+				startMs: 125000
+			},
+			{
+				title: 'Handoff & Scope',
+				text: 'As we moved into scoping with engineering, I cut scope where possible while advocating for user delight: animated empty states, clearer copy, and shortcuts for power users.',
+				image: '/images/portfolio/mongodb/handoff.webp',
+				imageAlt: 'Design Handoff',
+				layout: 'text-right',
+				startMs: 150000
+			},
+			{
+				title: 'Results',
+				text: 'Zero P0 bugs. Task completion for mobile devs went from near 0 to over 100% in two weeks. Four components contributed to LeafyGreen.',
+				image: '/images/portfolio/mongodb/results.webp',
+				imageAlt: 'Results Dashboard',
+				layout: 'text-left',
+				startMs: 175000
+			}
+		],
 		team: [
 			{ role: 'Senior Designer', name: 'Rashmi Srinivas', relationship: 'direct report' },
 			{ role: 'UXR', name: 'Braden Thuraisingham', relationship: 'direct report' },
@@ -219,7 +296,8 @@ const initialPortfolioItems = [
 		title: 'FireHydrant: Design System',
 		tags: ['UX/UI'],
 		expanded: false,
-		description: 'Increasing the quality of design systemically, in the most efficient way',
+		description:
+			'I came into FireHydrant as Sr. Director of Design and found a fragmented design system with no guidelines and no clear engineering ownership.\n\nI aligned designers and frontend engineers on Chakra UI, built a governance model, and cut design–engineering turnaround by 30%.',
 		videoUrl: firehydrantVideoUrl,
 		videoPosterUrl: firehydrantFirstFrameUrl,
 		transcriptCues: firehydrantCaptions.captions,
@@ -369,6 +447,78 @@ const initialPortfolioItems = [
 			'Convinced exec team to hire a design systems engineer',
 			'Reduced design and eng turnaround times by 30%'
 		],
+		slides: [
+			{
+				title: 'FireHydrant: Design System',
+				text: 'Raising the bar of UX quality by fixing a fragmented design-system foundation.',
+				image: '/images/portfolio/firehydrant/hero.webp',
+				imageAlt: 'Design System Overview',
+				layout: 'text-left',
+				startMs: 0
+			},
+			{
+				title: 'The Problem',
+				text: 'The existing system was built with too much CSS wrapping over OSS components, too early in the product-market fit process. No guidelines, no clear ownership on the eng side.',
+				image: '/images/portfolio/firehydrant/before.webp',
+				imageAlt: 'Previous Design',
+				layout: 'text-right',
+				startMs: 30000
+			},
+			{
+				title: 'Getting Alignment',
+				text: 'I started by listening to every partner—attended FE Guild meetings, gathered requirements. Consensus emerged: vanilla ChakraUI could do the trick.',
+				image: '/images/portfolio/firehydrant/brief.webp',
+				imageAlt: 'Project Brief',
+				layout: 'text-left',
+				startMs: 60000
+			},
+			{
+				title: 'Stakeholder Research',
+				text: 'Interviews with designers and engineers revealed where the system was failing and what the ideal state looked like.',
+				image: '/images/portfolio/firehydrant/uxr.webp',
+				imageAlt: 'User Research',
+				layout: 'text-right',
+				startMs: 85000
+			},
+			{
+				title: 'The Case for Resources',
+				text: 'To convince the CTO, I spoke his language: memos, pro/con plans, and a tangible visual vision built with my Sr Designer.',
+				image: '/images/portfolio/firehydrant/planning.webp',
+				imageAlt: 'Planning Phase',
+				layout: 'text-left',
+				startMs: 105000
+			},
+			{
+				image: '/images/portfolio/firehydrant/planning_2.webp',
+				imageAlt: 'Detailed planning',
+				layout: 'full-bleed',
+				startMs: 125000
+			},
+			{
+				title: 'Building the Vision',
+				text: 'I created "Dev SaaS templates"—table, analytics, form, item, settings, and dashboard templates—to make the future tangible.',
+				image: '/images/portfolio/firehydrant/figma.webp',
+				imageAlt: 'Figma Setup',
+				layout: 'text-right',
+				startMs: 140000
+			},
+			{
+				title: 'Ripple Effect',
+				text: 'Marketing adopted our vision for the landing page. We got approval for a Design System Engineer and 3 engineers on the migration.',
+				image: '/images/portfolio/firehydrant/results.webp',
+				imageAlt: 'Results',
+				layout: 'text-left',
+				startMs: 160000
+			},
+			{
+				title: 'Shipped',
+				text: 'All P0 and P1 usability bugs eliminated in under 2 weeks. Design–eng turnaround reduced by 30%.',
+				image: '/images/portfolio/firehydrant/system.webp',
+				imageAlt: 'System Architecture',
+				layout: 'text-right',
+				startMs: 180000
+			}
+		],
 		team: [
 			{ role: 'Principal Designer', name: 'Kate Farrar', relationship: 'direct report' },
 			{ role: 'Senior Designer', name: 'Nick Tasato', relationship: 'direct report' },
@@ -384,7 +534,7 @@ const initialPortfolioItems = [
 		tags: ['UX/UI'],
 		expanded: false,
 		description:
-			'Teaching Roblox devs how to use API keys, whether they are beginners or advanced users.',
+			"I designed the OAuth and API key flows for Roblox's Creator Hub—making them work for beginners and power users—in a two-week delivery window.\n\nI ran guerrilla research inside existing PM interviews, tested four design variants, and landed a flow that drove a 200% jump in API key usage.",
 		videoUrl: robloxVideoUrl,
 		videoPosterUrl: robloxFirstFrameUrl,
 		transcriptCues: robloxCaptions.captions,
@@ -485,6 +635,70 @@ const initialPortfolioItems = [
 		role: 'Principal Designer',
 		link: 'https://create.roblox.com/',
 		metrics: ['10 new design system components', '200% increase in API key usage'],
+		slides: [
+			{
+				title: 'Roblox: Creator Hub',
+				text: 'Teaching developers to use API keys and OAuth permissions—meeting beginners and power users alike.',
+				image: '/images/portfolio/roblox/hero.webp',
+				imageAlt: 'Creator Hub Interface',
+				layout: 'text-left',
+				startMs: 0
+			},
+			{
+				title: 'Starting Point',
+				text: 'The PM had an overall idea but no design counterpart before my arrival. Two questions: what is the ideal OAuth2 flow, and do users even know how to use API keys?',
+				image: '/images/portfolio/roblox/before.webp',
+				imageAlt: 'PM sketches',
+				layout: 'text-right',
+				startMs: 30000
+			},
+			{
+				image: '/images/portfolio/roblox/before2.webp',
+				imageAlt: 'Legacy PM sketch',
+				layout: 'full-bleed',
+				startMs: 55000
+			},
+			{
+				title: 'Rapid Wireframes',
+				text: 'Two-week delivery window. In a day I created advanced wireframes with provocations in IA, naming, and visuals to surface questions from PMs and engineers.',
+				image: '/images/portfolio/roblox/scopes.webp',
+				imageAlt: 'API Scopes',
+				layout: 'text-left',
+				startMs: 70000
+			},
+			{
+				title: 'Guerrilla Research',
+				text: 'The PM invited me to show designs during separate user interviews. I made 4 more variants and hacked simple quant results by asking Zoom-chat votes.',
+				image: '/images/portfolio/roblox/uxr.webp',
+				imageAlt: 'User Research',
+				layout: 'text-right',
+				startMs: 95000
+			},
+			{
+				title: 'Full Flow',
+				text: 'The winner was the version friendliest to new users—with docs access, simpler wording, and clear information architecture.',
+				image: '/images/portfolio/roblox/figma.webp',
+				imageAlt: 'Full Figma flow',
+				layout: 'text-left',
+				startMs: 120000
+			},
+			{
+				title: 'Final Design',
+				text: 'Through 4 internal reviews in two weeks, we arrived at a vetted design ready for development.',
+				image: '/images/portfolio/roblox/scopesfinal.webp',
+				imageAlt: 'Final API scope design',
+				layout: 'text-right',
+				startMs: 140000
+			},
+			{
+				title: 'Impact',
+				text: '10 new design system components. 200% increase in API key usage. Set a precedent for fast research across the design org.',
+				image: '/images/portfolio/roblox/designsystems.webp',
+				imageAlt: 'Design Systems',
+				layout: 'text-left',
+				startMs: 160000
+			}
+		],
 		team: [
 			{ role: 'Senior Designer', name: 'Sony Verma', relationship: 'teammate' },
 			{ role: 'Product Manager', name: 'Eric Sun', relationship: 'cross-functional partner' },
@@ -500,7 +714,7 @@ const initialPortfolioItems = [
 		tags: ['UX/UI', 'FRONTEND'],
 		expanded: false,
 		description:
-			'Panto helps AI app layer companies evaluate the true usefulness of their data in order to post-train better AI models.',
+			'My co-founder and I built Panto to help teams figure out which data actually makes their AI models better—a direct answer to “more data always helps” tooling.\n\nI led product design and built the frontend. We landed two design partners and raised a pre-seed.',
 		videoUrl: pantoVideoUrl,
 		videoPosterUrl: pantoFirstFrameUrl,
 		transcriptCues: pantoCaptions.captions,
@@ -616,6 +830,74 @@ const initialPortfolioItems = [
 		role: 'Design Lead & Frontend Engineer',
 		link: 'https://www.trypanto.com',
 		metrics: ['Two design partners', '400k raised in pre-seed'],
+		slides: [
+			{
+				title: 'Panto',
+				text: 'Helping teams figure out which data actually makes their AI models better.',
+				image: '/images/portfolio/panto/hero.webp',
+				imageAlt: 'Panto Interface',
+				layout: 'text-left',
+				startMs: 0
+			},
+			{
+				title: 'The Thesis',
+				text: 'AI is not winner-takes-all. Millions of people will fine-tune models—and understanding how data influences behavior will be key.',
+				layout: 'text-only',
+				startMs: 30000
+			},
+			{
+				title: 'Pivot',
+				text: 'Originally about IP licensing for AI. Research revealed the real problem was evaluating what data is actually valuable to a model.',
+				image: '/images/portfolio/panto/before.webp',
+				imageAlt: 'Original Landing',
+				layout: 'text-right',
+				startMs: 55000
+			},
+			{
+				title: 'The Product',
+				text: 'Data valuation tools that sample, analyze, and select data to make models 10x better. Breaking the black-box to uncover true data relevance.',
+				image: '/images/portfolio/panto/landing.webp',
+				imageAlt: 'Landing Page',
+				layout: 'text-left',
+				startMs: 80000
+			},
+			{
+				title: 'Data Scoring',
+				text: 'Data streams in live. We compare it against a baseline and crack open the model to see how it reacts, giving each data point a novelty score.',
+				image: '/images/portfolio/panto/analysis.webp',
+				imageAlt: 'Analysis View',
+				layout: 'text-right',
+				startMs: 105000
+			},
+			{
+				title: 'Visualization',
+				text: 'Charts explain complex LLM internals to developers who are technical but not ML experts.',
+				image: '/images/portfolio/panto/charts.webp',
+				imageAlt: 'Charts Dark',
+				layout: 'text-left',
+				startMs: 125000
+			},
+			{
+				image: '/images/portfolio/panto/charts_light.webp',
+				imageAlt: 'Charts Light Mode',
+				layout: 'full-bleed',
+				startMs: 140000
+			},
+			{
+				title: 'Dev-Friendly Details',
+				text: 'Zebra-striped tables, optimized forms, and both light and dark mode—shipped from day one.',
+				image: '/images/portfolio/panto/table.webp',
+				imageAlt: 'Data Table',
+				layout: 'text-right',
+				startMs: 155000
+			},
+			{
+				image: '/images/portfolio/panto/form.webp',
+				imageAlt: 'Form Interface',
+				layout: 'image-only',
+				startMs: 170000
+			}
+		],
 		team: [{ role: 'Backend Engineer', name: "Kenan O'Neal", relationship: 'co-founder' }]
 	},
 	{
@@ -623,7 +905,7 @@ const initialPortfolioItems = [
 		tags: ['TOY DESIGN'],
 		expanded: false,
 		description:
-			"La Güila Toys is a line of toys that explore death and the passage of time, making bleak topics playful. I've created more than 20 toys in total.",
+			'La Güila Toys is a resin toy series that treats mortality and the passage of time playfully.\n\nSince 2023 I\u2019ve made over twenty pieces, pairing formal study at FIT with self-taught sculpting, molding, and finishing.',
 		videoUrl: laguilaVideoUrl,
 		videoPosterUrl: laguilaFirstFrameUrl,
 		transcriptCues: laguilaCaptions.captions,
@@ -704,6 +986,78 @@ const initialPortfolioItems = [
 			{ type: 'image', value: '/images/portfolio/laguila/bigghost.webp' },
 			{ type: 'image', value: '/images/portfolio/laguila/lilghost.webp' }
 		],
+		slides: [
+			{
+				title: 'La Güila Toys',
+				text: 'A line of toys that explore death and the passage of time, making bleak topics playful.',
+				image: '/images/portfolio/laguila/hero.webp',
+				imageAlt: 'Complete toy collection',
+				layout: 'text-left',
+				startMs: 0
+			},
+			{
+				title: 'The Spark',
+				text: 'In 2023, in an effort to continue my exploration into designing playful interfaces and products, I became very interested in learning how to design resin toys.',
+				layout: 'text-only',
+				startMs: 42000
+			},
+			{
+				title: 'Learning at FIT',
+				text: 'I began by attending a toy design class at FIT, in Manhattan. I learned the basics of 3D drawn design focused on children toys.',
+				image: '/images/portfolio/laguila/draft.webp',
+				imageAlt: 'Initial toy design drafts from FIT class',
+				imageCaption: 'Initial toy design drafts from FIT class.',
+				layout: 'text-right',
+				startMs: 67000
+			},
+			{
+				title: 'Self-Taught Sculpting',
+				text: 'After that, I self-taught the basics of sculpting and resin pouring.',
+				image: '/images/portfolio/laguila/sculpt.webp',
+				imageAlt: 'Self-taught toy sculpting process',
+				imageCaption: 'Self-taught toy sculpting process.',
+				layout: 'text-left',
+				startMs: 103000
+			},
+			{
+				image: '/images/portfolio/laguila/pour.webp',
+				imageAlt: 'Self-taught mold pouring process',
+				imageCaption: 'Self-taught mold pouring process.',
+				layout: 'full-bleed',
+				startMs: 121000
+			},
+			{
+				title: 'The Armadillos',
+				text: 'The Armadillo toy series, inspired by Mexican alebrijes — brightly colored folk art sculptures.',
+				image: '/images/portfolio/laguila/armadillos.webp',
+				imageAlt: 'The Armadillo toy series',
+				layout: 'text-right',
+				startMs: 138000
+			},
+			{
+				title: '20+ Designs',
+				text: 'All of this resulted in 20+ toy designs, two of which have been featured in art galleries.',
+				image: '/images/portfolio/laguila/stump.webp',
+				imageAlt: 'The Stump toy design',
+				imageCaption: 'The Stump toy design.',
+				layout: 'text-left',
+				startMs: 151000
+			},
+			{
+				image: '/images/portfolio/laguila/bigghost.webp',
+				imageAlt: 'The Big Ghost toy',
+				imageCaption: 'The Big Ghost toy.',
+				layout: 'image-only',
+				startMs: 167000
+			},
+			{
+				image: '/images/portfolio/laguila/lilghost.webp',
+				imageAlt: 'The Little Ghost toy',
+				imageCaption: 'The Little Ghost toy.',
+				layout: 'image-only',
+				startMs: 178000
+			}
+		],
 		year: '2023-2025',
 		role: 'Toy Designer',
 		link: 'https://www.instagram.com/laguila_toys',
@@ -718,7 +1072,7 @@ const initialPortfolioItems = [
 		tags: ['GAME DESIGN'],
 		expanded: false,
 		description:
-			'Torch is a freeform Live Action Roleplaying game exploring themes of multigenerational storytelling and collective memory.',
+			"I designed Torch, a live-action roleplaying game where players improvise interconnected stories spanning centuries of a newly independent nation.\n\nIt won Golden Cobra's Best Multi-Generational Game award and premiered at Metatopia 2018. Juan Apéstegui illustrated the tabletop edition.",
 		videoUrl: torchVideoUrl,
 		videoPosterUrl: torchFirstFrameUrl,
 		transcriptCues: torchCaptions.captions,
@@ -768,6 +1122,48 @@ const initialPortfolioItems = [
 		role: 'Lead Game Designer',
 		link: 'https://mentapurpura.itch.io/torch',
 		metrics: ['Winner of Golden Cobra Award', 'Featured at Metatopia 2018'],
+		slides: [
+			{
+				title: 'Torch',
+				text: 'A live-action roleplaying game about spontaneous nationhood, spanning centuries of improvised stories.',
+				image: '/images/portfolio/torch/hero.webp',
+				imageAlt: 'Cover of the game',
+				layout: 'text-left',
+				startMs: 0
+			},
+			{
+				title: 'The Premise',
+				text: "Players are citizens of a newly independent country. They travel through time telling stories of that event's impact—from Independence Day to 500 years in the future.",
+				image: '/images/portfolio/torch/instructions.webp',
+				imageAlt: 'Instructions page',
+				layout: 'text-right',
+				startMs: 30000
+			},
+			{
+				title: 'Scene Creation',
+				text: 'Players create scenes by focusing on their senses—sight, sound, smell, touch—building an immersive world together.',
+				image: '/images/portfolio/torch/outtake.webp',
+				imageAlt: 'Scene creation page',
+				layout: 'text-left',
+				startMs: 55000
+			},
+			{
+				title: 'The Mechanics',
+				text: 'Players lie on the floor. Each round the lamplight moves in a circular motion, passing the narrative torch from player to player.',
+				image: '/images/portfolio/torch/rounds.webp',
+				imageAlt: 'Game mechanics page',
+				layout: 'text-right',
+				startMs: 80000
+			},
+			{
+				title: 'Golden Cobra Award',
+				text: 'Torch won Best Multi-Generational Game at Golden Cobra and premiered at Metatopia 2018. Juan Apéstegui illustrated the tabletop edition.',
+				image: '/images/portfolio/torch/winner.webp',
+				imageAlt: 'Golden Cobra Award announcement',
+				layout: 'text-left',
+				startMs: 105000
+			}
+		],
 		team: [{ role: 'Illustrator', name: 'Juan Apéstegui', relationship: 'collaborator' }]
 	}
 ] as PortfolioItem[];

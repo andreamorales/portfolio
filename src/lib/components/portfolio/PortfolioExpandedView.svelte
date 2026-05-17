@@ -5,11 +5,15 @@
 <script lang="ts">
 	import Label from '$lib/components/ui/input/Label.svelte';
 	import PortfolioEndHome from '$lib/components/portfolio/PortfolioEndHome.svelte';
+	import PortfolioCaseMetadata from '$lib/components/portfolio/PortfolioCaseMetadata.svelte';
+	import PortfolioSlides from '$lib/components/portfolio/PortfolioSlides.svelte';
 	import {
 		decryptSecurePortfolioPayload,
 		type SecurePortfolioEncryptedPayload,
 		type SecurePortfolioPayloadData
 	} from '$lib/utils/secureCaseStudy';
+	import type { SlideItem } from '$lib/data/portfolio-items';
+	import type { PortfolioMetricInput } from '$lib/utils/portfolioMetrics';
 
 	/** Unique mask id per instance (component can appear more than once on a page). */
 	const portfolioEndSmileyMaskId = `portfolio-end-smiley-mask-${++portfolioEndSmileyMaskSeq}`;
@@ -28,11 +32,12 @@
 		layout?: string;
 		sideImage?: { value: string; caption?: string };
 	}> = [];
-	// Remove heroImage prop since we'll use images array
+	export let slides: SlideItem[] = [];
+	export let videoCurrentMs = 0;
+	export let videoIsPlaying = false;
 	export let year: string = '';
-	export let role: string = '';
 	export let link: string = '';
-	export let metrics: Array<string> = [];
+	export let metrics: PortfolioMetricInput[] | string[] = [];
 	export let team: Array<{ role: string; name: string; relationship: string }> = [];
 	export let immersive = false;
 	export let onGoHome: (() => void) | null = null;
@@ -46,7 +51,6 @@
 	export let staggerReveal = false;
 	export let staggerBaseDelayMs = 0;
 
-	// Initialize the featuredImage variable
 	let featuredImage: string = '';
 	let enteredPassword = '';
 	let passwordError = '';
@@ -54,6 +58,28 @@
 	let isUnlocked = false;
 	let unusedGalleryImages: Array<{ src: string; alt: string; caption?: string }> = [];
 	let effectiveStaggerBaseDelayMs = 0;
+	let viewMode: 'text' | 'slides' = 'text';
+	let hasToggledView = false;
+
+	$: hasSlides = slides && slides.length > 0;
+	$: viewModeIsText = viewMode === 'text';
+	$: viewModeIsSlides = viewMode === 'slides';
+
+	function paragraphsFromSummary(text: string): string[] {
+		const trimmed = text.trim();
+		if (!trimmed) return [];
+		return trimmed
+			.split(/\n\n/)
+			.map((p) => p.trim())
+			.filter(Boolean);
+	}
+
+	$: summaryParagraphs = paragraphsFromSummary(description);
+
+	function setViewMode(mode: 'text' | 'slides') {
+		viewMode = mode;
+		hasToggledView = true;
+	}
 
 	const REVEAL_TIME_SCALE = 1.35;
 	const ms = (value: number) => Math.round(value * REVEAL_TIME_SCALE);
@@ -248,7 +274,6 @@
 				images = decrypted.images;
 				content = decrypted.content;
 				year = decrypted.year;
-				role = decrypted.role;
 				link = decrypted.link;
 				metrics = decrypted.metrics;
 				team = decrypted.team;
@@ -267,6 +292,7 @@
 	class="portfolio-expanded-view flex-column"
 	class:immersive
 	class:portfolio-expanded-view--staggered={staggerReveal}
+	class:portfolio-expanded-view--instant={hasToggledView}
 	style={staggerReveal
 		? `--reveal-parent-duration: ${REVEAL_PARENT_FADE_DURATION_MS}ms; --reveal-child-duration: ${REVEAL_CHILD_FADE_DURATION_MS}ms;`
 		: undefined}
@@ -290,14 +316,19 @@
 			{/if}
 		</div>
 
-		<div
-			class="hero-description reveal-child"
-			style={revealStyle(introReveal.childStartDelayMs + REVEAL_CHILD_STEP_MS)}
-		>
-			{#each description.split('. ') as line, index (`${line}-${index}`)}
-				<span class="highlight-line">{line}{line.endsWith('.') ? '' : '.'} </span>
-			{/each}
-		</div>
+		{#if locked && !isUnlocked}
+			<div
+				class="hero-description reveal-child"
+				style={revealStyle(introReveal.childStartDelayMs + REVEAL_CHILD_STEP_MS)}
+			>
+				{#each summaryParagraphs as para, index (`intro-sum-${index}`)}
+					{#if index > 0}
+						<br /><br />
+					{/if}
+					<span class="highlight-line">{para}</span>
+				{/each}
+			</div>
+		{/if}
 	</div>
 
 	{#if locked && !isUnlocked}
@@ -367,88 +398,33 @@
 			/>
 		{/if}
 	{:else}
-		<!-- Project details grid -->
-		<div
-			class="project-details-grid reveal-parent"
-			style={revealStyle((detailsReveal ?? introReveal).parentDelayMs)}
-		>
-			<div class="details-row reveal-child" style={childDelayStyle(detailsReveal, 0)}>
-				<div class="details-cell">
-					<div class="details-label reveal-child" style={childDelayStyle(detailsReveal, 0)}>
-						Year
-					</div>
-					<div class="details-value reveal-child" style={childDelayStyle(detailsReveal, 0)}>
-						{year}
-					</div>
-				</div>
-				<div class="details-cell">
-					<div class="details-label reveal-child" style={childDelayStyle(detailsReveal, 1)}>
-						Role
-					</div>
-					<div class="details-value reveal-child" style={childDelayStyle(detailsReveal, 1)}>
-						{role}
-					</div>
-				</div>
-				<div class="details-cell">
-					<div class="details-label reveal-child" style={childDelayStyle(detailsReveal, 2)}>
-						Link
-					</div>
-					<div class="details-value reveal-child" style={childDelayStyle(detailsReveal, 2)}>
-						{#if link === 'Discontinued'}
-							<span class="discontinued-text">Discontinued</span>
-						{:else if link}
-							<a href={link} target="_blank" rel="noopener noreferrer" class="project-link">
-								View Project
-							</a>
-						{:else}
-							<span class="muted-text">Not Available</span>
-						{/if}
-					</div>
-				</div>
-			</div>
-			<div class="details-row metrics-row reveal-child" style={childDelayStyle(detailsReveal, 3)}>
-				{#each metrics.slice(0, 2) as metric, index (`${metric}-${index}`)}
-					<div class="details-cell">
-						<div
-							class="details-label reveal-child"
-							style={childDelayStyle(detailsReveal, 3 + index)}
-						>
-							Impact
+		{#if !hasSlides || viewMode === 'text'}
+			<div
+				class="portfolio-case-metadata-rail reveal-parent"
+				style={revealStyle((detailsReveal ?? introReveal).parentDelayMs)}
+			>
+				<div
+					class="reveal-child portfolio-meta-about-row"
+					style={revealStyle((detailsReveal ?? introReveal).childStartDelayMs)}
+				>
+					<PortfolioCaseMetadata {year} {link} {metrics} variant="page" />
+					<div class="portfolio-summary-column">
+						<div class="portfolio-summary-heading">
+							<div class="details-label">Summary</div>
+							<div class="details-label-rule" aria-hidden="true"></div>
 						</div>
-						<div
-							class="details-value reveal-child"
-							style={childDelayStyle(detailsReveal, 3 + index)}
-						>
-							{metric}
-						</div>
-					</div>
-				{/each}
-				<div class="details-cell">
-					<div class="details-label reveal-child" style={childDelayStyle(detailsReveal, 5)}>
-						Team
-					</div>
-					<div
-						class="details-value team-list reveal-child"
-						style={childDelayStyle(detailsReveal, 5)}
-					>
-						{#if team && team.length > 0}
-							{#each team as member (`${member.role}-${member.name}`)}
-								<div class="team-member">
-									<span class="role">{member.role}:</span>
-									<span class="name">{member.name}</span>
-									<span class="relationship">({member.relationship})</span>
-								</div>
+						<div class="hero-description hero-description--beside-meta">
+							{#each summaryParagraphs as para, index (`beside-sum-${index}`)}
+								<p class="case-summary-line">{para}</p>
 							{/each}
-						{:else}
-							<span class="muted-text">Solo project</span>
-						{/if}
+						</div>
 					</div>
 				</div>
 			</div>
-		</div>
+		{/if}
 
-		<!-- Featured hero image -->
-		{#if featuredImage}
+		<!-- Featured hero image (hidden in slides-only view) -->
+		{#if featuredImage && !(hasSlides && viewMode === 'slides')}
 			<div
 				class="hero-image-container reveal-parent"
 				style={revealStyle((heroReveal ?? introReveal).parentDelayMs)}
@@ -472,50 +448,99 @@
 			class="content-container flex-column reveal-parent"
 			style={revealStyle((contentReveal ?? introReveal).parentDelayMs)}
 		>
-			<div class="content-view width-100">
-				<!-- Content blocks (text and images) -->
-				<div class="content-blocks">
-					{#each content as block, index (`${block.type}-${block.value}-${index}`)}
-						{#if block.type === 'heading'}
-							{@const colonIdx = block.value.indexOf(':')}
-							<div
-								class="heading-block reveal-child"
-								style={revealStyle(
-									(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
-								)}
-							>
-								{#if colonIdx !== -1}
-									<h3 class="heading-title">
-										{formatHeadingTitlePart(block.value.slice(0, colonIdx))}:
-									</h3>
-									<p class="heading-byline">
-										{formatHeadingByline(block.value.slice(colonIdx + 1))}
-									</p>
-								{:else}
-									<h3 class="heading-title">{formatHeadingTitlePart(block.value)}</h3>
-								{/if}
-							</div>
-						{:else if block.type === 'text'}
-							<div
-								class="text-block reveal-child"
-								style={revealStyle(
-									(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
-								)}
-							>
-								<p>{block.value}</p>
-							</div>
-						{:else if block.type === 'image'}
-							<div
-								class="image-block {block.layout === 'side-by-side'
-									? 'side-by-side'
-									: ''} reveal-child"
-								style={revealStyle(
-									(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
-								)}
-							>
-								{#if block.layout === 'side-by-side'}
-									<div class="image-pair">
-										<div class="image-container">
+			<div
+				class="content-view width-100"
+				class:content-view--slides={viewMode === 'slides' && hasSlides}
+			>
+				<div class="content-view-main">
+					{#if viewMode === 'slides' && hasSlides}
+						<PortfolioSlides
+							{slides}
+							introSummaryParagraphs={summaryParagraphs}
+							staggerReveal={staggerReveal && !hasToggledView}
+							revealDelayMs={(contentReveal ?? introReveal).childStartDelayMs +
+								REVEAL_CHILD_STEP_MS}
+							{videoCurrentMs}
+							{videoIsPlaying}
+							{year}
+							{link}
+							{metrics}
+						/>
+					{:else}
+						<!-- Content blocks (text and images) -->
+						<div class="content-blocks">
+							{#each content as block, index (`${block.type}-${block.value}-${index}`)}
+								{#if block.type === 'heading'}
+									{@const colonIdx = block.value.indexOf(':')}
+									<div
+										class="heading-block reveal-child"
+										style={revealStyle(
+											(contentReveal ?? introReveal).childStartDelayMs +
+												index * REVEAL_CHILD_STEP_MS
+										)}
+									>
+										{#if colonIdx !== -1}
+											<h3 class="heading-title">
+												{formatHeadingTitlePart(block.value.slice(0, colonIdx))}:
+											</h3>
+											<p class="heading-byline">
+												{formatHeadingByline(block.value.slice(colonIdx + 1))}
+											</p>
+										{:else}
+											<h3 class="heading-title">{formatHeadingTitlePart(block.value)}</h3>
+										{/if}
+									</div>
+								{:else if block.type === 'text'}
+									<div
+										class="text-block reveal-child"
+										style={revealStyle(
+											(contentReveal ?? introReveal).childStartDelayMs +
+												index * REVEAL_CHILD_STEP_MS
+										)}
+									>
+										<p>{block.value}</p>
+									</div>
+								{:else if block.type === 'image'}
+									<div
+										class="image-block {block.layout === 'side-by-side'
+											? 'side-by-side'
+											: ''} reveal-child"
+										style={revealStyle(
+											(contentReveal ?? introReveal).childStartDelayMs +
+												index * REVEAL_CHILD_STEP_MS
+										)}
+									>
+										{#if block.layout === 'side-by-side'}
+											<div class="image-pair">
+												<div class="image-container">
+													<div class="image-frame">
+														<img
+															src={block.value}
+															alt={getImageCaption(block.value) || 'Project image'}
+														/>
+													</div>
+													{#if getImageCaption(block.value)}
+														<p class="image-caption">{getImageCaption(block.value)}</p>
+													{/if}
+												</div>
+												{#if block.sideImage}
+													{@const sideImage = block.sideImage}
+													<div class="image-container">
+														<div class="image-frame">
+															<img
+																src={sideImage.value}
+																alt={getImageCaption(sideImage.value) || 'Project image'}
+															/>
+														</div>
+														{#if getImageCaption(sideImage.value)}
+															<p class="image-caption">
+																{getImageCaption(sideImage.value)}
+															</p>
+														{/if}
+													</div>
+												{/if}
+											</div>
+										{:else}
 											<div class="image-frame">
 												<img
 													src={block.value}
@@ -525,91 +550,101 @@
 											{#if getImageCaption(block.value)}
 												<p class="image-caption">{getImageCaption(block.value)}</p>
 											{/if}
-										</div>
-										{#if block.sideImage}
-											{@const sideImage = block.sideImage}
-											<div class="image-container">
-												<div class="image-frame">
-													<img
-														src={sideImage.value}
-														alt={getImageCaption(sideImage.value) || 'Project image'}
-													/>
-												</div>
-												{#if getImageCaption(sideImage.value)}
-													<p class="image-caption">{getImageCaption(sideImage.value)}</p>
-												{/if}
-											</div>
 										{/if}
 									</div>
-								{:else}
-									<div class="image-frame">
-										<img src={block.value} alt={getImageCaption(block.value) || 'Project image'} />
+								{:else if block.type === 'video'}
+									<div
+										class="image-block reveal-child"
+										style={revealStyle(
+											(contentReveal ?? introReveal).childStartDelayMs +
+												index * REVEAL_CHILD_STEP_MS
+										)}
+									>
+										<div class="image-frame">
+											<!-- svelte-ignore a11y-media-has-caption -->
+											<video
+												class="content-video"
+												controls
+												controlsList="nodownload"
+												disablePictureInPicture
+												playsinline
+												preload="metadata"
+												on:contextmenu|preventDefault
+												src={block.value}
+											></video>
+										</div>
+										{#if block.caption}
+											<p class="image-caption">{block.caption}</p>
+										{/if}
 									</div>
-									{#if getImageCaption(block.value)}
-										<p class="image-caption">{getImageCaption(block.value)}</p>
-									{/if}
 								{/if}
-							</div>
-						{:else if block.type === 'video'}
-							<div
-								class="image-block reveal-child"
-								style={revealStyle(
-									(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
-								)}
-							>
-								<div class="image-frame">
-									<!-- svelte-ignore a11y-media-has-caption -->
-									<video
-										class="content-video"
-										controls
-										controlsList="nodownload"
-										disablePictureInPicture
-										playsinline
-										preload="metadata"
-										on:contextmenu|preventDefault
-										src={block.value}
-									></video>
-								</div>
-								{#if block.caption}
-									<p class="image-caption">{block.caption}</p>
-								{/if}
+							{/each}
+						</div>
+
+						<!-- Image gallery - only show unused images -->
+						{#if unusedGalleryImages.length > 0}
+							<div class="image-gallery">
+								{#each unusedGalleryImages as image, index (image.src)}
+									<div
+										class="gallery-item reveal-child"
+										style={revealStyle(
+											(contentReveal ?? introReveal).childStartDelayMs +
+												(content.length + index) * REVEAL_CHILD_STEP_MS
+										)}
+									>
+										<div class="image-frame">
+											<img src={image.src} alt={image.alt} />
+										</div>
+										{#if image.caption}
+											<p class="image-caption">{image.caption}</p>
+										{/if}
+									</div>
+								{/each}
 							</div>
 						{/if}
-					{/each}
+					{/if}
+
+					{#if onGoHome}
+						<PortfolioEndHome
+							maskId={portfolioEndSmileyMaskId}
+							onGoHome={() => onGoHome?.()}
+							{hasPrevPiece}
+							{hasNextPiece}
+							onPrevPiece={onPrevPiece ?? undefined}
+							onNextPiece={onNextPiece ?? undefined}
+						/>
+					{/if}
 				</div>
+			</div>
+		</div>
+	{/if}
 
-				<!-- Image gallery - only show unused images -->
-				{#if unusedGalleryImages.length > 0}
-					<div class="image-gallery">
-						{#each unusedGalleryImages as image, index (image.src)}
-							<div
-								class="gallery-item reveal-child"
-								style={revealStyle(
-									(contentReveal ?? introReveal).childStartDelayMs +
-										(content.length + index) * REVEAL_CHILD_STEP_MS
-								)}
-							>
-								<div class="image-frame">
-									<img src={image.src} alt={image.alt} />
-								</div>
-								{#if image.caption}
-									<p class="image-caption">{image.caption}</p>
-								{/if}
-							</div>
-						{/each}
-					</div>
-				{/if}
-
-				{#if onGoHome}
-					<PortfolioEndHome
-						maskId={portfolioEndSmileyMaskId}
-						onGoHome={() => onGoHome?.()}
-						{hasPrevPiece}
-						{hasNextPiece}
-						onPrevPiece={onPrevPiece ?? undefined}
-						onNextPiece={onNextPiece ?? undefined}
-					/>
-				{/if}
+	{#if hasSlides && (!locked || isUnlocked)}
+		<div class="portfolio-view-mode-dock">
+			<div
+				class="portfolio-view-mode-segmented reveal-child"
+				style={revealStyle((contentReveal ?? introReveal).childStartDelayMs + REVEAL_CHILD_STEP_MS)}
+				role="group"
+				aria-label="Case study view mode"
+			>
+				<button
+					type="button"
+					class="portfolio-view-mode-choice"
+					class:portfolio-view-mode-choice--active={viewModeIsText}
+					aria-pressed={viewModeIsText}
+					on:click={() => setViewMode('text')}
+				>
+					text
+				</button>
+				<button
+					type="button"
+					class="portfolio-view-mode-choice"
+					class:portfolio-view-mode-choice--active={viewModeIsSlides}
+					aria-pressed={viewModeIsSlides}
+					on:click={() => setViewMode('slides')}
+				>
+					slides
+				</button>
 			</div>
 		</div>
 	{/if}
@@ -663,19 +698,214 @@
 		animation-duration: var(--reveal-child-duration, 560ms);
 	}
 
+	.portfolio-expanded-view--instant .reveal-parent,
+	.portfolio-expanded-view--instant .reveal-child {
+		opacity: 1 !important;
+		animation: none !important;
+	}
+
+	.portfolio-case-metadata-rail {
+		width: 100%;
+		box-sizing: border-box;
+		padding-inline: 1.5rem;
+	}
+
+	.portfolio-meta-about-row {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		column-gap: var(--spacing-lg);
+		align-items: start;
+	}
+
+	.portfolio-summary-column {
+		display: flex;
+		flex-direction: column;
+		gap: 0.125rem;
+		align-items: flex-start;
+		min-width: 0;
+		width: 100%;
+		max-width: 100%;
+		box-sizing: border-box;
+	}
+
+	.portfolio-summary-heading {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-xxs);
+		width: 100%;
+		min-width: 0;
+	}
+
+	.portfolio-summary-heading .details-label-rule {
+		margin: 0;
+		align-self: stretch;
+		flex-shrink: 0;
+		height: 0;
+		border: none;
+		border-top: 1px solid var(--portfolio-metadata-rule);
+	}
+
+	.portfolio-summary-column .details-label {
+		font-size: var(--font-size-xxs);
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		line-height: 1.35;
+		color: var(--palette-grey-600);
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 600;
+	}
+
+	:global(html.dark-theme) .portfolio-summary-column .details-label {
+		color: var(--palette-grey-hint);
+	}
+
+	.case-summary-line {
+		margin: 0;
+		color: inherit;
+		font: inherit;
+		font-variation-settings: inherit;
+		letter-spacing: inherit;
+	}
+
+	.portfolio-view-mode-segmented {
+		display: inline-flex;
+		align-items: stretch;
+		width: fit-content;
+		max-width: 100%;
+		flex-shrink: 0;
+		font-family: inherit;
+		font-size: var(--font-size-xs);
+		line-height: 1.45;
+		color: var(--muted-text);
+		/* Matches HomeLandingTerminal.cli-block (--border-radius → --radius-md) */
+		border-radius: var(--border-radius);
+		border: 1px solid var(--grey-light);
+		overflow: hidden;
+		background: var(--bg-color);
+	}
+
+	:global(html.dark-theme) .portfolio-view-mode-segmented {
+		border-color: rgba(255, 255, 255, 0.14);
+		background: var(--bg-color);
+	}
+
+	.portfolio-view-mode-choice {
+		position: relative;
+		border: none;
+		border-radius: 0;
+		background: var(--bg-color);
+		padding: 0.24em 0.65em;
+		margin: 0;
+		font: inherit;
+		font-size: inherit;
+		line-height: inherit;
+		color: inherit;
+		cursor: pointer;
+		text-decoration: none;
+		min-height: unset;
+		height: auto;
+		transform: none;
+		text-transform: lowercase;
+		-webkit-tap-highlight-color: transparent;
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 450;
+		transition:
+			background-color var(--transition-fast) var(--easing-standard),
+			color var(--transition-fast) var(--easing-standard);
+	}
+
+	.portfolio-view-mode-choice + .portfolio-view-mode-choice {
+		box-shadow: inset 1px 0 0 var(--grey-light);
+	}
+
+	:global(html.dark-theme) .portfolio-view-mode-choice + .portfolio-view-mode-choice {
+		box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.12);
+	}
+
+	.portfolio-view-mode-choice:hover {
+		transform: none;
+		color: var(--text-color);
+		background: rgba(0, 0, 0, 0.04);
+	}
+
+	:global(html.dark-theme) .portfolio-view-mode-choice:hover {
+		background: rgba(255, 255, 255, 0.08);
+	}
+
+	.portfolio-view-mode-choice:focus-visible {
+		outline: none;
+		box-shadow:
+			inset 0 0 0 2px var(--cursor-blue),
+			inset 1px 0 0 var(--grey-light);
+		z-index: 1;
+	}
+
+	.portfolio-view-mode-choice:first-child:focus-visible {
+		box-shadow: inset 0 0 0 2px var(--cursor-blue);
+	}
+
+	:global(html.dark-theme) .portfolio-view-mode-choice:focus-visible {
+		box-shadow:
+			inset 0 0 0 2px var(--cursor-teal),
+			inset 1px 0 0 rgba(255, 255, 255, 0.12);
+	}
+
+	:global(html.dark-theme) .portfolio-view-mode-choice:first-child:focus-visible {
+		box-shadow: inset 0 0 0 2px var(--cursor-teal);
+	}
+
+	.portfolio-view-mode-choice--active {
+		color: var(--bg-color);
+		background: var(--text-color);
+	}
+
+	.portfolio-view-mode-choice--active:hover {
+		background: color-mix(in srgb, var(--text-color) 86%, #000);
+		color: var(--bg-color);
+	}
+
+	:global(html.dark-theme) .portfolio-view-mode-choice--active:hover {
+		background: color-mix(in srgb, var(--text-color) 90%, #fff);
+		color: var(--bg-color);
+	}
+
+	@media (max-width: 600px) {
+		.portfolio-case-metadata-rail {
+			padding-inline: 0;
+		}
+
+		.portfolio-meta-about-row {
+			grid-template-columns: 1fr;
+			row-gap: var(--spacing-md);
+		}
+	}
+
 	.content-container {
 		width: 100%;
 		max-width: 800px;
 		display: flex;
 		flex-direction: column;
+		flex: 1 1 auto;
+		min-height: 0;
 	}
 
 	.content-view {
 		width: 100%;
 		min-width: 100%;
 		box-sizing: border-box;
-		flex: 1;
-		flex-grow: 1;
+		flex: 1 1 auto;
+		min-height: 0;
+		position: relative;
+		isolation: isolate;
+		display: flex;
+		flex-direction: column;
+		gap: 0;
+		padding-top: 0;
+		padding-bottom: 0;
+		padding-left: var(--spacing-lg);
+		padding-right: var(--spacing-lg);
 	}
 
 	:global(.portfolio-content) .content-view {
@@ -692,14 +922,34 @@
 		max-width: 100%;
 	}
 
-	.content-view {
+	.content-view-main {
+		flex: 1 1 auto;
 		display: flex;
 		flex-direction: column;
 		gap: var(--spacing-xl);
-		padding-top: 0;
-		padding-bottom: var(--spacing-lg);
-		padding-left: var(--spacing-lg);
-		padding-right: var(--spacing-lg);
+		min-height: 0;
+	}
+
+	.portfolio-view-mode-dock {
+		position: sticky;
+		bottom: var(--spacing-md);
+		align-self: flex-start;
+		width: fit-content;
+		max-width: calc(100% - var(--spacing-lg) * 2);
+		z-index: var(--z-40);
+		flex-shrink: 0;
+		margin-top: 0;
+		margin-left: var(--spacing-lg);
+		pointer-events: none;
+	}
+
+	.portfolio-view-mode-dock .portfolio-view-mode-segmented {
+		pointer-events: auto;
+	}
+
+	.content-view--slides {
+		padding-left: 0;
+		padding-right: 0;
 	}
 
 	.content-blocks {
@@ -970,133 +1220,48 @@
 	.hero-description,
 	.heading-byline,
 	.text-block,
-	.image-caption,
-	.details-label,
-	.details-value,
-	.project-link,
-	.muted-text,
-	.discontinued-text,
-	.role,
-	.name,
-	.relationship {
+	.image-caption {
 		letter-spacing: -0.01em;
 	}
 
 	:global(html.dark-theme) .hero-description,
 	:global(html.dark-theme) .heading-byline,
 	:global(html.dark-theme) .text-block,
-	:global(html.dark-theme) .image-caption,
-	:global(html.dark-theme) .details-label,
-	:global(html.dark-theme) .details-value,
-	:global(html.dark-theme) .project-link,
-	:global(html.dark-theme) .muted-text,
-	:global(html.dark-theme) .discontinued-text,
-	:global(html.dark-theme) .role,
-	:global(html.dark-theme) .name,
-	:global(html.dark-theme) .relationship {
-		letter-spacing: 0.03em;
+	:global(html.dark-theme) .image-caption {
+		letter-spacing: 0.005em;
 	}
 
 	/* Slightly lighter body weight in dark mode for easier reading on deep backgrounds */
 	:global(html.dark-theme) .hero-description,
 	:global(html.dark-theme) .heading-byline,
-	:global(html.dark-theme) .text-block,
-	:global(html.dark-theme) .project-link,
-	:global(html.dark-theme) .muted-text,
-	:global(html.dark-theme) .discontinued-text {
+	:global(html.dark-theme) .text-block {
 		font-variation-settings:
 			'CASL' 0,
 			'wght' 360;
 	}
 
-	:global(html.dark-theme) .image-caption,
-	:global(html.dark-theme) .details-label,
-	:global(html.dark-theme) .name,
-	:global(html.dark-theme) .relationship {
+	/* Match sibling metadata weight in dark theme. */
+	:global(html.dark-theme) .hero-description.hero-description--beside-meta {
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 360;
+	}
+
+	:global(html.dark-theme) .image-caption {
 		font-variation-settings:
 			'CASL' 0,
 			'wght' 330;
 	}
 
-	:global(html.dark-theme) .image-caption,
-	:global(html.dark-theme) .details-label,
-	:global(html.dark-theme) .name,
-	:global(html.dark-theme) .relationship {
-		color: var(--palette-grey-hint);
-	}
-
-	:global(html.dark-theme) .role {
-		color: var(--text-color);
-		font-variation-settings:
-			'CASL' 0,
-			'wght' 460;
-	}
-
-	:global(html.dark-theme) .team-list:has(.team-member:nth-child(2)) .team-member::before {
-		color: var(--palette-grey-hint);
-	}
-
-	:global(html.dark-theme) .details-value {
-		font-variation-settings:
-			'CASL' 0,
-			'wght' 460;
-	}
-
 	:global(html.dark-theme) .highlight-line {
-		letter-spacing: 0.025em;
-	}
-
-	/* Project details grid */
-	.project-details-grid {
-		width: 100%;
-		background-color: transparent;
-		font-family: inherit;
-		border-top: 1px solid var(--black);
-	}
-
-	.details-row {
-		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		border-bottom: 1px solid var(--black);
-	}
-
-	.details-row:first-child {
-		border-bottom: none;
-	}
-
-	.metrics-row {
-		border-top: 1px solid var(--black);
-	}
-
-	.details-cell {
-		display: flex;
-		flex-direction: column;
-		padding: var(--spacing-sm);
-		border-right: 1px solid var(--black);
-	}
-
-	.details-cell:last-child {
-		border-right: none;
-	}
-
-	.details-label {
-		font-size: var(--font-size-xxs);
-		color: var(--palette-grey-600);
-		font-variation-settings:
-			'CASL' 0,
-			'wght' 400;
-	}
-
-	.details-value {
-		font-size: var(--font-size-sm);
-		color: var(--text-color);
-		font-variation-settings:
-			'CASL' 0,
-			'wght' 500;
-		word-wrap: break-word;
+		letter-spacing: 0.005em;
 	}
 
 	@media (max-width: 768px) {
+		.portfolio-summary-column .details-label {
+			line-height: 1.4;
+		}
+
 		.project-title {
 			font-size: clamp(3.25rem, 15vw, 5rem);
 			line-height: 1;
@@ -1134,16 +1299,6 @@
 			line-height: 1.45;
 		}
 
-		.details-label {
-			font-size: var(--font-size-base);
-			line-height: 1.4;
-		}
-
-		.details-value {
-			font-size: var(--font-size-base);
-			line-height: 1.45;
-		}
-
 		.locked-gate-label {
 			font-size: var(--font-size-sm);
 			line-height: 1.5;
@@ -1177,6 +1332,11 @@
 			padding-right: 0;
 		}
 
+		.portfolio-view-mode-dock {
+			margin-left: var(--spacing-md);
+			max-width: calc(100% - var(--spacing-md) * 2);
+		}
+
 		.content-blocks,
 		.image-gallery {
 			padding-left: 0;
@@ -1190,28 +1350,6 @@
 
 		.project-tags {
 			justify-content: flex-start;
-		}
-
-		.project-details-grid {
-			border-left: 1px solid var(--black);
-			border-right: 1px solid var(--black);
-		}
-
-		.details-row {
-			grid-template-columns: 1fr;
-		}
-
-		.details-cell:not(:last-child) {
-			border-right: none;
-			border-bottom: 1px solid var(--black);
-		}
-
-		.metrics-row .details-cell:nth-last-child(2) {
-			border-bottom: none;
-		}
-
-		.metrics-row .details-cell:last-child {
-			border-top: 1px solid var(--black);
 		}
 
 		.locked-gate {
@@ -1300,30 +1438,6 @@
 		}
 	}
 
-	.project-link {
-		color: var(--palette-rainbow-6);
-		text-decoration: underline;
-		text-underline-offset: 3px;
-		transition: opacity var(--transition);
-	}
-
-	.project-link:hover {
-		opacity: 0.75;
-	}
-
-	.muted-text {
-		color: var(--muted-text);
-		font-style: italic;
-	}
-
-	.discontinued-text {
-		color: var(--muted-text);
-		font-style: italic;
-		font-variation-settings:
-			'CASL' 0,
-			'wght' 400;
-	}
-
 	.hero-description {
 		width: 100%;
 		max-width: 65ch;
@@ -1337,52 +1451,27 @@
 		text-align: left;
 	}
 
+	/* Match `.text-block` body copy (not oversized intro hero typography). */
+	.hero-description.hero-description--beside-meta {
+		margin: 0;
+		min-width: 0;
+		width: auto;
+		max-width: min(74ch, 100%);
+		font-size: var(--font-size-base);
+		line-height: 1.43;
+		font-variation-settings:
+			'CASL' 0,
+			'wght' 370;
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-md);
+	}
+
 	.highlight-line {
 		display: inline;
 		line-height: 1.3;
 		letter-spacing: -0.03em;
 		padding: 0;
-	}
-
-	.team-list {
-		display: flex;
-		flex-direction: column;
-		gap: var(--spacing-xxs);
-	}
-
-	.team-member {
-		font-size: var(--font-size-xs);
-		line-height: 1.4;
-		padding-left: 0;
-		position: relative;
-	}
-
-	/* Only add bullets when there's more than one team member */
-	.team-list:has(.team-member:nth-child(2)) .team-member {
-		padding-left: var(--spacing-sm);
-	}
-
-	.team-list:has(.team-member:nth-child(2)) .team-member::before {
-		content: '•';
-		position: absolute;
-		left: 0;
-		color: var(--palette-grey-600);
-	}
-
-	.role {
-		color: var(--text-color);
-		font-variation-settings:
-			'CASL' 0,
-			'wght' 500;
-	}
-
-	.name,
-	.relationship {
-		color: var(--palette-grey-600);
-	}
-
-	.relationship {
-		font-style: italic;
 	}
 
 	.image-pair {
@@ -1426,14 +1515,14 @@
 			line-height: 1.32;
 		}
 
+		.hero-description.hero-description--beside-meta {
+			font-size: var(--font-size-base);
+			line-height: 1.32;
+		}
+
 		.heading-byline {
 			font-size: var(--font-size-xl);
 			line-height: 1.08;
-		}
-
-		.team-member {
-			font-size: var(--font-size-base);
-			line-height: 1.4;
 		}
 
 		/* Stack side-by-side images vertically on mobile. */

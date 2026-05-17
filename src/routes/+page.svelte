@@ -547,7 +547,8 @@
 			...(payload.videoUrl ? { videoUrl: payload.videoUrl } : {}),
 			...(payload.videoPosterUrl ? { videoPosterUrl: payload.videoPosterUrl } : {}),
 			...(payload.transcriptCues?.length ? { transcriptCues: payload.transcriptCues } : {}),
-			...(payload.hideHeroImage ? { hideHeroImage: true } : {})
+			...(payload.hideHeroImage ? { hideHeroImage: true } : {}),
+			...(payload.slides?.length ? { slides: payload.slides } : {})
 		};
 	}
 
@@ -860,8 +861,10 @@
 											images={activeDetailItem.images}
 											hideHeroImage={!!activeDetailItem.hideHeroImage}
 											content={activeDetailItem.content}
+											slides={activeDetailItem.slides ?? []}
+											videoCurrentMs={detailVideoCurrentMs}
+											videoIsPlaying={detailMediaIsPlaying}
 											year={activeDetailItem.year}
-											role={activeDetailItem.role}
 											link={activeDetailItem.link}
 											metrics={activeDetailItem.metrics}
 											team={activeDetailItem.team}
@@ -1314,7 +1317,7 @@
 
 	.detail-panel-piece :global(.portfolio-expanded-view) {
 		height: auto !important;
-		min-height: max-content;
+		min-height: 100%;
 		overflow: visible !important;
 		max-width: 100% !important;
 		margin: 0 !important;
@@ -1459,7 +1462,7 @@
 		border-radius: 0.22rem;
 		background: transparent;
 		color: var(--text-color);
-		opacity: 0.72;
+		opacity: 1;
 		font: inherit;
 		line-height: inherit;
 		text-transform: none;
