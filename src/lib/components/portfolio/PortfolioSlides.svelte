@@ -121,11 +121,11 @@
 	}
 </script>
 
-<!-- svelte-ignore a11y-no-noninteractive-tabindex a11y-no-noninteractive-element-interactions -->
 <svelte:window
 	on:fullscreenchange={onFullscreenChange}
 	on:keydown={handleFullscreenWindowKeydown}
 />
+<!-- svelte-ignore a11y-no-noninteractive-tabindex a11y-no-noninteractive-element-interactions -->
 <div
 	class="slides-container"
 	class:slides-container--staggered={staggerReveal}
@@ -135,18 +135,19 @@
 	aria-label="Project slides"
 	tabindex="0"
 >
-	<div class="slide reveal-child" class:slide--fullscreen={isFullscreen} style={revealStyle(revealDelayMs)} bind:this={slideEl}>
+	<div
+		class="slide reveal-child"
+		class:slide--fullscreen={isFullscreen}
+		style={revealStyle(revealDelayMs)}
+		bind:this={slideEl}
+	>
 		<div class="slide-count" role="status" aria-live="polite" aria-atomic="true">
 			{currentSlide + 1}/{totalSlides}
 		</div>
 
 		<!-- Prev nav overlay -->
 		{#if !isFirstSlide}
-			<button
-				class="slide-nav slide-nav--prev"
-				on:click={prev}
-				aria-label="Previous slide"
-			>
+			<button class="slide-nav slide-nav--prev" on:click={prev} aria-label="Previous slide">
 				<svg
 					class="slide-nav__icon"
 					xmlns="http://www.w3.org/2000/svg"

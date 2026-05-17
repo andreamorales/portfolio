@@ -453,162 +453,167 @@
 				class:content-view--slides={viewMode === 'slides' && hasSlides}
 			>
 				<div class="content-view-main">
-				{#if viewMode === 'slides' && hasSlides}
-					<PortfolioSlides
-						{slides}
-						introSummaryParagraphs={summaryParagraphs}
-						staggerReveal={staggerReveal && !hasToggledView}
-						revealDelayMs={(contentReveal ?? introReveal).childStartDelayMs + REVEAL_CHILD_STEP_MS}
-						{videoCurrentMs}
-						{videoIsPlaying}
-						{year}
-						{link}
-						{metrics}
-					/>
-				{:else}
-					<!-- Content blocks (text and images) -->
-					<div class="content-blocks">
-						{#each content as block, index (`${block.type}-${block.value}-${index}`)}
-							{#if block.type === 'heading'}
-								{@const colonIdx = block.value.indexOf(':')}
-								<div
-									class="heading-block reveal-child"
-									style={revealStyle(
-										(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
-									)}
-								>
-									{#if colonIdx !== -1}
-										<h3 class="heading-title">
-											{formatHeadingTitlePart(block.value.slice(0, colonIdx))}:
-										</h3>
-										<p class="heading-byline">
-											{formatHeadingByline(block.value.slice(colonIdx + 1))}
-										</p>
-									{:else}
-										<h3 class="heading-title">{formatHeadingTitlePart(block.value)}</h3>
-									{/if}
-								</div>
-							{:else if block.type === 'text'}
-								<div
-									class="text-block reveal-child"
-									style={revealStyle(
-										(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
-									)}
-								>
-									<p>{block.value}</p>
-								</div>
-							{:else if block.type === 'image'}
-								<div
-									class="image-block {block.layout === 'side-by-side'
-										? 'side-by-side'
-										: ''} reveal-child"
-									style={revealStyle(
-										(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
-									)}
-								>
-									{#if block.layout === 'side-by-side'}
-										<div class="image-pair">
-											<div class="image-container">
-												<div class="image-frame">
-													<img
-														src={block.value}
-														alt={getImageCaption(block.value) || 'Project image'}
-													/>
-												</div>
-												{#if getImageCaption(block.value)}
-													<p class="image-caption">{getImageCaption(block.value)}</p>
-												{/if}
-											</div>
-											{#if block.sideImage}
-												{@const sideImage = block.sideImage}
+					{#if viewMode === 'slides' && hasSlides}
+						<PortfolioSlides
+							{slides}
+							introSummaryParagraphs={summaryParagraphs}
+							staggerReveal={staggerReveal && !hasToggledView}
+							revealDelayMs={(contentReveal ?? introReveal).childStartDelayMs +
+								REVEAL_CHILD_STEP_MS}
+							{videoCurrentMs}
+							{videoIsPlaying}
+							{year}
+							{link}
+							{metrics}
+						/>
+					{:else}
+						<!-- Content blocks (text and images) -->
+						<div class="content-blocks">
+							{#each content as block, index (`${block.type}-${block.value}-${index}`)}
+								{#if block.type === 'heading'}
+									{@const colonIdx = block.value.indexOf(':')}
+									<div
+										class="heading-block reveal-child"
+										style={revealStyle(
+											(contentReveal ?? introReveal).childStartDelayMs +
+												index * REVEAL_CHILD_STEP_MS
+										)}
+									>
+										{#if colonIdx !== -1}
+											<h3 class="heading-title">
+												{formatHeadingTitlePart(block.value.slice(0, colonIdx))}:
+											</h3>
+											<p class="heading-byline">
+												{formatHeadingByline(block.value.slice(colonIdx + 1))}
+											</p>
+										{:else}
+											<h3 class="heading-title">{formatHeadingTitlePart(block.value)}</h3>
+										{/if}
+									</div>
+								{:else if block.type === 'text'}
+									<div
+										class="text-block reveal-child"
+										style={revealStyle(
+											(contentReveal ?? introReveal).childStartDelayMs +
+												index * REVEAL_CHILD_STEP_MS
+										)}
+									>
+										<p>{block.value}</p>
+									</div>
+								{:else if block.type === 'image'}
+									<div
+										class="image-block {block.layout === 'side-by-side'
+											? 'side-by-side'
+											: ''} reveal-child"
+										style={revealStyle(
+											(contentReveal ?? introReveal).childStartDelayMs +
+												index * REVEAL_CHILD_STEP_MS
+										)}
+									>
+										{#if block.layout === 'side-by-side'}
+											<div class="image-pair">
 												<div class="image-container">
 													<div class="image-frame">
 														<img
-															src={sideImage.value}
-															alt={getImageCaption(sideImage.value) || 'Project image'}
+															src={block.value}
+															alt={getImageCaption(block.value) || 'Project image'}
 														/>
 													</div>
-													{#if getImageCaption(sideImage.value)}
-														<p class="image-caption">
-															{getImageCaption(sideImage.value)}
-														</p>
+													{#if getImageCaption(block.value)}
+														<p class="image-caption">{getImageCaption(block.value)}</p>
 													{/if}
 												</div>
+												{#if block.sideImage}
+													{@const sideImage = block.sideImage}
+													<div class="image-container">
+														<div class="image-frame">
+															<img
+																src={sideImage.value}
+																alt={getImageCaption(sideImage.value) || 'Project image'}
+															/>
+														</div>
+														{#if getImageCaption(sideImage.value)}
+															<p class="image-caption">
+																{getImageCaption(sideImage.value)}
+															</p>
+														{/if}
+													</div>
+												{/if}
+											</div>
+										{:else}
+											<div class="image-frame">
+												<img
+													src={block.value}
+													alt={getImageCaption(block.value) || 'Project image'}
+												/>
+											</div>
+											{#if getImageCaption(block.value)}
+												<p class="image-caption">{getImageCaption(block.value)}</p>
 											{/if}
-										</div>
-									{:else}
-										<div class="image-frame">
-											<img
-												src={block.value}
-												alt={getImageCaption(block.value) || 'Project image'}
-											/>
-										</div>
-										{#if getImageCaption(block.value)}
-											<p class="image-caption">{getImageCaption(block.value)}</p>
 										{/if}
-									{/if}
-								</div>
-							{:else if block.type === 'video'}
-								<div
-									class="image-block reveal-child"
-									style={revealStyle(
-										(contentReveal ?? introReveal).childStartDelayMs + index * REVEAL_CHILD_STEP_MS
-									)}
-								>
-									<div class="image-frame">
-										<!-- svelte-ignore a11y-media-has-caption -->
-										<video
-											class="content-video"
-											controls
-											controlsList="nodownload"
-											disablePictureInPicture
-											playsinline
-											preload="metadata"
-											on:contextmenu|preventDefault
-											src={block.value}
-										></video>
 									</div>
-									{#if block.caption}
-										<p class="image-caption">{block.caption}</p>
-									{/if}
-								</div>
-							{/if}
-						{/each}
-					</div>
-
-					<!-- Image gallery - only show unused images -->
-					{#if unusedGalleryImages.length > 0}
-						<div class="image-gallery">
-							{#each unusedGalleryImages as image, index (image.src)}
-								<div
-									class="gallery-item reveal-child"
-									style={revealStyle(
-										(contentReveal ?? introReveal).childStartDelayMs +
-											(content.length + index) * REVEAL_CHILD_STEP_MS
-									)}
-								>
-									<div class="image-frame">
-										<img src={image.src} alt={image.alt} />
+								{:else if block.type === 'video'}
+									<div
+										class="image-block reveal-child"
+										style={revealStyle(
+											(contentReveal ?? introReveal).childStartDelayMs +
+												index * REVEAL_CHILD_STEP_MS
+										)}
+									>
+										<div class="image-frame">
+											<!-- svelte-ignore a11y-media-has-caption -->
+											<video
+												class="content-video"
+												controls
+												controlsList="nodownload"
+												disablePictureInPicture
+												playsinline
+												preload="metadata"
+												on:contextmenu|preventDefault
+												src={block.value}
+											></video>
+										</div>
+										{#if block.caption}
+											<p class="image-caption">{block.caption}</p>
+										{/if}
 									</div>
-									{#if image.caption}
-										<p class="image-caption">{image.caption}</p>
-									{/if}
-								</div>
+								{/if}
 							{/each}
 						</div>
-					{/if}
-				{/if}
 
-				{#if onGoHome}
-					<PortfolioEndHome
-						maskId={portfolioEndSmileyMaskId}
-						onGoHome={() => onGoHome?.()}
-						{hasPrevPiece}
-						{hasNextPiece}
-						onPrevPiece={onPrevPiece ?? undefined}
-						onNextPiece={onNextPiece ?? undefined}
-					/>
-				{/if}
+						<!-- Image gallery - only show unused images -->
+						{#if unusedGalleryImages.length > 0}
+							<div class="image-gallery">
+								{#each unusedGalleryImages as image, index (image.src)}
+									<div
+										class="gallery-item reveal-child"
+										style={revealStyle(
+											(contentReveal ?? introReveal).childStartDelayMs +
+												(content.length + index) * REVEAL_CHILD_STEP_MS
+										)}
+									>
+										<div class="image-frame">
+											<img src={image.src} alt={image.alt} />
+										</div>
+										{#if image.caption}
+											<p class="image-caption">{image.caption}</p>
+										{/if}
+									</div>
+								{/each}
+							</div>
+						{/if}
+					{/if}
+
+					{#if onGoHome}
+						<PortfolioEndHome
+							maskId={portfolioEndSmileyMaskId}
+							onGoHome={() => onGoHome?.()}
+							{hasPrevPiece}
+							{hasNextPiece}
+							onPrevPiece={onPrevPiece ?? undefined}
+							onNextPiece={onNextPiece ?? undefined}
+						/>
+					{/if}
 				</div>
 			</div>
 		</div>
@@ -618,9 +623,7 @@
 		<div class="portfolio-view-mode-dock">
 			<div
 				class="portfolio-view-mode-segmented reveal-child"
-				style={revealStyle(
-					(contentReveal ?? introReveal).childStartDelayMs + REVEAL_CHILD_STEP_MS
-				)}
+				style={revealStyle((contentReveal ?? introReveal).childStartDelayMs + REVEAL_CHILD_STEP_MS)}
 				role="group"
 				aria-label="Case study view mode"
 			>

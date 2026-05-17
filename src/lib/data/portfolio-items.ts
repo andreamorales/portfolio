@@ -110,7 +110,7 @@ const initialPortfolioItems = [
 		tags: ['UX/UI'],
 		expanded: false,
 		description:
-			'I redesigned MongoDB\'s Realm Schema Designer to cut cognitive load—especially for mobile developers still building intuition around database schemas.\n\nThrough research and iteration with PM and engineering, I tightened the flow and drove first-schema completion from near zero to over 100% in two weeks.',
+			"I redesigned MongoDB's Realm Schema Designer to cut cognitive load—especially for mobile developers still building intuition around database schemas.\n\nThrough research and iteration with PM and engineering, I tightened the flow and drove first-schema completion from near zero to over 100% in two weeks.",
 		videoUrl: mongodbVideoUrl,
 		videoPosterUrl: mongodbFirstFrameUrl,
 		transcriptCues: mongodbCaptions.captions,
@@ -534,7 +534,7 @@ const initialPortfolioItems = [
 		tags: ['UX/UI'],
 		expanded: false,
 		description:
-			'I designed the OAuth and API key flows for Roblox\'s Creator Hub—making them work for beginners and power users—in a two-week delivery window.\n\nI ran guerrilla research inside existing PM interviews, tested four design variants, and landed a flow that drove a 200% jump in API key usage.',
+			"I designed the OAuth and API key flows for Roblox's Creator Hub—making them work for beginners and power users—in a two-week delivery window.\n\nI ran guerrilla research inside existing PM interviews, tested four design variants, and landed a flow that drove a 200% jump in API key usage.",
 		videoUrl: robloxVideoUrl,
 		videoPosterUrl: robloxFirstFrameUrl,
 		transcriptCues: robloxCaptions.captions,
@@ -1072,7 +1072,7 @@ const initialPortfolioItems = [
 		tags: ['GAME DESIGN'],
 		expanded: false,
 		description:
-			'I designed Torch, a live-action roleplaying game where players improvise interconnected stories spanning centuries of a newly independent nation.\n\nIt won Golden Cobra\'s Best Multi-Generational Game award and premiered at Metatopia 2018. Juan Apéstegui illustrated the tabletop edition.',
+			"I designed Torch, a live-action roleplaying game where players improvise interconnected stories spanning centuries of a newly independent nation.\n\nIt won Golden Cobra's Best Multi-Generational Game award and premiered at Metatopia 2018. Juan Apéstegui illustrated the tabletop edition.",
 		videoUrl: torchVideoUrl,
 		videoPosterUrl: torchFirstFrameUrl,
 		transcriptCues: torchCaptions.captions,
@@ -1133,7 +1133,7 @@ const initialPortfolioItems = [
 			},
 			{
 				title: 'The Premise',
-				text: 'Players are citizens of a newly independent country. They travel through time telling stories of that event\'s impact—from Independence Day to 500 years in the future.',
+				text: "Players are citizens of a newly independent country. They travel through time telling stories of that event's impact—from Independence Day to 500 years in the future.",
 				image: '/images/portfolio/torch/instructions.webp',
 				imageAlt: 'Instructions page',
 				layout: 'text-right',
