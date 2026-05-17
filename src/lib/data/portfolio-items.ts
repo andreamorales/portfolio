@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
 import mostRecentEncrypted from '$lib/data/secure/most-recent1.encrypted.json';
+import mostRecent2Encrypted from '$lib/data/secure/most-recent2.encrypted.json';
 import mongodbCaptions from '$lib/data/transcripts/mongodb.captions.json';
 import mongodbVideoUrl from '$lib/videos/mongodb.mp4?url';
 import mongodbFirstFrameUrl from '$lib/images/video-posters/mongodb-first-frame.jpg?url';
@@ -86,6 +87,25 @@ export interface PortfolioItem {
 }
 
 const initialPortfolioItems = [
+	{
+		title: '█ █ █ █',
+		slug: 'most-recent2',
+		tags: ['UX/UI', 'FRONTEND'],
+		expanded: false,
+		description:
+			'This portfolio piece is password protected until the accompanying case study is ready to publish.\n\nEnter the passphrase to read the narrative, artifacts, and outcomes.',
+		videoUrl: '',
+		quickNavThumbnail: '/images/portfolio/most-recent/thumbnail.svg',
+		images: [],
+		content: [],
+		year: '2025-today',
+		role: 'Pass Protected',
+		link: '',
+		metrics: [],
+		team: [],
+		locked: true,
+		encryptedPayload: mostRecent2Encrypted
+	},
 	{
 		title: '█ █ █ █',
 		slug: 'most-recent1',

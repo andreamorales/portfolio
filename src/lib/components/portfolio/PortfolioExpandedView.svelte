@@ -3,6 +3,7 @@
 </script>
 
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import Label from '$lib/components/ui/input/Label.svelte';
 	import PortfolioEndHome from '$lib/components/portfolio/PortfolioEndHome.svelte';
 	import PortfolioCaseMetadata from '$lib/components/portfolio/PortfolioCaseMetadata.svelte';
@@ -14,6 +15,12 @@
 	} from '$lib/utils/secureCaseStudy';
 	import type { SlideItem } from '$lib/data/portfolio-items';
 	import type { PortfolioMetricInput } from '$lib/utils/portfolioMetrics';
+	import {
+		computeBlockAnchors,
+		findActiveAnchorIndex,
+		type BlockAnchor,
+		type TranscriptCueLike
+	} from '$lib/utils/transcriptContentSync';
 
 	/** Unique mask id per instance (component can appear more than once on a page). */
 	const portfolioEndSmileyMaskId = `portfolio-end-smiley-mask-${++portfolioEndSmileyMaskSeq}`;
@@ -35,6 +42,8 @@
 	export let slides: SlideItem[] = [];
 	export let videoCurrentMs = 0;
 	export let videoIsPlaying = false;
+	/** Word-level transcript cues used to sync auto-scroll to narration. */
+	export let transcriptCues: TranscriptCueLike[] = [];
 	export let year: string = '';
 	export let link: string = '';
 	export let metrics: PortfolioMetricInput[] | string[] = [];
@@ -60,6 +69,12 @@
 	let effectiveStaggerBaseDelayMs = 0;
 	let viewMode: 'text' | 'slides' = 'text';
 	let hasToggledView = false;
+
+	/** Root element of this component; used to locate the scrollable ancestor. */
+	let rootEl: HTMLDivElement | null = null;
+	let blockAnchors: BlockAnchor[] = [];
+	let scrollSyncFrame = 0;
+	const TRANSCRIPT_SCROLL_TOP_OFFSET_PX = 96;
 
 	$: hasSlides = slides && slides.length > 0;
 	$: viewModeIsText = viewMode === 'text';
@@ -247,6 +262,128 @@
 		}
 	}
 
+	/**
+	 * Walks up from the component root to find the nearest ancestor that owns
+	 * vertical scrolling. The case copy is mounted inside `.detail-panel-piece`
+	 * on the home page, but we look up dynamically so other host containers
+	 * (e.g. immersive layouts) also work.
+	 */
+	function findScrollContainer(): HTMLElement | null {
+		if (typeof window === 'undefined') return null;
+		let node: HTMLElement | null = rootEl?.parentElement ?? null;
+		while (node && node !== document.body) {
+			const style = window.getComputedStyle(node);
+			const overflowY = style.overflowY;
+			if (
+				(overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay') &&
+				node.scrollHeight > node.clientHeight
+			) {
+				return node;
+			}
+			node = node.parentElement;
+		}
+		const docEl = document.scrollingElement as HTMLElement | null;
+		return docEl ?? document.documentElement;
+	}
+
+	/**
+	 * Scrolls the case copy so the given block sits near the top of its scroll
+	 * container — but only if that motion would be downward. Per the product
+	 * spec, the auto-scroll must never travel upward; we just hold position
+	 * until a later anchor catches up to the playhead.
+	 */
+	function scrollDownToBlock(blockIndex: number) {
+		if (typeof window === 'undefined' || !rootEl) return;
+		const container = findScrollContainer();
+		if (!container) return;
+		const blockEl = rootEl.querySelector<HTMLElement>(`[data-block-index="${blockIndex}"]`);
+		if (!blockEl) return;
+
+		const isDocumentScroller =
+			container === document.documentElement || container === document.body;
+		const blockRect = blockEl.getBoundingClientRect();
+
+		let desiredScrollTop: number;
+		let currentScrollTop: number;
+		if (isDocumentScroller) {
+			currentScrollTop = window.scrollY;
+			desiredScrollTop = currentScrollTop + blockRect.top - TRANSCRIPT_SCROLL_TOP_OFFSET_PX;
+		} else {
+			const containerRect = container.getBoundingClientRect();
+			currentScrollTop = container.scrollTop;
+			desiredScrollTop =
+				currentScrollTop + (blockRect.top - containerRect.top) - TRANSCRIPT_SCROLL_TOP_OFFSET_PX;
+		}
+
+		const maxScrollTop = Math.max(
+			0,
+			(isDocumentScroller
+				? document.documentElement.scrollHeight - window.innerHeight
+				: container.scrollHeight - container.clientHeight)
+		);
+		const clampedTarget = Math.max(0, Math.min(desiredScrollTop, maxScrollTop));
+
+		// Honor "never scroll up": leave position untouched (and don't mark the
+		// anchor as scrolled) when the target would move the viewport upward.
+		// A small downward tolerance prevents micro-jiggles when we're already
+		// aligned with the block.
+		const downwardDelta = clampedTarget - currentScrollTop;
+		if (downwardDelta <= 6) return;
+
+		const prefersReducedMotion =
+			typeof window.matchMedia === 'function' &&
+			window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		const behavior: ScrollBehavior = prefersReducedMotion ? 'auto' : 'smooth';
+
+		if (isDocumentScroller) {
+			window.scrollTo({ top: clampedTarget, behavior });
+		} else {
+			container.scrollTo({ top: clampedTarget, behavior });
+		}
+	}
+
+	function syncTranscriptScroll() {
+		// rAF-coalesce so multiple reactive ticks during a single frame only do
+		// one DOM measurement / scroll attempt.
+		if (scrollSyncFrame !== 0) return;
+		if (typeof window === 'undefined') return;
+
+		scrollSyncFrame = window.requestAnimationFrame(() => {
+			scrollSyncFrame = 0;
+			if (!videoIsPlaying || !canAutoScrollSync) return;
+			const activeIndex = findActiveAnchorIndex(blockAnchors, videoCurrentMs);
+			if (activeIndex < 0) return;
+			const anchor = blockAnchors[activeIndex];
+			if (!anchor) return;
+			scrollDownToBlock(anchor.blockIndex);
+		});
+	}
+
+	function cancelScrollSync() {
+		if (scrollSyncFrame !== 0 && typeof window !== 'undefined') {
+			window.cancelAnimationFrame(scrollSyncFrame);
+			scrollSyncFrame = 0;
+		}
+	}
+
+	/** Recompute anchors whenever the underlying transcript or content changes. */
+	$: blockAnchors = computeBlockAnchors(content ?? [], transcriptCues ?? []);
+
+	/** Auto-scroll is text-view only; slides have their own time-driven nav. */
+	$: canAutoScrollSync = viewModeIsText && !locked && blockAnchors.length > 0;
+
+	$: if (canAutoScrollSync && videoIsPlaying && videoCurrentMs >= 0) {
+		syncTranscriptScroll();
+	}
+
+	// Cancel any pending sync when the user pauses; per spec, pause hands full
+	// scroll control back to the reader.
+	$: if (!videoIsPlaying) {
+		cancelScrollSync();
+	}
+
+	onDestroy(cancelScrollSync);
+
 	function unlockCaseStudy() {
 		if (!locked) {
 			return;
@@ -289,6 +426,7 @@
 </script>
 
 <div
+	bind:this={rootEl}
 	class="portfolio-expanded-view flex-column"
 	class:immersive
 	class:portfolio-expanded-view--staggered={staggerReveal}
@@ -474,6 +612,7 @@
 									{@const colonIdx = block.value.indexOf(':')}
 									<div
 										class="heading-block reveal-child"
+										data-block-index={index}
 										style={revealStyle(
 											(contentReveal ?? introReveal).childStartDelayMs +
 												index * REVEAL_CHILD_STEP_MS
@@ -493,6 +632,7 @@
 								{:else if block.type === 'text'}
 									<div
 										class="text-block reveal-child"
+										data-block-index={index}
 										style={revealStyle(
 											(contentReveal ?? introReveal).childStartDelayMs +
 												index * REVEAL_CHILD_STEP_MS
