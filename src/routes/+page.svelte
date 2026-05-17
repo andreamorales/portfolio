@@ -547,7 +547,8 @@
 			...(payload.videoUrl ? { videoUrl: payload.videoUrl } : {}),
 			...(payload.videoPosterUrl ? { videoPosterUrl: payload.videoPosterUrl } : {}),
 			...(payload.transcriptCues?.length ? { transcriptCues: payload.transcriptCues } : {}),
-			...(payload.hideHeroImage ? { hideHeroImage: true } : {})
+			...(payload.hideHeroImage ? { hideHeroImage: true } : {}),
+			...(payload.slides?.length ? { slides: payload.slides } : {})
 		};
 	}
 

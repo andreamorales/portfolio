@@ -29,12 +29,23 @@ export interface SecurePortfolioTranscriptCue {
 	confidence?: number;
 }
 
+export interface SecurePortfolioSlideItem {
+	title?: string;
+	text?: string;
+	image?: string;
+	imageAlt?: string;
+	imageCaption?: string;
+	layout?: 'text-only' | 'image-only' | 'text-left' | 'text-right' | 'full-bleed';
+	startMs?: number;
+}
+
 export interface SecurePortfolioPayloadData {
 	projectTitle?: string;
 	tags?: string[];
 	description: string;
 	images: SecurePortfolioImage[];
 	content: SecurePortfolioContentItem[];
+	slides?: SecurePortfolioSlideItem[];
 	year: string;
 	role: string;
 	link: string;
