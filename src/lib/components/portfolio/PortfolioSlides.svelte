@@ -13,11 +13,6 @@
 	export let revealDelayMs = 0;
 	export let videoCurrentMs = 0;
 	export let videoIsPlaying = false;
-	export let hasPrevPiece = false;
-	export let hasNextPiece = false;
-	export let onPrevPiece: (() => void) | null = null;
-	export let onNextPiece: (() => void) | null = null;
-	export let onGoHome: (() => void) | null = null;
 
 	let currentSlide = 0;
 	let userOverrodeSlide = false;
@@ -76,6 +71,34 @@
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'ArrowRight') next();
 		else if (e.key === 'ArrowLeft') prev();
+		else if (e.key === 'Escape' && isFullscreen) exitFullscreen();
+	}
+
+	let slideEl: HTMLElement;
+	let isFullscreen = false;
+
+	function toggleFullscreen() {
+		if (isFullscreen) {
+			exitFullscreen();
+		} else {
+			enterFullscreen();
+		}
+	}
+
+	function enterFullscreen() {
+		if (slideEl?.requestFullscreen) {
+			slideEl.requestFullscreen().catch(() => {});
+		}
+	}
+
+	function exitFullscreen() {
+		if (document.fullscreenElement) {
+			document.exitFullscreen().catch(() => {});
+		}
+	}
+
+	function onFullscreenChange() {
+		isFullscreen = !!document.fullscreenElement;
 	}
 
 	function revealStyle(delayMs: number): string | undefined {
@@ -85,6 +108,7 @@
 </script>
 
 <!-- svelte-ignore a11y-no-noninteractive-tabindex a11y-no-noninteractive-element-interactions -->
+<svelte:window on:fullscreenchange={onFullscreenChange} />
 <div
 	class="slides-container"
 	class:slides-container--staggered={staggerReveal}
@@ -94,40 +118,35 @@
 	aria-label="Project slides"
 	tabindex="0"
 >
-	<div class="slide reveal-child" style={revealStyle(revealDelayMs)}>
+	<div class="slide reveal-child" class:slide--fullscreen={isFullscreen} style={revealStyle(revealDelayMs)} bind:this={slideEl}>
 		<div class="slide-count" role="status" aria-live="polite" aria-atomic="true">
 			{currentSlide + 1}/{totalSlides}
 		</div>
 
 		<!-- Prev nav overlay -->
-		<button
-			class="slide-nav slide-nav--prev"
-			class:slide-nav--piece={isFirstSlide}
-			disabled={isFirstSlide && !hasPrevPiece}
-			on:click={() => {
-				if (isFirstSlide) {
-					onPrevPiece?.();
-				} else {
-					prev();
-				}
-			}}
-			aria-label={isFirstSlide ? 'Previous portfolio piece' : 'Previous slide'}
-		>
-			<svg
-				class="slide-nav__icon"
-				xmlns="http://www.w3.org/2000/svg"
-				viewBox="0 0 3 5"
-				width="18"
-				height="18"
-				fill="currentColor"
-				aria-hidden="true"
-				style="image-rendering: pixelated"
+		{#if !isFirstSlide}
+			<button
+				class="slide-nav slide-nav--prev"
+				on:click={prev}
+				aria-label="Previous slide"
 			>
-				<rect x="0" y="2" width="1" height="1" />
-				<rect x="1" y="1" width="1" height="3" />
-				<rect x="2" y="0" width="1" height="5" />
-			</svg>
-		</button>
+				<svg
+					class="slide-nav__icon"
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 3 5"
+					width="14"
+					height="14"
+					fill="currentColor"
+					aria-hidden="true"
+				>
+					<rect x="0" y="2" width="1" height="1" />
+					<rect x="1" y="1" width="1" height="1" />
+					<rect x="1" y="3" width="1" height="1" />
+					<rect x="2" y="0" width="1" height="1" />
+					<rect x="2" y="4" width="1" height="1" />
+				</svg>
+			</button>
+		{/if}
 
 		{#key currentSlide}
 			{#if isMetadataSlide}
@@ -212,60 +231,73 @@
 			{/if}
 		{/key}
 
-		<!-- Next nav overlay -->
-		{#if isLastSlide}
-			<div class="slide-end-actions">
-				{#if hasNextPiece}
-					<button
-						class="slide-end-btn"
-						on:click={() => onNextPiece?.()}
-						aria-label="Next portfolio piece"
-					>
-						Next Case
-						<svg
-							class="slide-end-btn__icon"
-							xmlns="http://www.w3.org/2000/svg"
-							viewBox="0 0 3 5"
-							width="14"
-							height="14"
-							fill="currentColor"
-							aria-hidden="true"
-							style="image-rendering: pixelated"
-						>
-							<rect x="2" y="2" width="1" height="1" />
-							<rect x="1" y="1" width="1" height="3" />
-							<rect x="0" y="0" width="1" height="5" />
-						</svg>
-					</button>
-				{/if}
-				{#if onGoHome}
-					<button
-						class="slide-end-btn slide-end-btn--home"
-						on:click={() => onGoHome?.()}
-						aria-label="Back to home"
-					>
-						Home
-					</button>
-				{/if}
-			</div>
-		{:else}
+		<!-- Next nav overlay (not shown on last slide) -->
+		{#if !isLastSlide}
 			<button class="slide-nav slide-nav--next" on:click={next} aria-label="Next slide">
 				<svg
 					class="slide-nav__icon"
 					xmlns="http://www.w3.org/2000/svg"
 					viewBox="0 0 3 5"
-					width="18"
-					height="18"
+					width="14"
+					height="14"
 					fill="currentColor"
 					aria-hidden="true"
-					style="image-rendering: pixelated"
 				>
 					<rect x="2" y="2" width="1" height="1" />
-					<rect x="1" y="1" width="1" height="3" />
-					<rect x="0" y="0" width="1" height="5" />
+					<rect x="1" y="1" width="1" height="1" />
+					<rect x="1" y="3" width="1" height="1" />
+					<rect x="0" y="0" width="1" height="1" />
+					<rect x="0" y="4" width="1" height="1" />
 				</svg>
 			</button>
 		{/if}
+
+		<!-- Fullscreen toggle (bottom-right) -->
+		<button
+			class="slide-fullscreen-btn"
+			on:click={toggleFullscreen}
+			aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+		>
+			{#if isFullscreen}
+				<!-- Collapse icon: four inward-pointing corners -->
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 8 8"
+					width="14"
+					height="14"
+					fill="currentColor"
+					aria-hidden="true"
+				>
+					<rect x="2" y="0" width="1" height="3" />
+					<rect x="0" y="2" width="3" height="1" />
+					<rect x="5" y="0" width="1" height="3" />
+					<rect x="5" y="2" width="3" height="1" />
+					<rect x="2" y="5" width="1" height="3" />
+					<rect x="0" y="5" width="3" height="1" />
+					<rect x="5" y="5" width="1" height="3" />
+					<rect x="5" y="5" width="3" height="1" />
+				</svg>
+			{:else}
+				<!-- Expand icon: four outward-pointing corners -->
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 8 8"
+					width="14"
+					height="14"
+					fill="currentColor"
+					aria-hidden="true"
+				>
+					<rect x="0" y="0" width="1" height="3" />
+					<rect x="0" y="0" width="3" height="1" />
+					<rect x="7" y="0" width="1" height="3" />
+					<rect x="5" y="0" width="3" height="1" />
+					<rect x="0" y="5" width="1" height="3" />
+					<rect x="0" y="7" width="3" height="1" />
+					<rect x="7" y="5" width="1" height="3" />
+					<rect x="5" y="7" width="3" height="1" />
+				</svg>
+			{/if}
+		</button>
 	</div>
 </div>
 
@@ -274,7 +306,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		padding: var(--spacing-lg);
+		padding: var(--spacing-lg) var(--spacing-xxl);
 		height: 440px;
 		box-sizing: border-box;
 		overflow-y: auto;
@@ -347,24 +379,92 @@
 		font-variant-numeric: tabular-nums;
 	}
 
-	/* ── Slide nav arrows (bottom corners, equal inset + soft gradient) ── */
+	.slide--fullscreen {
+		width: 100vw;
+		height: 100vh;
+		border-radius: 0;
+	}
+
+	.slide--fullscreen .slide-title {
+		font-size: clamp(2.4rem, 4vw, 3.6rem);
+	}
+
+	.slide--fullscreen .slide-body {
+		font-size: clamp(1.15rem, 1.8vw, 1.5rem);
+		line-height: 1.55;
+	}
+
+	.slide--fullscreen .slide-text-half {
+		padding: var(--spacing-xl) var(--spacing-xxl);
+		gap: var(--spacing-md);
+	}
+
+	.slide--fullscreen .slide-text-full {
+		max-width: 70ch;
+		padding: var(--spacing-xxl);
+		gap: var(--spacing-md);
+	}
+
+	.slide--fullscreen .slide-count {
+		font-size: var(--font-size-sm);
+	}
+
+	.slide--fullscreen .slide-content--metadata {
+		padding: var(--spacing-xl) var(--spacing-xxl);
+		height: 100%;
+		--font-size-xxs: 0.85rem;
+		--font-size-xs: 0.95rem;
+		--font-size-base: 1.35rem;
+		--font-size-sm: 1.1rem;
+		--spacing-lg: 2.5rem;
+		--spacing-xs: 0.75rem;
+	}
+
+	.slide-fullscreen-btn {
+		--slide-nav-inset: 12px;
+		position: absolute;
+		bottom: 0;
+		right: 0;
+		z-index: 3;
+		padding: var(--slide-nav-inset);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border: none;
+		border-radius: 0;
+		background: transparent;
+		color: inherit;
+		opacity: 0.4;
+		cursor: pointer;
+		transition: opacity 200ms ease;
+		min-height: unset;
+		height: auto;
+		transform: none;
+	}
+
+	.slide-fullscreen-btn:hover {
+		opacity: 0.85;
+		transform: none;
+	}
+
+	/* ── Slide nav arrows (vertically centered, soft edge gradient) ── */
 	/* inset matches on both bottom edge and side edge of the slide */
 	.slide-nav {
 		--slide-nav-inset: 12px;
 		position: absolute;
+		top: 0;
 		bottom: 0;
 		z-index: 2;
 		display: flex;
-		align-items: flex-end;
+		align-items: center;
 		border: none;
 		color: inherit;
-		opacity: 0.65;
+		opacity: 0.55;
 		cursor: pointer;
 		transition: opacity 200ms ease;
-		padding: var(--slide-nav-inset);
+		padding: 0 var(--slide-nav-inset);
 		background: transparent;
-		min-width: calc(18px + 2 * var(--slide-nav-inset));
-		min-height: calc(18px + 2 * var(--slide-nav-inset));
+		min-width: calc(14px + 2 * var(--slide-nav-inset));
 	}
 
 	.slide-nav::before {
@@ -372,6 +472,9 @@
 		position: absolute;
 		pointer-events: none;
 		z-index: 0;
+		top: 0;
+		bottom: 0;
+		width: 80px;
 	}
 
 	.slide-nav--prev {
@@ -381,18 +484,7 @@
 
 	.slide-nav--prev::before {
 		left: 0;
-		bottom: 0;
-		width: 200px;
-		height: 160px;
-		background: radial-gradient(
-			ellipse 100% 95% at 0% 100%,
-			rgba(0, 0, 0, 0.42) 0%,
-			rgba(0, 0, 0, 0.22) 28%,
-			rgba(0, 0, 0, 0.1) 48%,
-			rgba(0, 0, 0, 0.03) 70%,
-			rgba(0, 0, 0, 0.008) 86%,
-			transparent 100%
-		);
+		background: linear-gradient(to right, rgba(0, 0, 0, 0.18) 0%, transparent 100%);
 	}
 
 	.slide-nav--next {
@@ -402,42 +494,15 @@
 
 	.slide-nav--next::before {
 		right: 0;
-		bottom: 0;
-		width: 200px;
-		height: 160px;
-		background: radial-gradient(
-			ellipse 100% 95% at 100% 100%,
-			rgba(0, 0, 0, 0.42) 0%,
-			rgba(0, 0, 0, 0.22) 28%,
-			rgba(0, 0, 0, 0.1) 48%,
-			rgba(0, 0, 0, 0.03) 70%,
-			rgba(0, 0, 0, 0.008) 86%,
-			transparent 100%
-		);
+		background: linear-gradient(to left, rgba(0, 0, 0, 0.18) 0%, transparent 100%);
 	}
 
 	:global(html.dark-theme) .slide-nav--prev::before {
-		background: radial-gradient(
-			ellipse 100% 95% at 0% 100%,
-			rgba(0, 0, 0, 0.32) 0%,
-			rgba(0, 0, 0, 0.16) 30%,
-			rgba(0, 0, 0, 0.07) 52%,
-			rgba(0, 0, 0, 0.025) 74%,
-			rgba(0, 0, 0, 0.006) 88%,
-			transparent 100%
-		);
+		background: linear-gradient(to right, rgba(0, 0, 0, 0.14) 0%, transparent 100%);
 	}
 
 	:global(html.dark-theme) .slide-nav--next::before {
-		background: radial-gradient(
-			ellipse 100% 95% at 100% 100%,
-			rgba(0, 0, 0, 0.32) 0%,
-			rgba(0, 0, 0, 0.16) 30%,
-			rgba(0, 0, 0, 0.07) 52%,
-			rgba(0, 0, 0, 0.025) 74%,
-			rgba(0, 0, 0, 0.006) 88%,
-			transparent 100%
-		);
+		background: linear-gradient(to left, rgba(0, 0, 0, 0.14) 0%, transparent 100%);
 	}
 
 	.slide-nav:hover:not(:disabled) {
@@ -449,114 +514,9 @@
 		cursor: default;
 	}
 
-	.slide-nav--piece {
-		opacity: 0.3;
-	}
-
 	.slide-nav__icon {
 		position: relative;
 		z-index: 1;
-		display: block;
-		flex-shrink: 0;
-	}
-
-	/* ── End-of-slides actions (last slide, bottom-right) ── */
-
-	.slide-end-actions {
-		--slide-nav-inset: 12px;
-		position: absolute;
-		right: 0;
-		bottom: 0;
-		display: flex;
-		align-items: center;
-		gap: var(--spacing-sm);
-		padding: var(--slide-nav-inset);
-		z-index: 2;
-		background: transparent;
-	}
-
-	.slide-end-actions::before {
-		content: '';
-		position: absolute;
-		right: 0;
-		bottom: 0;
-		width: min(280px, 75vw);
-		height: 120px;
-		pointer-events: none;
-		z-index: 0;
-		background: radial-gradient(
-			ellipse 100% 95% at 100% 100%,
-			rgba(0, 0, 0, 0.46) 0%,
-			rgba(0, 0, 0, 0.24) 26%,
-			rgba(0, 0, 0, 0.1) 48%,
-			rgba(0, 0, 0, 0.03) 72%,
-			rgba(0, 0, 0, 0.008) 88%,
-			transparent 100%
-		);
-	}
-
-	:global(html.dark-theme) .slide-end-actions::before {
-		background: radial-gradient(
-			ellipse 100% 95% at 100% 100%,
-			rgba(0, 0, 0, 0.34) 0%,
-			rgba(0, 0, 0, 0.17) 28%,
-			rgba(0, 0, 0, 0.075) 52%,
-			rgba(0, 0, 0, 0.028) 76%,
-			rgba(0, 0, 0, 0.007) 90%,
-			transparent 100%
-		);
-	}
-
-	.slide-end-actions > * {
-		position: relative;
-		z-index: 1;
-	}
-
-	.slide-end-btn {
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		padding: 6px 12px;
-		border: 1px solid currentColor;
-		border-radius: var(--border-radius-full, 9999px);
-		background: transparent;
-		color: inherit;
-		font-family: inherit;
-		font-size: var(--font-size-xs);
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
-		cursor: pointer;
-		opacity: 0.6;
-		transition:
-			opacity 200ms ease,
-			background 200ms ease;
-		font-variation-settings:
-			'CASL' 0,
-			'wght' 450;
-		white-space: nowrap;
-	}
-
-	.slide-end-btn:hover {
-		opacity: 1;
-		background: rgba(255, 255, 255, 0.1);
-	}
-
-	:global(html.dark-theme) .slide-end-btn:hover {
-		background: rgba(0, 0, 0, 0.08);
-	}
-
-	.slide-end-btn--home {
-		border: none;
-		opacity: 0.4;
-		font-size: var(--font-size-xxs);
-	}
-
-	.slide-end-btn--home:hover {
-		opacity: 0.8;
-		background: transparent;
-	}
-
-	.slide-end-btn__icon {
 		display: block;
 		flex-shrink: 0;
 	}
@@ -575,7 +535,7 @@
 
 	.slide-text-full {
 		max-width: 55ch;
-		padding: var(--spacing-xl) var(--spacing-lg);
+		padding: var(--spacing-xl) var(--spacing-xxl);
 		display: flex;
 		flex-direction: column;
 		gap: var(--spacing-sm);
@@ -641,7 +601,7 @@
 		flex-direction: column;
 		justify-content: center;
 		gap: var(--spacing-sm);
-		padding: var(--spacing-lg);
+		padding: var(--spacing-lg) var(--spacing-xxl);
 	}
 
 	.slide-image-half {
@@ -696,26 +656,27 @@
 			height: 340px;
 		}
 
-		.slide-split {
-			flex-direction: column !important;
+		.slide-image-half img {
+			max-height: none;
+			object-fit: cover;
 		}
 
-		.slide-image-half img {
-			max-height: 180px;
-			object-fit: contain;
+		.slide-text-half {
+			padding: var(--spacing-sm) var(--spacing-lg);
+			gap: var(--spacing-xs);
 		}
 
 		.slide-title {
-			font-size: clamp(1.65rem, 6.5vw, 2.35rem);
+			font-size: clamp(1.1rem, 4.5vw, 1.5rem);
 		}
 
 		.slide-body {
-			font-size: var(--font-size-base);
+			font-size: var(--font-size-sm);
 			line-height: 1.38;
 		}
 
 		.slide-text-full {
-			padding: var(--spacing-lg) var(--spacing-md);
+			padding: var(--spacing-lg) var(--spacing-lg);
 		}
 
 		.slide-count {
@@ -727,22 +688,13 @@
 		}
 
 		.slide-nav__icon {
-			width: 14px;
-			height: 14px;
-		}
-
-		.slide-end-actions {
-			--slide-nav-inset: 10px;
-		}
-
-		.slide-end-btn {
-			font-size: var(--font-size-xxs);
-			padding: 5px 10px;
+			width: 12px;
+			height: 12px;
 		}
 
 		.slide-content--metadata {
 			height: 340px;
-			padding: var(--spacing-md);
+			padding: var(--spacing-md) var(--spacing-lg);
 		}
 	}
 

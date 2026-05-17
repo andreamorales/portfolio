@@ -461,11 +461,6 @@
 						revealDelayMs={(contentReveal ?? introReveal).childStartDelayMs + REVEAL_CHILD_STEP_MS}
 						{videoCurrentMs}
 						{videoIsPlaying}
-						{hasPrevPiece}
-						{hasNextPiece}
-						{onPrevPiece}
-						{onNextPiece}
-						{onGoHome}
 						{year}
 						{link}
 						{metrics}
@@ -604,7 +599,7 @@
 					{/if}
 				{/if}
 
-				{#if onGoHome && !(viewMode === 'slides' && hasSlides)}
+				{#if onGoHome}
 					<PortfolioEndHome
 						maskId={portfolioEndSmileyMaskId}
 						onGoHome={() => onGoHome?.()}
@@ -780,6 +775,7 @@
 		font-size: var(--font-size-xs);
 		line-height: 1.45;
 		color: var(--muted-text);
+		/* Matches HomeLandingTerminal.cli-block (--border-radius → --radius-md) */
 		border-radius: var(--border-radius);
 		border: 1px solid var(--grey-light);
 		overflow: hidden;
@@ -1229,7 +1225,7 @@
 	:global(html.dark-theme) .heading-byline,
 	:global(html.dark-theme) .text-block,
 	:global(html.dark-theme) .image-caption {
-		letter-spacing: 0.03em;
+		letter-spacing: 0.005em;
 	}
 
 	/* Slightly lighter body weight in dark mode for easier reading on deep backgrounds */
@@ -1255,7 +1251,7 @@
 	}
 
 	:global(html.dark-theme) .highlight-line {
-		letter-spacing: 0.025em;
+		letter-spacing: 0.005em;
 	}
 
 	@media (max-width: 768px) {

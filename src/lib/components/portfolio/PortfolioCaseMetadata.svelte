@@ -196,7 +196,7 @@
 
 	.impact-item--with-pixel-mark {
 		display: flex;
-		align-items: flex-start;
+		align-items: center;
 		gap: var(--spacing-xxs);
 		min-width: 0;
 	}
@@ -204,7 +204,6 @@
 	.impact-item__pixel {
 		flex-shrink: 0;
 		display: block;
-		margin-top: 0.32em;
 		opacity: 0.72;
 	}
 
@@ -217,7 +216,7 @@
 	}
 
 	:global(html.dark-theme) .details-value {
-		letter-spacing: 0.03em;
+		letter-spacing: 0.005em;
 		font-variation-settings:
 			'CASL' 0,
 			'wght' 360;
