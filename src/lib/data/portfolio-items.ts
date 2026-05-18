@@ -31,7 +31,8 @@ interface ContentItem {
 	type: string;
 	value: string;
 	caption?: string;
-	layout?: 'single' | 'side-by-side';
+	autoplay?: boolean;
+	layout?: 'single' | 'side-by-side' | 'narrow';
 	sideImage?: {
 		value: string;
 		caption?: string;
@@ -179,6 +180,10 @@ const initialPortfolioItems = [
 		],
 		content: [
 			{
+				type: 'heading',
+				value: 'Blue Sky'
+			},
+			{
 				type: 'text',
 				value:
 					'In Q1 of 2020, Design led a two week series of workshops and rapid prototyping called "Blue Sky."'
@@ -190,11 +195,19 @@ const initialPortfolioItems = [
 			},
 			{ type: 'image', value: '/images/portfolio/mongodb/before.webp' },
 			{
+				type: 'heading',
+				value: 'The hunch'
+			},
+			{
 				type: 'text',
 				value:
 					'Our first pass at solving this "hunch" happened during Blue Sky 2020.\n\nIt was based on two main ideas:\nThe current Schema UI did not pass basic heuristic evaluations.\nThe UI required constant context switching between parts of the UI that were not connected/needed constant refreshing.'
 			},
 			{ type: 'image', value: '/images/portfolio/mongodb/bluesky.gif' },
+			{
+				type: 'heading',
+				value: 'Research and validation'
+			},
 			{
 				type: 'text',
 				value:
@@ -209,11 +222,19 @@ const initialPortfolioItems = [
 				}
 			},
 			{
+				type: 'heading',
+				value: 'Design iteration'
+			},
+			{
 				type: 'text',
 				value:
 					'Our hunch was right! So now I began iterating on designs with the triad. Throughout 5 months, design iteration of wireframes began, informed by the past research, ongoing user research, and input from designers, PMs, and engineers.'
 			},
 			{ type: 'image', value: '/images/portfolio/mongodb/figma.webp' },
+			{
+				type: 'heading',
+				value: 'Scoping and handoff'
+			},
 			{
 				type: 'text',
 				value:
@@ -224,6 +245,10 @@ const initialPortfolioItems = [
 				type: 'text',
 				value:
 					'With that in mind, I began cutting down the project where I could, while at the same time advocating for user delight: animated empty states, clearer copy, and "short-cuts" for more experienced users.'
+			},
+			{
+				type: 'heading',
+				value: 'Results'
 			},
 			{ type: 'image', value: '/images/portfolio/mongodb/results.webp' },
 			{
@@ -388,11 +413,19 @@ const initialPortfolioItems = [
 		],
 		content: [
 			{
+				type: 'heading',
+				value: 'The problem'
+			},
+			{
 				type: 'text',
 				value:
 					'When I first came to FireHydrant as a Sr. Director of Design, a design system already existed. Unfortunately, it had been created with lots of CSS wrapping over OSS components, way too early into the product-market fit process.\n\nWe also had the issue that there were no guidelines for its usage, and no clear ownership of it on the eng side. This lead to poor performance of the system and of the design ICs.\n\nHow could we raise the bar of UX, while improving the design system, in a resource-efficient way?'
 			},
 			{ type: 'image', value: '/images/portfolio/firehydrant/before.webp' },
+			{
+				type: 'heading',
+				value: 'Staying afloat'
+			},
 			{
 				type: 'text',
 				value:
@@ -407,6 +440,10 @@ const initialPortfolioItems = [
 				}
 			},
 			{
+				type: 'heading',
+				value: 'Getting alignment'
+			},
+			{
 				type: 'text',
 				value:
 					'Still, we needed more cohesion. Even if I hired someone to make patterns, the process would take too long. In the mean time, I had to start finding a way to get all our partners to agree on a governance style for our design system...'
@@ -418,6 +455,10 @@ const initialPortfolioItems = [
 					'I set out to listen to every partner. I gathered their requirements, attended FE Guild meetings, and listened to them. Consensus arose: ChakraUI, the OSS system, without embellishments, could probably do the trick.'
 			},
 			{ type: 'image', value: '/images/portfolio/firehydrant/uxr.webp' },
+			{
+				type: 'heading',
+				value: 'The case for resources'
+			},
 			{
 				type: 'text',
 				value:
@@ -431,6 +472,10 @@ const initialPortfolioItems = [
 			},
 			{ type: 'image', value: '/images/portfolio/firehydrant/planning_2.webp' },
 			{
+				type: 'heading',
+				value: 'Building the vision'
+			},
+			{
 				type: 'text',
 				value:
 					'We started off with a really broad idea of the future\nI made sure my Sr Designer, who had the most experience with visual design, had at least a week to work on this with me...'
@@ -443,11 +488,19 @@ const initialPortfolioItems = [
 			},
 			{ type: 'image', value: '/images/portfolio/firehydrant/figma.webp' },
 			{
+				type: 'heading',
+				value: 'Ripple effect'
+			},
+			{
 				type: 'text',
 				value:
 					'Our efforts influenced marketing heavily. As marketing began recruiting brand designers and FE engineers, they were onboarded unto our work and that quickly influenced the new landing page they were creating, which pushed our work further since everyone began to see the vision as integral to their own work.'
 			},
 			{ type: 'image', value: '/images/portfolio/firehydrant/results.webp' },
+			{
+				type: 'heading',
+				value: 'Results'
+			},
 			{
 				type: 'text',
 				value:
@@ -604,6 +657,10 @@ const initialPortfolioItems = [
 		],
 		content: [
 			{
+				type: 'heading',
+				value: 'Context'
+			},
+			{
 				type: 'text',
 				value:
 					'In 2021, I was new to Roblox but tasked, as a principal designer, to design OAuth2 permission keys for our web developer portal.'
@@ -615,11 +672,19 @@ const initialPortfolioItems = [
 			},
 			{ type: 'image', value: '/images/portfolio/roblox/before.webp' },
 			{
+				type: 'heading',
+				value: 'Understanding the user'
+			},
+			{
 				type: 'text',
 				value:
 					"As soon as I saw what the PM had worked on, I started thinking about the average Roblox dev. I asked him if we had any data on who would use this; we didn't. But it was an overall strategy to make things that would work for beginners and experts."
 			},
 			{ type: 'image', value: '/images/portfolio/roblox/before2.webp' },
+			{
+				type: 'heading',
+				value: 'Rapid wireframes'
+			},
 			{
 				type: 'text',
 				value:
@@ -627,11 +692,19 @@ const initialPortfolioItems = [
 			},
 			{ type: 'image', value: '/images/portfolio/roblox/scopes.webp' },
 			{
+				type: 'heading',
+				value: 'Guerrilla research'
+			},
+			{
 				type: 'text',
 				value:
 					'That gave me an opening for research. The PM invited me to show my designs to users he was going to interview for a separate project.\n\nI accepted and made 4 more versions of my designs to try out.'
 			},
 			{ type: 'image', value: '/images/portfolio/roblox/figma.webp' },
+			{
+				type: 'heading',
+				value: 'A clear winner'
+			},
 			{
 				type: 'text',
 				value:
@@ -639,11 +712,19 @@ const initialPortfolioItems = [
 			},
 			{ type: 'image', value: '/images/portfolio/roblox/uxr.webp' },
 			{
+				type: 'heading',
+				value: 'Final design'
+			},
+			{
 				type: 'text',
 				value:
 					'Through 4 internal reviews, in the expanse of two weeks, we got to final results that were vetted by engineering and PM, before starting development.'
 			},
 			{ type: 'image', value: '/images/portfolio/roblox/scopesfinal.webp' },
+			{
+				type: 'heading',
+				value: 'Impact'
+			},
 			{
 				type: 'text',
 				value:
@@ -783,6 +864,10 @@ const initialPortfolioItems = [
 		],
 		content: [
 			{
+				type: 'heading',
+				value: 'The thesis'
+			},
+			{
 				type: 'text',
 				value:
 					'The release of DeepSeek R1 has proven that AI is not a "winner takes all" technology. Ultimately, there will be thousands, if not millions, of AI models used by everyone, made by smaller and smaller teams with less and less compute.'
@@ -797,6 +882,10 @@ const initialPortfolioItems = [
 				value:
 					"At first, people won't be able to pre-train models from scratch. Instead, they will post-train models that offer open weights. For that purpose, understanding how that data influences model behavior will be key."
 			},
+			{
+				type: 'heading',
+				value: 'Pivot'
+			},
 			{ type: 'image', value: '/images/portfolio/panto/before.webp' },
 			{
 				type: 'text',
@@ -804,6 +893,10 @@ const initialPortfolioItems = [
 					'Originally, this project was meant to focus on the licensing of IP for the age of AI. But as we did more research, my cofounder and I realized that the main problem was the evaluation of what IP was valuable to AI to begin with.'
 			},
 			{ type: 'image', value: '/images/portfolio/panto/landing.webp' },
+			{
+				type: 'heading',
+				value: 'The product'
+			},
 			{
 				type: 'text',
 				value:
@@ -815,6 +908,10 @@ const initialPortfolioItems = [
 					"Panto is made up of two features. The first one is data scoring. Data is live-streamed from the company into Panto. As the data trickles in, we compare it to a baseline of data and crack open the black-box of models to see how they react to the company's data. We give each data point a novelty score."
 			},
 			{ type: 'image', value: '/images/portfolio/panto/analysis.webp' },
+			{
+				type: 'heading',
+				value: 'Visualization'
+			},
 			{
 				type: 'text',
 				value:
@@ -828,6 +925,10 @@ const initialPortfolioItems = [
 			},
 			{ type: 'image', value: '/images/portfolio/panto/charts_light.webp' },
 			{
+				type: 'heading',
+				value: 'Dev-friendly details'
+			},
+			{
 				type: 'text',
 				value:
 					'The whole design is meant to be developer friendly. Tables include zebra stripping and are mobile friendly, and forms and steppers are optimized for top-of-the-line UX.'
@@ -839,6 +940,10 @@ const initialPortfolioItems = [
 				sideImage: {
 					value: '/images/portfolio/panto/form.webp'
 				}
+			},
+			{
+				type: 'heading',
+				value: 'Close'
 			},
 			{
 				type: 'text',
@@ -974,17 +1079,29 @@ const initialPortfolioItems = [
 		],
 		content: [
 			{
+				type: 'heading',
+				value: 'The spark'
+			},
+			{
 				type: 'text',
 				value:
 					'In 2023, in an effort to continue my exploration into designing playful interfaces and products, I became very interested in learning how to design resin toys.'
 			},
 			{ type: 'image', value: '/images/portfolio/laguila/armadillos.webp' },
 			{
+				type: 'heading',
+				value: 'Learning at FIT'
+			},
+			{
 				type: 'text',
 				value:
 					'I began by attending a toy design class at FIT, in Manhattan. I learned the basics of 3D drawn design focused on children toys.'
 			},
 			{ type: 'image', value: '/images/portfolio/laguila/draft.webp' },
+			{
+				type: 'heading',
+				value: 'Self-taught sculpting'
+			},
 			{
 				type: 'text',
 				value: 'After that, I self-taught the basics of sculpting and resin pouring.'
@@ -996,6 +1113,10 @@ const initialPortfolioItems = [
 				sideImage: {
 					value: '/images/portfolio/laguila/pour.webp'
 				}
+			},
+			{
+				type: 'heading',
+				value: '20+ designs'
 			},
 			{
 				type: 'text',
@@ -1127,11 +1248,19 @@ const initialPortfolioItems = [
 		],
 		content: [
 			{
+				type: 'heading',
+				value: 'Origin'
+			},
+			{
 				type: 'text',
 				value:
 					'Torch is a freeform Live Action Roleplaying game. It was born out of a game design retreat I attend every year in New Jersey, as part of my desire to participate in the Golden Cobra Challenge, a very well known LARP design competition. This game won the Best Multi-Generational Game award at Golden Cobra. The award was announced at Metatopia 2018.'
 			},
 			{ type: 'image', value: '/images/portfolio/torch/instructions.webp' },
+			{
+				type: 'heading',
+				value: 'The premise'
+			},
 			{
 				type: 'text',
 				value:

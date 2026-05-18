@@ -115,6 +115,41 @@
 		isFullscreen = !!document.fullscreenElement;
 	}
 
+	let splitRatio = 50;
+	let isDraggingSplit = false;
+	let splitContainerEl: HTMLElement | null = null;
+
+	function onSplitPointerDown(e: PointerEvent) {
+		isDraggingSplit = true;
+		splitContainerEl = (e.currentTarget as HTMLElement).parentElement;
+		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+		e.preventDefault();
+	}
+
+	function onSplitPointerMove(e: PointerEvent) {
+		if (!isDraggingSplit || !splitContainerEl) return;
+		const rect = splitContainerEl.getBoundingClientRect();
+		const x = e.clientX - rect.left;
+		const pct = (x / rect.width) * 100;
+		splitRatio = Math.max(20, Math.min(80, pct));
+	}
+
+	function onSplitPointerUp() {
+		isDraggingSplit = false;
+		splitContainerEl = null;
+	}
+
+	function resetSplitRatio() {
+		splitRatio = 50;
+	}
+
+	$: currentSlide, resetSplitRatio();
+
+	$: textPanePct = layout === 'text-right' ? 100 - splitRatio : splitRatio;
+	$: textCollapsed = hasImage && textPanePct < 38;
+	$: imagePanePct = 100 - textPanePct;
+	$: imageExpanded = hasImage && imagePanePct > 52;
+
 	function revealStyle(delayMs: number): string | undefined {
 		if (!staggerReveal) return undefined;
 		return `--reveal-delay: ${Math.max(0, Math.round(delayMs))}ms;`;
@@ -225,21 +260,34 @@
 						</div>
 					{:else}
 						{@const imageFirst = layout === 'text-right'}
-						<div class="slide-split" class:reverse={imageFirst}>
-							<div class="slide-text-half">
+						<div class="slide-split" class:reverse={imageFirst} class:slide-split--dragging={isDraggingSplit}>
+							<div class="slide-text-half" class:slide-text-half--collapsed={textCollapsed} style={hasImage ? `flex: 0 0 ${imageFirst ? 100 - splitRatio : splitRatio}%;` : ''}>
 								{#if slide.title}
 									<h3 class="slide-title">{slide.title}</h3>
 								{/if}
-								{#if useIntroText}
-									{#each introSummaryParagraphs as para, sumIdx (`slide-sum-${sumIdx}`)}
-										<p class="slide-body">{para}</p>
-									{/each}
-								{:else if slide.text}
-									<p class="slide-body">{slide.text}</p>
-								{/if}
+								<div class="slide-text-body" class:slide-text-body--hidden={textCollapsed}>
+									{#if useIntroText}
+										{#each introSummaryParagraphs as para, sumIdx (`slide-sum-${sumIdx}`)}
+											<p class="slide-body">{para}</p>
+										{/each}
+									{:else if slide.text}
+										<p class="slide-body">{slide.text}</p>
+									{/if}
+								</div>
 							</div>
+							<!-- svelte-ignore a11y-no-static-element-interactions -->
 							{#if hasImage}
-								<div class="slide-image-half">
+								<div
+									class="slide-split-handle"
+									class:slide-split-handle--dragging={isDraggingSplit}
+									on:pointerdown={onSplitPointerDown}
+									on:pointermove={onSplitPointerMove}
+									on:pointerup={onSplitPointerUp}
+									on:pointercancel={onSplitPointerUp}
+								>
+									<div class="slide-split-handle__grip"></div>
+								</div>
+								<div class="slide-image-half" class:slide-image-half--contain={imageExpanded} style="flex: 0 0 {imageFirst ? splitRatio : 100 - splitRatio}%;">
 									<img src={slide.image} alt={slide.imageAlt || ''} />
 								</div>
 							{/if}
@@ -333,6 +381,7 @@
 		--palette-grey-600: rgba(243, 234, 214, 0.72);
 		--palette-grey-hint: rgba(243, 234, 214, 0.72);
 		--portfolio-metadata-rule: rgba(243, 234, 214, 0.22);
+		--portfolio-metadata-label: rgba(243, 234, 214, 0.72);
 		--muted-text: rgba(243, 234, 214, 0.65);
 		--palette-rainbow-6: #f0c674;
 	}
@@ -343,6 +392,7 @@
 		--palette-grey-600: rgba(20, 19, 18, 0.75);
 		--palette-grey-hint: rgba(20, 19, 18, 0.75);
 		--portfolio-metadata-rule: rgba(20, 19, 18, 0.2);
+		--portfolio-metadata-label: rgba(20, 19, 18, 0.75);
 		--muted-text: rgba(20, 19, 18, 0.65);
 		--palette-rainbow-6: var(--portfolio-metadata-link-on-ink);
 	}
@@ -609,6 +659,10 @@
 		align-items: stretch;
 	}
 
+	.slide-split--dragging {
+		user-select: none;
+	}
+
 	.slide-split.reverse {
 		flex-direction: row-reverse;
 	}
@@ -620,6 +674,26 @@
 		justify-content: center;
 		gap: var(--spacing-sm);
 		padding: var(--spacing-lg) var(--spacing-xxl);
+		overflow: hidden;
+	}
+
+	.slide-text-half--collapsed {
+		justify-content: center;
+	}
+
+	.slide-text-body {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-sm);
+		opacity: 1;
+		max-height: 500px;
+		transition: opacity 180ms ease, max-height 180ms ease;
+		overflow: hidden;
+	}
+
+	.slide-text-body--hidden {
+		opacity: 0;
+		max-height: 0;
 	}
 
 	.slide-image-half {
@@ -635,6 +709,43 @@
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
+		transition: object-fit 0s;
+	}
+
+	.slide-image-half--contain {
+		background: rgba(0, 0, 0, 0.04);
+	}
+
+	.slide-image-half--contain img {
+		object-fit: contain;
+		padding: var(--spacing-sm);
+	}
+
+	.slide-split-handle {
+		flex-shrink: 0;
+		width: 12px;
+		cursor: col-resize;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		position: relative;
+		z-index: 2;
+		touch-action: none;
+	}
+
+	.slide-split-handle__grip {
+		width: 3px;
+		height: 32px;
+		border-radius: 2px;
+		background: currentColor;
+		opacity: 0.18;
+		transition: opacity 150ms, height 150ms;
+	}
+
+	.slide-split-handle:hover .slide-split-handle__grip,
+	.slide-split-handle--dragging .slide-split-handle__grip {
+		opacity: 0.45;
+		height: 48px;
 	}
 
 	/* Typography */

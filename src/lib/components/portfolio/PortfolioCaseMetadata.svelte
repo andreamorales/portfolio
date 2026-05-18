@@ -24,14 +24,12 @@
 			<div class="case-meta-field">
 				<div class="case-meta-label-block">
 					<div class="details-label">Timeline</div>
-					<div class="details-label-rule" aria-hidden="true"></div>
 				</div>
 				<div class="details-value">{year || '—'}</div>
 			</div>
 			<div class="case-meta-field">
 				<div class="case-meta-label-block">
 					<div class="details-label">Link</div>
-					<div class="details-label-rule" aria-hidden="true"></div>
 				</div>
 				<div class="details-value">
 					{#if link === 'Discontinued'}
@@ -48,7 +46,6 @@
 			<div class="case-meta-field">
 				<div class="case-meta-label-block">
 					<div class="details-label">Impact</div>
-					<div class="details-label-rule" aria-hidden="true"></div>
 				</div>
 				<div class="details-value impact-wrap">
 					{#if impactsToShow.length > 0}
@@ -111,9 +108,13 @@
 	.case-meta-field {
 		display: flex;
 		flex-direction: column;
-		gap: var(--spacing-xs);
+		/* Match `.portfolio-summary-column` label → body gap (see PortfolioExpandedView) */
+		gap: 0.125rem;
 		min-width: 0;
 		width: 100%;
+		box-sizing: border-box;
+		border-left: 4px solid var(--portfolio-metadata-rule);
+		padding-left: var(--spacing-xs);
 	}
 
 	.case-meta-label-block {
@@ -124,21 +125,12 @@
 		min-width: 0;
 	}
 
-	.details-label-rule {
-		margin: 0;
-		align-self: stretch;
-		flex-shrink: 0;
-		height: 0;
-		border: none;
-		border-top: 1px solid var(--portfolio-metadata-rule);
-	}
-
 	.details-label {
 		font-size: var(--font-size-xxs);
 		text-transform: uppercase;
 		letter-spacing: 0.06em;
 		line-height: 1.35;
-		color: var(--palette-grey-600);
+		color: var(--portfolio-metadata-label);
 		font-variation-settings:
 			'CASL' 0,
 			'wght' 600;
@@ -146,12 +138,12 @@
 
 	.details-value {
 		font-size: var(--font-size-base);
-		line-height: 1.6;
+		line-height: 1.43;
 		letter-spacing: -0.01em;
 		color: var(--text-color);
 		font-variation-settings:
 			'CASL' 0,
-			'wght' 370;
+			'wght' 400;
 		word-wrap: break-word;
 	}
 
@@ -192,9 +184,10 @@
 
 	.impact-item {
 		margin: 0;
-		font-size: inherit;
-		line-height: inherit;
+		font: inherit;
 		font-variation-settings: inherit;
+		line-height: inherit;
+		letter-spacing: inherit;
 		color: inherit;
 	}
 
@@ -209,8 +202,6 @@
 		flex-shrink: 0;
 		display: block;
 		opacity: 0.72;
-		/* Line box is taller than glyphs; flex-start left the square hugging the top.
-		   Nudge down so the marker sits on the first line (still flex-start for multi-line). */
 		margin-top: calc((1lh - 4px) / 2);
 	}
 
@@ -226,11 +217,7 @@
 		letter-spacing: 0.005em;
 		font-variation-settings:
 			'CASL' 0,
-			'wght' 360;
-	}
-
-	:global(html.dark-theme) .details-label {
-		color: var(--palette-grey-hint);
+			'wght' 390;
 	}
 
 	@media (max-width: 768px) {
