@@ -46,6 +46,7 @@ export interface SlideItem {
 	image?: string;
 	imageAlt?: string;
 	imageCaption?: string;
+	video?: string;
 	layout?: 'text-only' | 'image-only' | 'text-left' | 'text-right' | 'full-bleed';
 	/** Video timestamp (ms) at which this slide should become active. */
 	startMs?: number;

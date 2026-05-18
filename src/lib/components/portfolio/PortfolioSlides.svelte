@@ -25,7 +25,7 @@
 	$: slide = slides[dataIndex] ?? slides[0];
 	$: layout = slide?.layout ?? 'text-left';
 	$: hasText = !!(slide?.title || slide?.text);
-	$: hasImage = !!slide?.image;
+	$: hasImage = !!slide?.image || !!slide?.video;
 	$: isFirstSlide = currentSlide === 0;
 	$: useIntroText = dataIndex === 0 && introSummaryParagraphs.length > 0;
 	$: isLastSlide = currentSlide === totalSlides - 1;
@@ -228,11 +228,14 @@
 					class:layout-full-bleed={layout === 'full-bleed'}
 				>
 					{#if layout === 'full-bleed'}
-						<div class="slide-image-full">
-							{#if hasImage}
-								<img src={slide.image} alt={slide.imageAlt || ''} />
-							{/if}
-						</div>
+					<div class="slide-image-full">
+						{#if slide.video}
+							<!-- svelte-ignore a11y-media-has-caption -->
+							<video src={slide.video} autoplay loop muted playsinline />
+						{:else if hasImage}
+							<img src={slide.image} alt={slide.imageAlt || ''} />
+						{/if}
+					</div>
 					{:else if layout === 'image-only'}
 						{#if useIntroText}
 							<div class="slide-split">
@@ -244,18 +247,24 @@
 										<p class="slide-body">{para}</p>
 									{/each}
 								</div>
-								<div class="slide-image-half">
-									{#if hasImage}
-										<img src={slide.image} alt={slide.imageAlt || ''} />
-									{/if}
-								</div>
-							</div>
-						{:else}
-							<div class="slide-image-centered">
-								{#if hasImage}
+							<div class="slide-image-half">
+								{#if slide.video}
+									<!-- svelte-ignore a11y-media-has-caption -->
+									<video src={slide.video} autoplay loop muted playsinline />
+								{:else if hasImage}
 									<img src={slide.image} alt={slide.imageAlt || ''} />
 								{/if}
 							</div>
+							</div>
+						{:else}
+						<div class="slide-image-centered">
+							{#if slide.video}
+								<!-- svelte-ignore a11y-media-has-caption -->
+								<video src={slide.video} autoplay loop muted playsinline />
+							{:else if hasImage}
+								<img src={slide.image} alt={slide.imageAlt || ''} />
+							{/if}
+						</div>
 						{/if}
 					{:else if layout === 'text-only'}
 						<div class="slide-text-full">
@@ -308,13 +317,18 @@
 								>
 									<span class="slide-split-handle__grip" aria-hidden="true"></span>
 								</button>
-								<div
-									class="slide-image-half"
-									class:slide-image-half--contain={imageExpanded}
-									style="flex: 0 0 {imageFirst ? splitRatio : 100 - splitRatio}%;"
-								>
+							<div
+								class="slide-image-half"
+								class:slide-image-half--contain={imageExpanded}
+								style="flex: 0 0 {imageFirst ? splitRatio : 100 - splitRatio}%;"
+							>
+								{#if slide.video}
+									<!-- svelte-ignore a11y-media-has-caption -->
+									<video src={slide.video} autoplay loop muted playsinline />
+								{:else}
 									<img src={slide.image} alt={slide.imageAlt || ''} />
-								</div>
+								{/if}
+							</div>
 							{/if}
 						</div>
 					{/if}
@@ -658,7 +672,8 @@
 		gap: var(--spacing-xs);
 	}
 
-	.slide-image-centered img {
+	.slide-image-centered img,
+	.slide-image-centered video {
 		max-width: 100%;
 		max-height: 100%;
 		object-fit: contain;
@@ -679,7 +694,8 @@
 		align-items: center;
 	}
 
-	.slide-image-full img {
+	.slide-image-full img,
+	.slide-image-full video {
 		width: 100%;
 		flex: 1;
 		min-height: 0;
@@ -741,7 +757,8 @@
 		overflow: hidden;
 	}
 
-	.slide-image-half img {
+	.slide-image-half img,
+	.slide-image-half video {
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
@@ -752,7 +769,8 @@
 		background: rgba(0, 0, 0, 0.04);
 	}
 
-	.slide-image-half--contain img {
+	.slide-image-half--contain img,
+	.slide-image-half--contain video {
 		object-fit: contain;
 		padding: var(--spacing-sm);
 	}
@@ -829,7 +847,8 @@
 			height: 340px;
 		}
 
-		.slide-image-half img {
+		.slide-image-half img,
+		.slide-image-half video {
 			max-height: none;
 			object-fit: cover;
 		}
