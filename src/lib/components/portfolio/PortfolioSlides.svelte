@@ -189,7 +189,12 @@
 
 		<!-- Prev nav overlay -->
 		{#if !isFirstSlide}
-			<button class="slide-nav slide-nav--prev" class:slide-nav--disabled={isDraggingSplit} on:click={prev} aria-label="Previous slide">
+			<button
+				class="slide-nav slide-nav--prev"
+				class:slide-nav--disabled={isDraggingSplit}
+				on:click={prev}
+				aria-label="Previous slide"
+			>
 				<svg
 					class="slide-nav__icon"
 					xmlns="http://www.w3.org/2000/svg"
@@ -267,8 +272,16 @@
 						</div>
 					{:else}
 						{@const imageFirst = layout === 'text-right'}
-						<div class="slide-split" class:reverse={imageFirst} class:slide-split--dragging={isDraggingSplit}>
-							<div class="slide-text-half" class:slide-text-half--collapsed={textCollapsed} style={hasImage ? `flex: 0 0 ${imageFirst ? 100 - splitRatio : splitRatio}%;` : ''}>
+						<div
+							class="slide-split"
+							class:reverse={imageFirst}
+							class:slide-split--dragging={isDraggingSplit}
+						>
+							<div
+								class="slide-text-half"
+								class:slide-text-half--collapsed={textCollapsed}
+								style={hasImage ? `flex: 0 0 ${imageFirst ? 100 - splitRatio : splitRatio}%;` : ''}
+							>
 								{#if slide.title}
 									<h3 class="slide-title">{slide.title}</h3>
 								{/if}
@@ -282,19 +295,24 @@
 									{/if}
 								</div>
 							</div>
-							<!-- svelte-ignore a11y-no-static-element-interactions -->
 							{#if hasImage}
-								<div
+								<button
+									type="button"
 									class="slide-split-handle"
 									class:slide-split-handle--dragging={isDraggingSplit}
+									aria-label="Resize slide image panel"
 									on:pointerdown={onSplitPointerDown}
 									on:pointermove={onSplitPointerMove}
 									on:pointerup={onSplitPointerUp}
 									on:pointercancel={onSplitPointerUp}
 								>
-									<div class="slide-split-handle__grip"></div>
-								</div>
-								<div class="slide-image-half" class:slide-image-half--contain={imageExpanded} style="flex: 0 0 {imageFirst ? splitRatio : 100 - splitRatio}%;">
+									<span class="slide-split-handle__grip" aria-hidden="true"></span>
+								</button>
+								<div
+									class="slide-image-half"
+									class:slide-image-half--contain={imageExpanded}
+									style="flex: 0 0 {imageFirst ? splitRatio : 100 - splitRatio}%;"
+								>
 									<img src={slide.image} alt={slide.imageAlt || ''} />
 								</div>
 							{/if}
@@ -306,7 +324,12 @@
 
 		<!-- Next nav overlay (not shown on last slide) -->
 		{#if !isLastSlide}
-			<button class="slide-nav slide-nav--next" class:slide-nav--disabled={isDraggingSplit} on:click={next} aria-label="Next slide">
+			<button
+				class="slide-nav slide-nav--next"
+				class:slide-nav--disabled={isDraggingSplit}
+				on:click={next}
+				aria-label="Next slide"
+			>
 				<svg
 					class="slide-nav__icon"
 					xmlns="http://www.w3.org/2000/svg"
@@ -698,7 +721,9 @@
 		gap: var(--spacing-sm);
 		opacity: 1;
 		max-height: 500px;
-		transition: opacity 180ms ease, max-height 180ms ease;
+		transition:
+			opacity 180ms ease,
+			max-height 180ms ease;
 		overflow: hidden;
 	}
 
@@ -742,6 +767,12 @@
 		position: relative;
 		z-index: 3;
 		touch-action: none;
+		border: none;
+		padding: 0;
+		margin: 0;
+		background: transparent;
+		color: inherit;
+		font: inherit;
 	}
 
 	.slide-split-handle__grip {
@@ -750,7 +781,9 @@
 		border-radius: 2px;
 		background: currentColor;
 		opacity: 0.18;
-		transition: opacity 150ms, height 150ms;
+		transition:
+			opacity 150ms,
+			height 150ms;
 	}
 
 	.slide-split-handle:hover .slide-split-handle__grip,

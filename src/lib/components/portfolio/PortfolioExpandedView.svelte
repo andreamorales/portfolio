@@ -161,6 +161,11 @@
 		if (e.key === 'Escape') closeLightbox();
 	}
 
+	function onLightboxWindowKeydown(e: KeyboardEvent) {
+		if (!lightboxSrc) return;
+		handleLightboxKeydown(e);
+	}
+
 	function revealStyle(delayMs: number): string | undefined {
 		if (!staggerReveal) return undefined;
 		return `--reveal-delay: ${Math.max(0, Math.round(delayMs))}ms;`;
@@ -334,9 +339,9 @@
 
 		const maxScrollTop = Math.max(
 			0,
-			(isDocumentScroller
+			isDocumentScroller
 				? document.documentElement.scrollHeight - window.innerHeight
-				: container.scrollHeight - container.clientHeight)
+				: container.scrollHeight - container.clientHeight
 		);
 		const clampedTarget = Math.max(0, Math.min(desiredScrollTop, maxScrollTop));
 
@@ -441,6 +446,8 @@
 			});
 	}
 </script>
+
+<svelte:window on:keydown={onLightboxWindowKeydown} />
 
 <div
 	bind:this={rootEl}
@@ -657,12 +664,12 @@
 										<p>{block.value}</p>
 									</div>
 								{:else if block.type === 'image'}
-								{@const blockCaption = block.caption || getImageCaption(block.value)}
-								<div
-									class="image-block {block.layout === 'side-by-side'
-										? 'side-by-side'
-										: ''} {block.layout === 'narrow' ? 'image-block--narrow' : ''} reveal-child"
-									style={revealStyle(
+									{@const blockCaption = block.caption || getImageCaption(block.value)}
+									<div
+										class="image-block {block.layout === 'side-by-side'
+											? 'side-by-side'
+											: ''} {block.layout === 'narrow' ? 'image-block--narrow' : ''} reveal-child"
+										style={revealStyle(
 											(contentReveal ?? introReveal).childStartDelayMs +
 												index * REVEAL_CHILD_STEP_MS
 										)}
@@ -672,32 +679,33 @@
 												<div class="image-container">
 													<div
 														class="image-frame image-frame--clickable"
-														on:click={() => openLightbox(block.value, blockCaption || 'Project image')}
-														on:keydown={(e) => e.key === 'Enter' && openLightbox(block.value, blockCaption || 'Project image')}
+														on:click={() =>
+															openLightbox(block.value, blockCaption || 'Project image')}
+														on:keydown={(e) =>
+															e.key === 'Enter' &&
+															openLightbox(block.value, blockCaption || 'Project image')}
 														role="button"
 														tabindex="0"
 													>
-														<img
-															src={block.value}
-															alt={blockCaption || 'Project image'}
-														/>
+														<img src={block.value} alt={blockCaption || 'Project image'} />
 													</div>
 												</div>
 												{#if block.sideImage}
 													{@const sideImage = block.sideImage}
-													{@const sideCaption = sideImage.caption || getImageCaption(sideImage.value)}
+													{@const sideCaption =
+														sideImage.caption || getImageCaption(sideImage.value)}
 													<div class="image-container">
 														<div
 															class="image-frame image-frame--clickable"
-															on:click={() => openLightbox(sideImage.value, sideCaption || 'Project image')}
-															on:keydown={(e) => e.key === 'Enter' && openLightbox(sideImage.value, sideCaption || 'Project image')}
+															on:click={() =>
+																openLightbox(sideImage.value, sideCaption || 'Project image')}
+															on:keydown={(e) =>
+																e.key === 'Enter' &&
+																openLightbox(sideImage.value, sideCaption || 'Project image')}
 															role="button"
 															tabindex="0"
 														>
-															<img
-																src={sideImage.value}
-																alt={sideCaption || 'Project image'}
-															/>
+															<img src={sideImage.value} alt={sideCaption || 'Project image'} />
 														</div>
 													</div>
 												{/if}
@@ -709,48 +717,46 @@
 											<div
 												class="image-frame image-frame--clickable"
 												on:click={() => openLightbox(block.value, blockCaption || 'Project image')}
-												on:keydown={(e) => e.key === 'Enter' && openLightbox(block.value, blockCaption || 'Project image')}
+												on:keydown={(e) =>
+													e.key === 'Enter' &&
+													openLightbox(block.value, blockCaption || 'Project image')}
 												role="button"
 												tabindex="0"
 											>
-												<img
-													src={block.value}
-													alt={blockCaption || 'Project image'}
-												/>
+												<img src={block.value} alt={blockCaption || 'Project image'} />
 											</div>
 											{#if blockCaption}
 												<p class="image-caption">{blockCaption}</p>
 											{/if}
 										{/if}
 									</div>
-							{:else if block.type === 'video'}
-								<div
-									class="image-block reveal-child"
-									style={revealStyle(
-										(contentReveal ?? introReveal).childStartDelayMs +
-											index * REVEAL_CHILD_STEP_MS
-									)}
-								>
-									<div class="image-frame">
-										<!-- svelte-ignore a11y-media-has-caption -->
-										<video
-											class="content-video"
-											controls={!block.autoplay}
-											controlsList="nodownload"
-											disablePictureInPicture
-											playsinline
-											preload={block.autoplay ? 'auto' : 'metadata'}
-											autoplay={block.autoplay || undefined}
-											loop={block.autoplay || undefined}
-											muted={block.autoplay || undefined}
-											on:contextmenu|preventDefault
-											src={block.value}
-										></video>
+								{:else if block.type === 'video'}
+									<div
+										class="image-block reveal-child"
+										style={revealStyle(
+											(contentReveal ?? introReveal).childStartDelayMs +
+												index * REVEAL_CHILD_STEP_MS
+										)}
+									>
+										<div class="image-frame">
+											<video
+												class="content-video"
+												controls={!block.autoplay}
+												controlsList="nodownload"
+												disablePictureInPicture
+												playsinline
+												preload={block.autoplay ? 'auto' : 'metadata'}
+												autoplay={block.autoplay || undefined}
+												loop={block.autoplay || undefined}
+												muted={block.autoplay || undefined}
+												on:contextmenu|preventDefault
+												src={block.value}
+											></video>
+										</div>
+										{#if block.caption}
+											<p class="image-caption">{block.caption}</p>
+										{/if}
 									</div>
-									{#if block.caption}
-										<p class="image-caption">{block.caption}</p>
-									{/if}
-								</div>
 								{/if}
 							{/each}
 						</div>
@@ -825,41 +831,41 @@
 </div>
 
 {#if lightboxSrc}
-	<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-noninteractive-element-interactions -->
-	<div
-		class="lightbox-overlay"
-		on:click={closeLightbox}
-		on:keydown={handleLightboxKeydown}
-		role="dialog"
-		aria-modal="true"
-		aria-label="Enlarged image"
-	>
-		<button class="lightbox-close" on:click|stopPropagation={closeLightbox} aria-label="Close">
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				viewBox="0 0 7 7"
-				width="14"
-				height="14"
-				fill="currentColor"
-				aria-hidden="true"
-				style="shape-rendering: crispEdges; image-rendering: pixelated"
-			>
-				<rect x="0" y="0" width="1" height="1" />
-				<rect x="6" y="0" width="1" height="1" />
-				<rect x="1" y="1" width="1" height="1" />
-				<rect x="5" y="1" width="1" height="1" />
-				<rect x="2" y="2" width="1" height="1" />
-				<rect x="4" y="2" width="1" height="1" />
-				<rect x="3" y="3" width="1" height="1" />
-				<rect x="2" y="4" width="1" height="1" />
-				<rect x="4" y="4" width="1" height="1" />
-				<rect x="1" y="5" width="1" height="1" />
-				<rect x="5" y="5" width="1" height="1" />
-				<rect x="0" y="6" width="1" height="1" />
-				<rect x="6" y="6" width="1" height="1" />
-			</svg>
-		</button>
-		<img class="lightbox-img" src={lightboxSrc} alt={lightboxAlt} />
+	<div class="lightbox-overlay" role="dialog" aria-modal="true" aria-label="Enlarged image">
+		<button
+			type="button"
+			class="lightbox-backdrop"
+			aria-label="Close enlarged image"
+			on:click={closeLightbox}
+		></button>
+		<div class="lightbox-foreground">
+			<button type="button" class="lightbox-close" on:click={closeLightbox} aria-label="Close">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 7 7"
+					width="14"
+					height="14"
+					fill="currentColor"
+					aria-hidden="true"
+					style="shape-rendering: crispEdges; image-rendering: pixelated"
+				>
+					<rect x="0" y="0" width="1" height="1" />
+					<rect x="6" y="0" width="1" height="1" />
+					<rect x="1" y="1" width="1" height="1" />
+					<rect x="5" y="1" width="1" height="1" />
+					<rect x="2" y="2" width="1" height="1" />
+					<rect x="4" y="2" width="1" height="1" />
+					<rect x="3" y="3" width="1" height="1" />
+					<rect x="2" y="4" width="1" height="1" />
+					<rect x="4" y="4" width="1" height="1" />
+					<rect x="1" y="5" width="1" height="1" />
+					<rect x="5" y="5" width="1" height="1" />
+					<rect x="0" y="6" width="1" height="1" />
+					<rect x="6" y="6" width="1" height="1" />
+				</svg>
+			</button>
+			<img class="lightbox-img" src={lightboxSrc} alt={lightboxAlt} />
+		</div>
 	</div>
 {/if}
 
@@ -1795,17 +1801,43 @@
 		inset: 0;
 		z-index: var(--z-modal, 1100);
 		background: rgba(0, 0, 0, 0.88);
+		animation: lightbox-fade-in 200ms ease;
+	}
+
+	.lightbox-backdrop {
+		position: absolute;
+		inset: 0;
+		z-index: 0;
+		margin: 0;
+		padding: 0;
+		border: none;
+		background: transparent;
+		cursor: zoom-out;
+	}
+
+	.lightbox-foreground {
+		position: absolute;
+		inset: 0;
+		z-index: 1;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		padding: var(--spacing-xl);
-		cursor: zoom-out;
-		animation: lightbox-fade-in 200ms ease;
+		pointer-events: none;
+	}
+
+	.lightbox-foreground .lightbox-close,
+	.lightbox-foreground .lightbox-img {
+		pointer-events: auto;
 	}
 
 	@keyframes lightbox-fade-in {
-		from { opacity: 0; }
-		to { opacity: 1; }
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
 	}
 
 	.lightbox-img {

@@ -48,14 +48,16 @@ async function main() {
 	const caseArg = argv[1];
 
 	if (!password) {
-		console.error(`
+		console.error(
+			`
 Missing password.
 
   npm run encrypt -- <your-password>
   npm run encrypt -- <your-password> 1
 
 The "--" is required: everything after it is passed to this script (not to npm).
-`.trim());
+`.trim()
+		);
 		process.exit(1);
 	}
 

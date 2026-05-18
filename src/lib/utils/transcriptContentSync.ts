@@ -294,10 +294,7 @@ export function computeBlockAnchors(
  * Finds the latest anchor whose `startMs` is at or before `currentMs`.
  * Returns -1 when the playhead is before the very first anchor.
  */
-export function findActiveAnchorIndex(
-	anchors: readonly BlockAnchor[],
-	currentMs: number
-): number {
+export function findActiveAnchorIndex(anchors: readonly BlockAnchor[], currentMs: number): number {
 	if (!anchors.length) return -1;
 	let lo = 0;
 	let hi = anchors.length - 1;
