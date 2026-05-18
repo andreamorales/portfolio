@@ -115,6 +115,48 @@
 		isFullscreen = !!document.fullscreenElement;
 	}
 
+	let splitRatio = 50;
+	let isDraggingSplit = false;
+	let splitContainerEl: HTMLElement | null = null;
+
+	function onSplitPointerDown(e: PointerEvent) {
+		isDraggingSplit = true;
+		splitContainerEl = (e.currentTarget as HTMLElement).parentElement;
+		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+		e.preventDefault();
+		e.stopPropagation();
+	}
+
+	function onSplitPointerMove(e: PointerEvent) {
+		if (!isDraggingSplit || !splitContainerEl) return;
+		e.stopPropagation();
+		const rect = splitContainerEl.getBoundingClientRect();
+		const x = e.clientX - rect.left;
+		const pct = (x / rect.width) * 100;
+		splitRatio = Math.max(20, Math.min(80, pct));
+	}
+
+	function onSplitPointerUp(e?: PointerEvent) {
+		isDraggingSplit = false;
+		splitContainerEl = null;
+		e?.stopPropagation();
+	}
+
+	function resetSplitRatio() {
+		splitRatio = 50;
+	}
+
+	let prevSlide = currentSlide;
+	$: if (currentSlide !== prevSlide) {
+		prevSlide = currentSlide;
+		resetSplitRatio();
+	}
+
+	$: textPanePct = layout === 'text-right' ? 100 - splitRatio : splitRatio;
+	$: textCollapsed = hasImage && textPanePct < 38;
+	$: imagePanePct = 100 - textPanePct;
+	$: imageExpanded = hasImage && imagePanePct > 52;
+
 	function revealStyle(delayMs: number): string | undefined {
 		if (!staggerReveal) return undefined;
 		return `--reveal-delay: ${Math.max(0, Math.round(delayMs))}ms;`;
@@ -147,7 +189,12 @@
 
 		<!-- Prev nav overlay -->
 		{#if !isFirstSlide}
-			<button class="slide-nav slide-nav--prev" on:click={prev} aria-label="Previous slide">
+			<button
+				class="slide-nav slide-nav--prev"
+				class:slide-nav--disabled={isDraggingSplit}
+				on:click={prev}
+				aria-label="Previous slide"
+			>
 				<svg
 					class="slide-nav__icon"
 					xmlns="http://www.w3.org/2000/svg"
@@ -225,21 +272,47 @@
 						</div>
 					{:else}
 						{@const imageFirst = layout === 'text-right'}
-						<div class="slide-split" class:reverse={imageFirst}>
-							<div class="slide-text-half">
+						<div
+							class="slide-split"
+							class:reverse={imageFirst}
+							class:slide-split--dragging={isDraggingSplit}
+						>
+							<div
+								class="slide-text-half"
+								class:slide-text-half--collapsed={textCollapsed}
+								style={hasImage ? `flex: 0 0 ${imageFirst ? 100 - splitRatio : splitRatio}%;` : ''}
+							>
 								{#if slide.title}
 									<h3 class="slide-title">{slide.title}</h3>
 								{/if}
-								{#if useIntroText}
-									{#each introSummaryParagraphs as para, sumIdx (`slide-sum-${sumIdx}`)}
-										<p class="slide-body">{para}</p>
-									{/each}
-								{:else if slide.text}
-									<p class="slide-body">{slide.text}</p>
-								{/if}
+								<div class="slide-text-body" class:slide-text-body--hidden={textCollapsed}>
+									{#if useIntroText}
+										{#each introSummaryParagraphs as para, sumIdx (`slide-sum-${sumIdx}`)}
+											<p class="slide-body">{para}</p>
+										{/each}
+									{:else if slide.text}
+										<p class="slide-body">{slide.text}</p>
+									{/if}
+								</div>
 							</div>
 							{#if hasImage}
-								<div class="slide-image-half">
+								<button
+									type="button"
+									class="slide-split-handle"
+									class:slide-split-handle--dragging={isDraggingSplit}
+									aria-label="Resize slide image panel"
+									on:pointerdown={onSplitPointerDown}
+									on:pointermove={onSplitPointerMove}
+									on:pointerup={onSplitPointerUp}
+									on:pointercancel={onSplitPointerUp}
+								>
+									<span class="slide-split-handle__grip" aria-hidden="true"></span>
+								</button>
+								<div
+									class="slide-image-half"
+									class:slide-image-half--contain={imageExpanded}
+									style="flex: 0 0 {imageFirst ? splitRatio : 100 - splitRatio}%;"
+								>
 									<img src={slide.image} alt={slide.imageAlt || ''} />
 								</div>
 							{/if}
@@ -251,7 +324,12 @@
 
 		<!-- Next nav overlay (not shown on last slide) -->
 		{#if !isLastSlide}
-			<button class="slide-nav slide-nav--next" on:click={next} aria-label="Next slide">
+			<button
+				class="slide-nav slide-nav--next"
+				class:slide-nav--disabled={isDraggingSplit}
+				on:click={next}
+				aria-label="Next slide"
+			>
 				<svg
 					class="slide-nav__icon"
 					xmlns="http://www.w3.org/2000/svg"
@@ -333,6 +411,7 @@
 		--palette-grey-600: rgba(243, 234, 214, 0.72);
 		--palette-grey-hint: rgba(243, 234, 214, 0.72);
 		--portfolio-metadata-rule: rgba(243, 234, 214, 0.22);
+		--portfolio-metadata-label: rgba(243, 234, 214, 0.72);
 		--muted-text: rgba(243, 234, 214, 0.65);
 		--palette-rainbow-6: #f0c674;
 	}
@@ -343,6 +422,7 @@
 		--palette-grey-600: rgba(20, 19, 18, 0.75);
 		--palette-grey-hint: rgba(20, 19, 18, 0.75);
 		--portfolio-metadata-rule: rgba(20, 19, 18, 0.2);
+		--portfolio-metadata-label: rgba(20, 19, 18, 0.75);
 		--muted-text: rgba(20, 19, 18, 0.65);
 		--palette-rainbow-6: var(--portfolio-metadata-link-on-ink);
 	}
@@ -532,6 +612,10 @@
 		cursor: default;
 	}
 
+	.slide-nav--disabled {
+		pointer-events: none;
+	}
+
 	.slide-nav__icon {
 		position: relative;
 		z-index: 1;
@@ -609,6 +693,10 @@
 		align-items: stretch;
 	}
 
+	.slide-split--dragging {
+		user-select: none;
+	}
+
 	.slide-split.reverse {
 		flex-direction: row-reverse;
 	}
@@ -620,6 +708,28 @@
 		justify-content: center;
 		gap: var(--spacing-sm);
 		padding: var(--spacing-lg) var(--spacing-xxl);
+		overflow: hidden;
+	}
+
+	.slide-text-half--collapsed {
+		justify-content: center;
+	}
+
+	.slide-text-body {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-sm);
+		opacity: 1;
+		max-height: 500px;
+		transition:
+			opacity 180ms ease,
+			max-height 180ms ease;
+		overflow: hidden;
+	}
+
+	.slide-text-body--hidden {
+		opacity: 0;
+		max-height: 0;
 	}
 
 	.slide-image-half {
@@ -635,6 +745,51 @@
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
+		transition: object-fit 0s;
+	}
+
+	.slide-image-half--contain {
+		background: rgba(0, 0, 0, 0.04);
+	}
+
+	.slide-image-half--contain img {
+		object-fit: contain;
+		padding: var(--spacing-sm);
+	}
+
+	.slide-split-handle {
+		flex-shrink: 0;
+		width: 12px;
+		cursor: col-resize;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		position: relative;
+		z-index: 3;
+		touch-action: none;
+		border: none;
+		padding: 0;
+		margin: 0;
+		background: transparent;
+		color: inherit;
+		font: inherit;
+	}
+
+	.slide-split-handle__grip {
+		width: 3px;
+		height: 32px;
+		border-radius: 2px;
+		background: currentColor;
+		opacity: 0.18;
+		transition:
+			opacity 150ms,
+			height 150ms;
+	}
+
+	.slide-split-handle:hover .slide-split-handle__grip,
+	.slide-split-handle--dragging .slide-split-handle__grip {
+		opacity: 0.45;
+		height: 48px;
 	}
 
 	/* Typography */

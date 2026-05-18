@@ -33,6 +33,27 @@ npm run build
 npm run preview
 ```
 
+### Encrypting pass-protected case studies
+
+Plaintext JSON lives at the **repository root** (next to `my-portfolio/`), e.g. `most-recent2.plaintext.json`. Encrypted output is written under `src/lib/data/secure/`.
+
+Use **`--`** so npm forwards your passphrase to the script (everything after `--` is script args, not npm flags):
+
+```bash
+# Default: most-recent2 → src/lib/data/secure/most-recent2.encrypted.json
+npm run encrypt -- <your-passphrase>
+
+# most-recent1 (large Layer Health payload)
+npm run encrypt -- <your-passphrase> 1
+# or: npm run encrypt -- <your-passphrase> most-recent1
+```
+
+For arbitrary input/output paths:
+
+```bash
+npm run encrypt:case-study -- --in ../my-plaintext.json --out ./src/lib/data/secure/my-case.encrypted.json --password <your-passphrase>
+```
+
 ### Project Structure
 
 - `src/routes`: Page layouts and routes

@@ -864,6 +864,7 @@
 											slides={activeDetailItem.slides ?? []}
 											videoCurrentMs={detailVideoCurrentMs}
 											videoIsPlaying={detailMediaIsPlaying}
+											transcriptCues={detailTranscriptCues}
 											year={activeDetailItem.year}
 											link={activeDetailItem.link}
 											metrics={activeDetailItem.metrics}

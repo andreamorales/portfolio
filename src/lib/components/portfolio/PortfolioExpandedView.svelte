@@ -3,6 +3,7 @@
 </script>
 
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import Label from '$lib/components/ui/input/Label.svelte';
 	import PortfolioEndHome from '$lib/components/portfolio/PortfolioEndHome.svelte';
 	import PortfolioCaseMetadata from '$lib/components/portfolio/PortfolioCaseMetadata.svelte';
@@ -14,6 +15,12 @@
 	} from '$lib/utils/secureCaseStudy';
 	import type { SlideItem } from '$lib/data/portfolio-items';
 	import type { PortfolioMetricInput } from '$lib/utils/portfolioMetrics';
+	import {
+		computeBlockAnchors,
+		findActiveAnchorIndex,
+		type BlockAnchor,
+		type TranscriptCueLike
+	} from '$lib/utils/transcriptContentSync';
 
 	/** Unique mask id per instance (component can appear more than once on a page). */
 	const portfolioEndSmileyMaskId = `portfolio-end-smiley-mask-${++portfolioEndSmileyMaskSeq}`;
@@ -29,12 +36,15 @@
 		type: string;
 		value: string;
 		caption?: string;
+		autoplay?: boolean;
 		layout?: string;
 		sideImage?: { value: string; caption?: string };
 	}> = [];
 	export let slides: SlideItem[] = [];
 	export let videoCurrentMs = 0;
 	export let videoIsPlaying = false;
+	/** Word-level transcript cues used to sync auto-scroll to narration. */
+	export let transcriptCues: TranscriptCueLike[] = [];
 	export let year: string = '';
 	export let link: string = '';
 	export let metrics: PortfolioMetricInput[] | string[] = [];
@@ -60,6 +70,12 @@
 	let effectiveStaggerBaseDelayMs = 0;
 	let viewMode: 'text' | 'slides' = 'text';
 	let hasToggledView = false;
+
+	/** Root element of this component; used to locate the scrollable ancestor. */
+	let rootEl: HTMLDivElement | null = null;
+	let blockAnchors: BlockAnchor[] = [];
+	let scrollSyncFrame = 0;
+	const TRANSCRIPT_SCROLL_TOP_OFFSET_PX = 96;
 
 	$: hasSlides = slides && slides.length > 0;
 	$: viewModeIsText = viewMode === 'text';
@@ -127,6 +143,27 @@
 	function getImageCaption(src: string): string | undefined {
 		const image = images.find((img) => img.src === src);
 		return image?.caption;
+	}
+
+	let lightboxSrc: string | null = null;
+	let lightboxAlt = '';
+
+	function openLightbox(src: string, alt: string) {
+		lightboxSrc = src;
+		lightboxAlt = alt;
+	}
+
+	function closeLightbox() {
+		lightboxSrc = null;
+	}
+
+	function handleLightboxKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape') closeLightbox();
+	}
+
+	function onLightboxWindowKeydown(e: KeyboardEvent) {
+		if (!lightboxSrc) return;
+		handleLightboxKeydown(e);
 	}
 
 	function revealStyle(delayMs: number): string | undefined {
@@ -247,6 +284,128 @@
 		}
 	}
 
+	/**
+	 * Walks up from the component root to find the nearest ancestor that owns
+	 * vertical scrolling. The case copy is mounted inside `.detail-panel-piece`
+	 * on the home page, but we look up dynamically so other host containers
+	 * (e.g. immersive layouts) also work.
+	 */
+	function findScrollContainer(): HTMLElement | null {
+		if (typeof window === 'undefined') return null;
+		let node: HTMLElement | null = rootEl?.parentElement ?? null;
+		while (node && node !== document.body) {
+			const style = window.getComputedStyle(node);
+			const overflowY = style.overflowY;
+			if (
+				(overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay') &&
+				node.scrollHeight > node.clientHeight
+			) {
+				return node;
+			}
+			node = node.parentElement;
+		}
+		const docEl = document.scrollingElement as HTMLElement | null;
+		return docEl ?? document.documentElement;
+	}
+
+	/**
+	 * Scrolls the case copy so the given block sits near the top of its scroll
+	 * container — but only if that motion would be downward. Per the product
+	 * spec, the auto-scroll must never travel upward; we just hold position
+	 * until a later anchor catches up to the playhead.
+	 */
+	function scrollDownToBlock(blockIndex: number) {
+		if (typeof window === 'undefined' || !rootEl) return;
+		const container = findScrollContainer();
+		if (!container) return;
+		const blockEl = rootEl.querySelector<HTMLElement>(`[data-block-index="${blockIndex}"]`);
+		if (!blockEl) return;
+
+		const isDocumentScroller =
+			container === document.documentElement || container === document.body;
+		const blockRect = blockEl.getBoundingClientRect();
+
+		let desiredScrollTop: number;
+		let currentScrollTop: number;
+		if (isDocumentScroller) {
+			currentScrollTop = window.scrollY;
+			desiredScrollTop = currentScrollTop + blockRect.top - TRANSCRIPT_SCROLL_TOP_OFFSET_PX;
+		} else {
+			const containerRect = container.getBoundingClientRect();
+			currentScrollTop = container.scrollTop;
+			desiredScrollTop =
+				currentScrollTop + (blockRect.top - containerRect.top) - TRANSCRIPT_SCROLL_TOP_OFFSET_PX;
+		}
+
+		const maxScrollTop = Math.max(
+			0,
+			isDocumentScroller
+				? document.documentElement.scrollHeight - window.innerHeight
+				: container.scrollHeight - container.clientHeight
+		);
+		const clampedTarget = Math.max(0, Math.min(desiredScrollTop, maxScrollTop));
+
+		// Honor "never scroll up": leave position untouched (and don't mark the
+		// anchor as scrolled) when the target would move the viewport upward.
+		// A small downward tolerance prevents micro-jiggles when we're already
+		// aligned with the block.
+		const downwardDelta = clampedTarget - currentScrollTop;
+		if (downwardDelta <= 6) return;
+
+		const prefersReducedMotion =
+			typeof window.matchMedia === 'function' &&
+			window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		const behavior: ScrollBehavior = prefersReducedMotion ? 'auto' : 'smooth';
+
+		if (isDocumentScroller) {
+			window.scrollTo({ top: clampedTarget, behavior });
+		} else {
+			container.scrollTo({ top: clampedTarget, behavior });
+		}
+	}
+
+	function syncTranscriptScroll() {
+		// rAF-coalesce so multiple reactive ticks during a single frame only do
+		// one DOM measurement / scroll attempt.
+		if (scrollSyncFrame !== 0) return;
+		if (typeof window === 'undefined') return;
+
+		scrollSyncFrame = window.requestAnimationFrame(() => {
+			scrollSyncFrame = 0;
+			if (!videoIsPlaying || !canAutoScrollSync) return;
+			const activeIndex = findActiveAnchorIndex(blockAnchors, videoCurrentMs);
+			if (activeIndex < 0) return;
+			const anchor = blockAnchors[activeIndex];
+			if (!anchor) return;
+			scrollDownToBlock(anchor.blockIndex);
+		});
+	}
+
+	function cancelScrollSync() {
+		if (scrollSyncFrame !== 0 && typeof window !== 'undefined') {
+			window.cancelAnimationFrame(scrollSyncFrame);
+			scrollSyncFrame = 0;
+		}
+	}
+
+	/** Recompute anchors whenever the underlying transcript or content changes. */
+	$: blockAnchors = computeBlockAnchors(content ?? [], transcriptCues ?? []);
+
+	/** Auto-scroll is text-view only; slides have their own time-driven nav. */
+	$: canAutoScrollSync = viewModeIsText && !locked && blockAnchors.length > 0;
+
+	$: if (canAutoScrollSync && videoIsPlaying && videoCurrentMs >= 0) {
+		syncTranscriptScroll();
+	}
+
+	// Cancel any pending sync when the user pauses; per spec, pause hands full
+	// scroll control back to the reader.
+	$: if (!videoIsPlaying) {
+		cancelScrollSync();
+	}
+
+	onDestroy(cancelScrollSync);
+
 	function unlockCaseStudy() {
 		if (!locked) {
 			return;
@@ -288,7 +447,10 @@
 	}
 </script>
 
+<svelte:window on:keydown={onLightboxWindowKeydown} />
+
 <div
+	bind:this={rootEl}
 	class="portfolio-expanded-view flex-column"
 	class:immersive
 	class:portfolio-expanded-view--staggered={staggerReveal}
@@ -411,7 +573,6 @@
 					<div class="portfolio-summary-column">
 						<div class="portfolio-summary-heading">
 							<div class="details-label">Summary</div>
-							<div class="details-label-rule" aria-hidden="true"></div>
 						</div>
 						<div class="hero-description hero-description--beside-meta">
 							{#each summaryParagraphs as para, index (`beside-sum-${index}`)}
@@ -474,6 +635,7 @@
 									{@const colonIdx = block.value.indexOf(':')}
 									<div
 										class="heading-block reveal-child"
+										data-block-index={index}
 										style={revealStyle(
 											(contentReveal ?? introReveal).childStartDelayMs +
 												index * REVEAL_CHILD_STEP_MS
@@ -493,6 +655,7 @@
 								{:else if block.type === 'text'}
 									<div
 										class="text-block reveal-child"
+										data-block-index={index}
 										style={revealStyle(
 											(contentReveal ?? introReveal).childStartDelayMs +
 												index * REVEAL_CHILD_STEP_MS
@@ -501,10 +664,11 @@
 										<p>{block.value}</p>
 									</div>
 								{:else if block.type === 'image'}
+									{@const blockCaption = block.caption || getImageCaption(block.value)}
 									<div
 										class="image-block {block.layout === 'side-by-side'
 											? 'side-by-side'
-											: ''} reveal-child"
+											: ''} {block.layout === 'narrow' ? 'image-block--narrow' : ''} reveal-child"
 										style={revealStyle(
 											(contentReveal ?? introReveal).childStartDelayMs +
 												index * REVEAL_CHILD_STEP_MS
@@ -513,42 +677,56 @@
 										{#if block.layout === 'side-by-side'}
 											<div class="image-pair">
 												<div class="image-container">
-													<div class="image-frame">
-														<img
-															src={block.value}
-															alt={getImageCaption(block.value) || 'Project image'}
-														/>
+													<div
+														class="image-frame image-frame--clickable"
+														on:click={() =>
+															openLightbox(block.value, blockCaption || 'Project image')}
+														on:keydown={(e) =>
+															e.key === 'Enter' &&
+															openLightbox(block.value, blockCaption || 'Project image')}
+														role="button"
+														tabindex="0"
+													>
+														<img src={block.value} alt={blockCaption || 'Project image'} />
 													</div>
-													{#if getImageCaption(block.value)}
-														<p class="image-caption">{getImageCaption(block.value)}</p>
-													{/if}
 												</div>
 												{#if block.sideImage}
 													{@const sideImage = block.sideImage}
+													{@const sideCaption =
+														sideImage.caption || getImageCaption(sideImage.value)}
 													<div class="image-container">
-														<div class="image-frame">
-															<img
-																src={sideImage.value}
-																alt={getImageCaption(sideImage.value) || 'Project image'}
-															/>
+														<div
+															class="image-frame image-frame--clickable"
+															on:click={() =>
+																openLightbox(sideImage.value, sideCaption || 'Project image')}
+															on:keydown={(e) =>
+																e.key === 'Enter' &&
+																openLightbox(sideImage.value, sideCaption || 'Project image')}
+															role="button"
+															tabindex="0"
+														>
+															<img src={sideImage.value} alt={sideCaption || 'Project image'} />
 														</div>
-														{#if getImageCaption(sideImage.value)}
-															<p class="image-caption">
-																{getImageCaption(sideImage.value)}
-															</p>
-														{/if}
 													</div>
 												{/if}
 											</div>
+											{#if blockCaption}
+												<p class="image-caption">{blockCaption}</p>
+											{/if}
 										{:else}
-											<div class="image-frame">
-												<img
-													src={block.value}
-													alt={getImageCaption(block.value) || 'Project image'}
-												/>
+											<div
+												class="image-frame image-frame--clickable"
+												on:click={() => openLightbox(block.value, blockCaption || 'Project image')}
+												on:keydown={(e) =>
+													e.key === 'Enter' &&
+													openLightbox(block.value, blockCaption || 'Project image')}
+												role="button"
+												tabindex="0"
+											>
+												<img src={block.value} alt={blockCaption || 'Project image'} />
 											</div>
-											{#if getImageCaption(block.value)}
-												<p class="image-caption">{getImageCaption(block.value)}</p>
+											{#if blockCaption}
+												<p class="image-caption">{blockCaption}</p>
 											{/if}
 										{/if}
 									</div>
@@ -561,14 +739,16 @@
 										)}
 									>
 										<div class="image-frame">
-											<!-- svelte-ignore a11y-media-has-caption -->
 											<video
 												class="content-video"
-												controls
+												controls={!block.autoplay}
 												controlsList="nodownload"
 												disablePictureInPicture
 												playsinline
-												preload="metadata"
+												preload={block.autoplay ? 'auto' : 'metadata'}
+												autoplay={block.autoplay || undefined}
+												loop={block.autoplay || undefined}
+												muted={block.autoplay || undefined}
 												on:contextmenu|preventDefault
 												src={block.value}
 											></video>
@@ -650,6 +830,45 @@
 	{/if}
 </div>
 
+{#if lightboxSrc}
+	<div class="lightbox-overlay" role="dialog" aria-modal="true" aria-label="Enlarged image">
+		<button
+			type="button"
+			class="lightbox-backdrop"
+			aria-label="Close enlarged image"
+			on:click={closeLightbox}
+		></button>
+		<div class="lightbox-foreground">
+			<button type="button" class="lightbox-close" on:click={closeLightbox} aria-label="Close">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 7 7"
+					width="14"
+					height="14"
+					fill="currentColor"
+					aria-hidden="true"
+					style="shape-rendering: crispEdges; image-rendering: pixelated"
+				>
+					<rect x="0" y="0" width="1" height="1" />
+					<rect x="6" y="0" width="1" height="1" />
+					<rect x="1" y="1" width="1" height="1" />
+					<rect x="5" y="1" width="1" height="1" />
+					<rect x="2" y="2" width="1" height="1" />
+					<rect x="4" y="2" width="1" height="1" />
+					<rect x="3" y="3" width="1" height="1" />
+					<rect x="2" y="4" width="1" height="1" />
+					<rect x="4" y="4" width="1" height="1" />
+					<rect x="1" y="5" width="1" height="1" />
+					<rect x="5" y="5" width="1" height="1" />
+					<rect x="0" y="6" width="1" height="1" />
+					<rect x="6" y="6" width="1" height="1" />
+				</svg>
+			</button>
+			<img class="lightbox-img" src={lightboxSrc} alt={lightboxAlt} />
+		</div>
+	</div>
+{/if}
+
 <style>
 	.portfolio-expanded-view {
 		font-family:
@@ -726,6 +945,8 @@
 		width: 100%;
 		max-width: 100%;
 		box-sizing: border-box;
+		border-left: 4px solid var(--portfolio-metadata-rule);
+		padding-left: var(--spacing-xs);
 	}
 
 	.portfolio-summary-heading {
@@ -736,28 +957,15 @@
 		min-width: 0;
 	}
 
-	.portfolio-summary-heading .details-label-rule {
-		margin: 0;
-		align-self: stretch;
-		flex-shrink: 0;
-		height: 0;
-		border: none;
-		border-top: 1px solid var(--portfolio-metadata-rule);
-	}
-
 	.portfolio-summary-column .details-label {
 		font-size: var(--font-size-xxs);
 		text-transform: uppercase;
 		letter-spacing: 0.06em;
 		line-height: 1.35;
-		color: var(--palette-grey-600);
+		color: var(--portfolio-metadata-label);
 		font-variation-settings:
 			'CASL' 0,
 			'wght' 600;
-	}
-
-	:global(html.dark-theme) .portfolio-summary-column .details-label {
-		color: var(--palette-grey-hint);
 	}
 
 	.case-summary-line {
@@ -1004,11 +1212,20 @@
 
 	.text-block {
 		font-size: var(--font-size-base);
-		line-height: 1.6;
+		line-height: 1.43;
 		font-variation-settings:
 			'CASL' 0,
-			'wght' 370;
+			'wght' 400;
 		width: 100%;
+	}
+
+	.text-block p {
+		margin: 0;
+		font: inherit;
+		font-variation-settings: inherit;
+		line-height: inherit;
+		letter-spacing: inherit;
+		color: inherit;
 	}
 
 	.image-block {
@@ -1018,11 +1235,23 @@
 		align-items: center;
 	}
 
+	.image-block--narrow .image-frame {
+		max-width: 420px;
+	}
+
 	.image-block .image-frame {
 		width: 100%;
 		max-width: 800px;
 		display: block;
 		position: relative;
+	}
+
+	.image-block--narrow.image-block .image-frame {
+		max-width: 420px;
+	}
+
+	.image-frame--clickable {
+		cursor: zoom-in;
 	}
 
 	.image-block .image-frame img,
@@ -1237,14 +1466,14 @@
 	:global(html.dark-theme) .text-block {
 		font-variation-settings:
 			'CASL' 0,
-			'wght' 360;
+			'wght' 390;
 	}
 
 	/* Match sibling metadata weight in dark theme. */
 	:global(html.dark-theme) .hero-description.hero-description--beside-meta {
 		font-variation-settings:
 			'CASL' 0,
-			'wght' 360;
+			'wght' 390;
 	}
 
 	:global(html.dark-theme) .image-caption {
@@ -1424,10 +1653,11 @@
 		object-fit: cover;
 	}
 
-	/* Add padding to specific content areas instead */
+	/* Horizontal padding is inherited from .content-view (--spacing-lg = 1.5rem),
+	   matching the project-intro and metadata rails above. */
 	.content-blocks,
 	.image-gallery {
-		padding: 0 1.5rem;
+		padding: 0;
 	}
 
 	@media (max-width: 768px) {
@@ -1461,7 +1691,7 @@
 		line-height: 1.43;
 		font-variation-settings:
 			'CASL' 0,
-			'wght' 370;
+			'wght' 400;
 		display: flex;
 		flex-direction: column;
 		gap: var(--spacing-md);
@@ -1564,5 +1794,75 @@
 			transform: none;
 			animation: none;
 		}
+	}
+
+	.lightbox-overlay {
+		position: fixed;
+		inset: 0;
+		z-index: var(--z-modal, 1100);
+		background: rgba(0, 0, 0, 0.88);
+		animation: lightbox-fade-in 200ms ease;
+	}
+
+	.lightbox-backdrop {
+		position: absolute;
+		inset: 0;
+		z-index: 0;
+		margin: 0;
+		padding: 0;
+		border: none;
+		background: transparent;
+		cursor: zoom-out;
+	}
+
+	.lightbox-foreground {
+		position: absolute;
+		inset: 0;
+		z-index: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: var(--spacing-xl);
+		pointer-events: none;
+	}
+
+	.lightbox-foreground .lightbox-close,
+	.lightbox-foreground .lightbox-img {
+		pointer-events: auto;
+	}
+
+	@keyframes lightbox-fade-in {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
+	}
+
+	.lightbox-img {
+		max-width: 90vw;
+		max-height: 90vh;
+		object-fit: contain;
+		border-radius: var(--border-radius-sm);
+		box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+		cursor: default;
+	}
+
+	.lightbox-close {
+		position: absolute;
+		top: var(--spacing-md);
+		right: var(--spacing-md);
+		background: none;
+		border: none;
+		color: rgba(255, 255, 255, 0.8);
+		cursor: pointer;
+		padding: var(--spacing-xs);
+		line-height: 0;
+		transition: color 150ms;
+	}
+
+	.lightbox-close:hover {
+		color: #fff;
 	}
 </style>

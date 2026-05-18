@@ -1,7 +1,4 @@
-import { readFile, writeFile } from 'node:fs/promises';
-import { webcrypto } from 'node:crypto';
-
-const subtle = webcrypto.subtle;
+import { encryptPortfolioPlaintextFile } from './portfolio-encrypt-core.mjs';
 
 function parseArgs(argv) {
 	const options = {};
@@ -16,29 +13,6 @@ function parseArgs(argv) {
 	return options;
 }
 
-function bytesToB64(bytes) {
-	return Buffer.from(bytes).toString('base64');
-}
-
-async function deriveKey(password, salt, iterations) {
-	const encoder = new TextEncoder();
-	const material = await subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, [
-		'deriveKey'
-	]);
-	return subtle.deriveKey(
-		{
-			name: 'PBKDF2',
-			salt,
-			iterations,
-			hash: 'SHA-256'
-		},
-		material,
-		{ name: 'AES-GCM', length: 256 },
-		false,
-		['encrypt']
-	);
-}
-
 async function main() {
 	const args = parseArgs(process.argv.slice(2));
 	const inputPath = args.in;
@@ -50,32 +24,20 @@ async function main() {
 		console.error(
 			'Usage: node scripts/encrypt-case-study.mjs --in <plaintext.json> --out <encrypted.json> --password <secret> [--iterations 250000]'
 		);
+		console.error('');
+		console.error(
+			'For the usual repo-root plaintext → secure/*.encrypted.json flow, prefer: npm run encrypt -- <password> [1|2]'
+		);
 		process.exit(1);
 	}
 
-	const plaintextRaw = await readFile(inputPath, 'utf8');
-	const parsed = JSON.parse(plaintextRaw);
-	const normalized = JSON.stringify(parsed);
-
-	const salt = webcrypto.getRandomValues(new Uint8Array(16));
-	const iv = webcrypto.getRandomValues(new Uint8Array(12));
-	const key = await deriveKey(password, salt, iterations);
-	const encrypted = await subtle.encrypt(
-		{ name: 'AES-GCM', iv },
-		key,
-		new TextEncoder().encode(normalized)
-	);
-
-	const payload = {
-		version: 1,
-		salt: bytesToB64(salt),
-		iv: bytesToB64(iv),
-		iterations,
-		ciphertext: bytesToB64(new Uint8Array(encrypted))
-	};
-
-	await writeFile(outputPath, `${JSON.stringify(payload, null, '\t')}\n`, 'utf8');
-	console.log(`Wrote encrypted payload to ${outputPath}`);
+	const out = await encryptPortfolioPlaintextFile({
+		inputPath,
+		outputPath,
+		password,
+		iterations
+	});
+	console.log(`Wrote encrypted payload to ${out}`);
 }
 
 main().catch((error) => {
