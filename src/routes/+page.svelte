@@ -13,7 +13,17 @@
 	import type { SecurePortfolioPayloadData } from '$lib/utils/secureCaseStudy';
 
 	const getLatestYear = (year: string) => {
-		const years = year.split('-').map((value) => parseInt(value.trim(), 10));
+		const currentYear = new Date().getFullYear();
+		const years = year
+			.split('-')
+			.map((value) => {
+				const trimmed = value.trim().toLowerCase();
+				if (trimmed === 'today' || trimmed === 'present' || trimmed === 'current') {
+					return currentYear;
+				}
+				const parsed = parseInt(trimmed, 10);
+				return Number.isNaN(parsed) ? currentYear : parsed;
+			});
 		return Math.max(...years);
 	};
 

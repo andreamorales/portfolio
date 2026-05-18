@@ -534,8 +534,14 @@
 		void submitCommand(snapshot);
 	}
 
+	let prevMobileHistoryLength = 0;
+
 	afterUpdate(() => {
-		if (historyEl) {
+		const historyGrew = history.length > prevMobileHistoryLength;
+		prevMobileHistoryLength = history.length;
+		const isTyping = history.some((h) => !h.typingComplete);
+
+		if (historyEl && (historyGrew || isTyping)) {
 			historyEl.scrollTop = historyEl.scrollHeight;
 		}
 
