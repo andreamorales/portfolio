@@ -124,26 +124,33 @@
 		splitContainerEl = (e.currentTarget as HTMLElement).parentElement;
 		(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
 		e.preventDefault();
+		e.stopPropagation();
 	}
 
 	function onSplitPointerMove(e: PointerEvent) {
 		if (!isDraggingSplit || !splitContainerEl) return;
+		e.stopPropagation();
 		const rect = splitContainerEl.getBoundingClientRect();
 		const x = e.clientX - rect.left;
 		const pct = (x / rect.width) * 100;
 		splitRatio = Math.max(20, Math.min(80, pct));
 	}
 
-	function onSplitPointerUp() {
+	function onSplitPointerUp(e?: PointerEvent) {
 		isDraggingSplit = false;
 		splitContainerEl = null;
+		e?.stopPropagation();
 	}
 
 	function resetSplitRatio() {
 		splitRatio = 50;
 	}
 
-	$: currentSlide, resetSplitRatio();
+	let prevSlide = currentSlide;
+	$: if (currentSlide !== prevSlide) {
+		prevSlide = currentSlide;
+		resetSplitRatio();
+	}
 
 	$: textPanePct = layout === 'text-right' ? 100 - splitRatio : splitRatio;
 	$: textCollapsed = hasImage && textPanePct < 38;
@@ -182,7 +189,7 @@
 
 		<!-- Prev nav overlay -->
 		{#if !isFirstSlide}
-			<button class="slide-nav slide-nav--prev" on:click={prev} aria-label="Previous slide">
+			<button class="slide-nav slide-nav--prev" class:slide-nav--disabled={isDraggingSplit} on:click={prev} aria-label="Previous slide">
 				<svg
 					class="slide-nav__icon"
 					xmlns="http://www.w3.org/2000/svg"
@@ -299,7 +306,7 @@
 
 		<!-- Next nav overlay (not shown on last slide) -->
 		{#if !isLastSlide}
-			<button class="slide-nav slide-nav--next" on:click={next} aria-label="Next slide">
+			<button class="slide-nav slide-nav--next" class:slide-nav--disabled={isDraggingSplit} on:click={next} aria-label="Next slide">
 				<svg
 					class="slide-nav__icon"
 					xmlns="http://www.w3.org/2000/svg"
@@ -582,6 +589,10 @@
 		cursor: default;
 	}
 
+	.slide-nav--disabled {
+		pointer-events: none;
+	}
+
 	.slide-nav__icon {
 		position: relative;
 		z-index: 1;
@@ -729,7 +740,7 @@
 		align-items: center;
 		justify-content: center;
 		position: relative;
-		z-index: 2;
+		z-index: 3;
 		touch-action: none;
 	}
 
