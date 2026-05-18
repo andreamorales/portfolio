@@ -786,8 +786,7 @@
 				return;
 			}
 			/* Portfolio list rows stay openable from any past --portfolio block, not only the latest command. */
-			const parsed =
-				getPortfolioIndexFromPointerEvent(e) ?? getPortfolioIndexFromNearbyClick(e);
+			const parsed = getPortfolioIndexFromPointerEvent(e) ?? getPortfolioIndexFromNearbyClick(e);
 			if (parsed !== null && portfolioDisplayEntries.length) {
 				const selected = portfolioDisplayEntries[parsed];
 				if (selected) {

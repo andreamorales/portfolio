@@ -228,43 +228,40 @@
 					class:layout-full-bleed={layout === 'full-bleed'}
 				>
 					{#if layout === 'full-bleed'}
-					<div class="slide-image-full">
+						<div class="slide-image-full">
 						{#if slide.video}
-							<!-- svelte-ignore a11y-media-has-caption -->
 							<video src={slide.video} autoplay loop muted playsinline />
 						{:else if hasImage}
 							<img src={slide.image} alt={slide.imageAlt || ''} />
 						{/if}
 					</div>
-					{:else if layout === 'image-only'}
-						{#if useIntroText}
-							<div class="slide-split">
-								<div class="slide-text-half">
-									{#if slide.title}
-										<h3 class="slide-title">{slide.title}</h3>
-									{/if}
-									{#each introSummaryParagraphs as para, sumIdx (`slide-sum-${sumIdx}`)}
-										<p class="slide-body">{para}</p>
-									{/each}
-								</div>
+				{:else if layout === 'image-only'}
+					{#if useIntroText}
+						<div class="slide-split">
+							<div class="slide-text-half">
+								{#if slide.title}
+									<h3 class="slide-title">{slide.title}</h3>
+								{/if}
+								{#each introSummaryParagraphs as para, sumIdx (`slide-sum-${sumIdx}`)}
+									<p class="slide-body">{para}</p>
+								{/each}
+							</div>
 							<div class="slide-image-half">
 								{#if slide.video}
-									<!-- svelte-ignore a11y-media-has-caption -->
 									<video src={slide.video} autoplay loop muted playsinline />
 								{:else if hasImage}
 									<img src={slide.image} alt={slide.imageAlt || ''} />
 								{/if}
 							</div>
-							</div>
-						{:else}
+						</div>
+					{:else}
 						<div class="slide-image-centered">
 							{#if slide.video}
-								<!-- svelte-ignore a11y-media-has-caption -->
 								<video src={slide.video} autoplay loop muted playsinline />
-							{:else if hasImage}
-								<img src={slide.image} alt={slide.imageAlt || ''} />
-							{/if}
-						</div>
+								{:else if hasImage}
+									<img src={slide.image} alt={slide.imageAlt || ''} />
+								{/if}
+							</div>
 						{/if}
 					{:else if layout === 'text-only'}
 						<div class="slide-text-full">
@@ -317,18 +314,17 @@
 								>
 									<span class="slide-split-handle__grip" aria-hidden="true"></span>
 								</button>
-							<div
-								class="slide-image-half"
-								class:slide-image-half--contain={imageExpanded}
-								style="flex: 0 0 {imageFirst ? splitRatio : 100 - splitRatio}%;"
-							>
+								<div
+									class="slide-image-half"
+									class:slide-image-half--contain={imageExpanded}
+									style="flex: 0 0 {imageFirst ? splitRatio : 100 - splitRatio}%;"
+								>
 								{#if slide.video}
-									<!-- svelte-ignore a11y-media-has-caption -->
 									<video src={slide.video} autoplay loop muted playsinline />
-								{:else}
-									<img src={slide.image} alt={slide.imageAlt || ''} />
-								{/if}
-							</div>
+									{:else}
+										<img src={slide.image} alt={slide.imageAlt || ''} />
+									{/if}
+								</div>
 							{/if}
 						</div>
 					{/if}
