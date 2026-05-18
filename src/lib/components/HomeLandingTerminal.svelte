@@ -70,6 +70,8 @@
 	let lastTypingStartedId: string | null = null;
 	/** Detect typingComplete edge so we focus the prompt once (not every afterUpdate). */
 	let prevLastEntrySnapshot: { id: string; typingComplete: boolean } | null = null;
+	let prevHistoryLength = 0;
+	let userHasScrolledUp = false;
 	let typingTimer: ReturnType<typeof setInterval> | null = null;
 	let bottomPromptVisible = false;
 	let showStartCaret = false;
@@ -196,36 +198,18 @@
 	}
 
 	/**
-	 * Fallback for clicks near a row (e.g. whitespace in the same line):
-	 * choose the closest rendered portfolio row in the same history block.
+	 * Fallback: if the click target wasn't directly on a portfolio row element,
+	 * check if it landed on a text node INSIDE a portfolio row (e.g. the space
+	 * between bullet and title). Only matches within the same row — never guesses
+	 * a distant row by Y-coordinate.
 	 */
-	function getClosestPortfolioRowIndexFromPointerEvent(e: MouseEvent): number | null {
+	function getPortfolioIndexFromNearbyClick(e: MouseEvent): number | null {
 		const el = getPointerTargetElement(e);
 		if (!el) return null;
-		const pre = el.closest('pre');
-		if (!pre) return null;
-		const rows = Array.from(
-			pre.querySelectorAll<HTMLElement>('.cli-t-portfolio-row[data-portfolio-index]')
-		);
-		if (!rows.length) return null;
-
-		const y = e.clientY;
-		let bestIndex: number | null = null;
-		let bestDistance = Number.POSITIVE_INFINITY;
-
-		for (const row of rows) {
-			const rect = row.getBoundingClientRect();
-			const parsed = Number.parseInt(row.dataset.portfolioIndex ?? '', 10);
-			if (Number.isNaN(parsed)) continue;
-			const distance = y < rect.top ? rect.top - y : y > rect.bottom ? y - rect.bottom : 0;
-			if (distance < bestDistance) {
-				bestDistance = distance;
-				bestIndex = parsed;
-				if (distance === 0) break;
-			}
-		}
-
-		return bestIndex;
+		const row = el.closest<HTMLElement>('.cli-t-portfolio-row[data-portfolio-index]');
+		if (!row) return null;
+		const parsed = Number.parseInt(row.dataset.portfolioIndex ?? '', 10);
+		return Number.isNaN(parsed) ? null : parsed;
 	}
 
 	function feedbackToPlainText(f: Feedback, items: PortfolioItem[]): string {
@@ -428,7 +412,9 @@
 		});
 
 		requestAnimationFrame(() => {
-			if (scrollLogEl) scrollLogEl.scrollTop = scrollLogEl.scrollHeight;
+			if (scrollLogEl && !userHasScrolledUp) {
+				scrollLogEl.scrollTop = scrollLogEl.scrollHeight;
+			}
 		});
 
 		const el = history.find((h) => h.id === entryId);
@@ -692,6 +678,19 @@
 		}
 	}
 
+	function handleScrollLogScroll() {
+		if (!scrollLogEl) return;
+		const atBottom =
+			scrollLogEl.scrollHeight - scrollLogEl.scrollTop - scrollLogEl.clientHeight < 30;
+		userHasScrolledUp = !atBottom;
+	}
+
+	let scrollLogListenerAttached = false;
+	$: if (scrollLogEl && !scrollLogListenerAttached) {
+		scrollLogEl.addEventListener('scroll', handleScrollLogScroll, { passive: true });
+		scrollLogListenerAttached = true;
+	}
+
 	onMount(() => {
 		window.addEventListener('keydown', onGlobalKeydown);
 		if (skipIntro) {
@@ -709,6 +708,9 @@
 
 	onDestroy(() => {
 		window.removeEventListener('keydown', onGlobalKeydown);
+		if (scrollLogEl) {
+			scrollLogEl.removeEventListener('scroll', handleScrollLogScroll);
+		}
 		clearTypingTimer();
 		for (const timer of introTimers) clearTimeout(timer);
 	});
@@ -725,7 +727,12 @@
 	}
 
 	afterUpdate(() => {
-		if (scrollLogEl && history.length) {
+		const historyGrew = history.length > prevHistoryLength;
+		prevHistoryLength = history.length;
+		const isTyping = history.some((h) => !h.typingComplete);
+
+		if (scrollLogEl && history.length && (historyGrew || isTyping)) {
+			userHasScrolledUp = false;
 			scrollLogEl.scrollTop = scrollLogEl.scrollHeight;
 		}
 
@@ -779,8 +786,7 @@
 				return;
 			}
 			/* Portfolio list rows stay openable from any past --portfolio block, not only the latest command. */
-			const parsed =
-				getPortfolioIndexFromPointerEvent(e) ?? getClosestPortfolioRowIndexFromPointerEvent(e);
+			const parsed = getPortfolioIndexFromPointerEvent(e) ?? getPortfolioIndexFromNearbyClick(e);
 			if (parsed !== null && portfolioDisplayEntries.length) {
 				const selected = portfolioDisplayEntries[parsed];
 				if (selected) {

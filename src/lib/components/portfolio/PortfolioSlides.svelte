@@ -25,7 +25,7 @@
 	$: slide = slides[dataIndex] ?? slides[0];
 	$: layout = slide?.layout ?? 'text-left';
 	$: hasText = !!(slide?.title || slide?.text);
-	$: hasImage = !!slide?.image;
+	$: hasImage = !!slide?.image || !!slide?.video;
 	$: isFirstSlide = currentSlide === 0;
 	$: useIntroText = dataIndex === 0 && introSummaryParagraphs.length > 0;
 	$: isLastSlide = currentSlide === totalSlides - 1;
@@ -229,30 +229,36 @@
 				>
 					{#if layout === 'full-bleed'}
 						<div class="slide-image-full">
-							{#if hasImage}
-								<img src={slide.image} alt={slide.imageAlt || ''} />
-							{/if}
-						</div>
-					{:else if layout === 'image-only'}
-						{#if useIntroText}
-							<div class="slide-split">
-								<div class="slide-text-half">
-									{#if slide.title}
-										<h3 class="slide-title">{slide.title}</h3>
-									{/if}
-									{#each introSummaryParagraphs as para, sumIdx (`slide-sum-${sumIdx}`)}
-										<p class="slide-body">{para}</p>
-									{/each}
-								</div>
-								<div class="slide-image-half">
-									{#if hasImage}
-										<img src={slide.image} alt={slide.imageAlt || ''} />
-									{/if}
-								</div>
+						{#if slide.video}
+							<video src={slide.video} autoplay loop muted playsinline />
+						{:else if hasImage}
+							<img src={slide.image} alt={slide.imageAlt || ''} />
+						{/if}
+					</div>
+				{:else if layout === 'image-only'}
+					{#if useIntroText}
+						<div class="slide-split">
+							<div class="slide-text-half">
+								{#if slide.title}
+									<h3 class="slide-title">{slide.title}</h3>
+								{/if}
+								{#each introSummaryParagraphs as para, sumIdx (`slide-sum-${sumIdx}`)}
+									<p class="slide-body">{para}</p>
+								{/each}
 							</div>
-						{:else}
-							<div class="slide-image-centered">
-								{#if hasImage}
+							<div class="slide-image-half">
+								{#if slide.video}
+									<video src={slide.video} autoplay loop muted playsinline />
+								{:else if hasImage}
+									<img src={slide.image} alt={slide.imageAlt || ''} />
+								{/if}
+							</div>
+						</div>
+					{:else}
+						<div class="slide-image-centered">
+							{#if slide.video}
+								<video src={slide.video} autoplay loop muted playsinline />
+								{:else if hasImage}
 									<img src={slide.image} alt={slide.imageAlt || ''} />
 								{/if}
 							</div>
@@ -313,7 +319,11 @@
 									class:slide-image-half--contain={imageExpanded}
 									style="flex: 0 0 {imageFirst ? splitRatio : 100 - splitRatio}%;"
 								>
-									<img src={slide.image} alt={slide.imageAlt || ''} />
+								{#if slide.video}
+									<video src={slide.video} autoplay loop muted playsinline />
+									{:else}
+										<img src={slide.image} alt={slide.imageAlt || ''} />
+									{/if}
 								</div>
 							{/if}
 						</div>
@@ -658,7 +668,8 @@
 		gap: var(--spacing-xs);
 	}
 
-	.slide-image-centered img {
+	.slide-image-centered img,
+	.slide-image-centered video {
 		max-width: 100%;
 		max-height: 100%;
 		object-fit: contain;
@@ -679,7 +690,8 @@
 		align-items: center;
 	}
 
-	.slide-image-full img {
+	.slide-image-full img,
+	.slide-image-full video {
 		width: 100%;
 		flex: 1;
 		min-height: 0;
@@ -741,7 +753,8 @@
 		overflow: hidden;
 	}
 
-	.slide-image-half img {
+	.slide-image-half img,
+	.slide-image-half video {
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
@@ -752,7 +765,8 @@
 		background: rgba(0, 0, 0, 0.04);
 	}
 
-	.slide-image-half--contain img {
+	.slide-image-half--contain img,
+	.slide-image-half--contain video {
 		object-fit: contain;
 		padding: var(--spacing-sm);
 	}
@@ -829,7 +843,8 @@
 			height: 340px;
 		}
 
-		.slide-image-half img {
+		.slide-image-half img,
+		.slide-image-half video {
 			max-height: none;
 			object-fit: cover;
 		}

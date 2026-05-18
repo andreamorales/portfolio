@@ -1,24 +1,27 @@
 import { writable } from 'svelte/store';
 import mostRecentEncrypted from '$lib/data/secure/most-recent1.encrypted.json';
 import mostRecent2Encrypted from '$lib/data/secure/most-recent2.encrypted.json';
+import mostRecent3Encrypted from '$lib/data/secure/most-recent3.encrypted.json';
 import mongodbCaptions from '$lib/data/transcripts/mongodb.captions.json';
-import mongodbVideoUrl from '$lib/videos/mongodb.mp4?url';
 import mongodbFirstFrameUrl from '$lib/images/video-posters/mongodb-first-frame.jpg?url';
 import laguilaCaptions from '$lib/data/transcripts/laguila.captions.json';
-import laguilaVideoUrl from '$lib/videos/laguila.mp4?url';
 import laguilaFirstFrameUrl from '$lib/images/video-posters/laguila-first-frame.jpg?url';
 import firehydrantCaptions from '$lib/data/transcripts/firehydrant.captions.json';
-import firehydrantVideoUrl from '$lib/videos/firehydrant.mp4?url';
 import firehydrantFirstFrameUrl from '$lib/images/video-posters/firehydrant-first-frame.jpg?url';
 import pantoCaptions from '$lib/data/transcripts/panto.captions.json';
-import pantoVideoUrl from '$lib/videos/panto.mp4?url';
 import pantoFirstFrameUrl from '$lib/images/video-posters/panto-first-frame.jpg?url';
 import robloxCaptions from '$lib/data/transcripts/roblox.captions.json';
-import robloxVideoUrl from '$lib/videos/roblox.mp4?url';
 import robloxFirstFrameUrl from '$lib/images/video-posters/roblox-first-frame.jpg?url';
 import torchCaptions from '$lib/data/transcripts/torch.captions.json';
-import torchVideoUrl from '$lib/videos/torch.mp4?url';
 import torchFirstFrameUrl from '$lib/images/video-posters/torch-first-frame.jpg?url';
+
+const R2 = 'https://pub-afd248cd0eb84c33899fa7d5a29a7835.r2.dev';
+const mongodbVideoUrl = `${R2}/mongodb.mp4`;
+const laguilaVideoUrl = `${R2}/laguila.mp4`;
+const firehydrantVideoUrl = `${R2}/firehydrant.mp4`;
+const pantoVideoUrl = `${R2}/panto.mp4`;
+const robloxVideoUrl = `${R2}/roblox.mp4`;
+const torchVideoUrl = `${R2}/torch.mp4`;
 import type { SecurePortfolioEncryptedPayload } from '$lib/utils/secureCaseStudy';
 
 interface PortfolioImage {
@@ -45,6 +48,7 @@ export interface SlideItem {
 	image?: string;
 	imageAlt?: string;
 	imageCaption?: string;
+	video?: string;
 	layout?: 'text-only' | 'image-only' | 'text-left' | 'text-right' | 'full-bleed';
 	/** Video timestamp (ms) at which this slide should become active. */
 	startMs?: number;
@@ -89,7 +93,26 @@ export interface PortfolioItem {
 
 const initialPortfolioItems = [
 	{
-		title: '█ █ █ █',
+		title: '█ █ █ █ #3',
+		slug: 'most-recent3',
+		tags: ['UX/UI', 'FRONTEND'],
+		expanded: false,
+		description:
+			'This portfolio piece is password protected until the accompanying case study is ready to publish.\n\nEnter the passphrase to read the narrative, artifacts, and outcomes.',
+		videoUrl: '',
+		quickNavThumbnail: '/images/portfolio/most-recent/thumbnail.svg',
+		images: [],
+		content: [],
+		year: '2025-today',
+		role: 'Pass Protected',
+		link: '',
+		metrics: [],
+		team: [],
+		locked: true,
+		encryptedPayload: mostRecent3Encrypted
+	},
+	{
+		title: '█ █ █ █ #2',
 		slug: 'most-recent2',
 		tags: ['UX/UI', 'FRONTEND'],
 		expanded: false,
@@ -108,7 +131,7 @@ const initialPortfolioItems = [
 		encryptedPayload: mostRecent2Encrypted
 	},
 	{
-		title: '█ █ █ █',
+		title: '█ █ █ █ #1',
 		slug: 'most-recent1',
 		tags: ['UX/UI', 'FRONTEND'],
 		expanded: false,
