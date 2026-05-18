@@ -18,6 +18,7 @@
 		"validate": "node ./scripts/validate.mjs",
 		"encrypt": "node ./scripts/encrypt-portfolio.mjs",
 		"encrypt:case-study": "node ./scripts/encrypt-case-study.mjs",
+		"encrypt": "node ./scripts/encrypt-most-recent.mjs",
 		"transcribe:video": "node ./scripts/transcribe-video.mjs"
 	},
 	"files": [
